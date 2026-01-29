@@ -142,7 +142,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
     return (
       <div
         id={`task-${task.id}`}
-        className={`p-3 md:p-4 bg-background rounded-lg border-l-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer touch-manipulation min-h-[80px] ${getPriorityColor(task.priority)} ${
+        className={`p-3 md:p-4 bg-card rounded-lg border-l-4 shadow-sm hover:shadow-md hover:translate-y-[-1px] transition-all duration-200 cursor-pointer touch-manipulation min-h-[80px] ${getPriorityColor(task.priority)} ${
           isHighlighted ? 'ring-2 ring-primary ring-offset-2 bg-primary/10' : ''
         } ${isDragging ? 'opacity-50 scale-95' : ''}`}
         draggable
@@ -314,7 +314,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
               className="space-y-4"
             >
               {/* Column Header */}
-              <Card className="bg-muted/30">
+              <Card className="bg-gradient-to-br from-muted/40 to-muted/20 border-primary/10 shadow-sm">
                 <CardContent className="p-3 md:p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
@@ -336,10 +336,10 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
 
               {/* Task Cards */}
               <div 
-                className={`space-y-3 min-h-[400px] p-2 rounded-lg border-2 border-dashed transition-colors ${
+                className={`space-y-3 min-h-[400px] p-2 rounded-lg border-2 border-dashed transition-all ${
                   dragOverColumn === column.id 
-                    ? 'border-primary bg-primary/5' 
-                    : 'border-border/50'
+                    ? 'border-primary bg-gradient-to-b from-primary/10 to-transparent shadow-inner' 
+                    : 'border-primary/20 bg-muted/10'
                 }`}
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -394,7 +394,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
         transition={{ duration: 0.3, delay: 0.2 }}
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
       >
-        <Card>
+        <Card className="bg-gradient-to-br from-card to-muted/20 border-primary/10 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -408,7 +408,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-gradient-to-br from-card to-muted/20 border-primary/10 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -422,7 +422,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-gradient-to-br from-card to-muted/20 border-primary/10 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -436,7 +436,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-gradient-to-br from-card to-muted/20 border-primary/10 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
