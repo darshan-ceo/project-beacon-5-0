@@ -157,7 +157,9 @@ class HelpDiscoveryService {
       const entries: HelpEntry[] = [];
 
       Object.entries(data.modules).forEach(([moduleName, moduleData]: [string, any]) => {
-        const types = ['buttons', 'fields', 'menu-items', 'cards', 'features'];
+        // Only load feature-level entries for discovery
+        // Button/field tooltips remain available via uiHelpService for in-context help
+        const types = ['features'];
         
         types.forEach(type => {
           if (moduleData[type]) {
