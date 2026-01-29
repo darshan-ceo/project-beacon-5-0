@@ -76,43 +76,45 @@ export const TaskHeader: React.FC<TaskHeaderProps> = ({ task, compact = false })
 
   if (compact) {
     return (
-      <div className="flex items-center gap-3 py-2 flex-wrap">
-        <Badge variant="secondary" className={cn('text-xs font-medium', statusConfig.color)}>
-          {statusConfig.label}
-        </Badge>
-        {task.assignedToName && (
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Avatar className="h-5 w-5">
-              <AvatarFallback className="text-[10px] bg-muted">
-                {getInitials(task.assignedToName)}
-              </AvatarFallback>
-            </Avatar>
-            <span className="hidden sm:inline">{task.assignedToName}</span>
-          </div>
-        )}
-        {task.dueDate && (
-          <div className={cn(
-            'flex items-center gap-1 text-sm',
-            dueStatus?.urgent ? 'text-destructive' : 'text-muted-foreground'
-          )}>
-            <Calendar className="h-3.5 w-3.5" />
-            <span>{format(new Date(task.dueDate), 'MMM d')}</span>
-            {dueStatus && (
-              <span className="text-xs">({dueStatus.text})</span>
-            )}
-          </div>
-        )}
-        {task.createdDate && (
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <CalendarPlus className="h-3.5 w-3.5" />
-            <span>Created: {format(new Date(task.createdDate), 'MMM d')}</span>
-          </div>
-        )}
-        {task.priority && (
-          <Badge variant="outline" className={cn('text-xs', priorityConfig.color)}>
-            {task.priority}
+      <div className="flex items-center gap-2 md:gap-3 py-2 overflow-x-auto scrollbar-thin pb-1">
+        <div className="flex items-center gap-2 md:gap-3 shrink-0">
+          <Badge variant="secondary" className={cn('text-[11px] md:text-xs font-medium whitespace-nowrap', statusConfig.color)}>
+            {statusConfig.label}
           </Badge>
-        )}
+          {task.assignedToName && (
+            <div className="flex items-center gap-1.5 text-xs md:text-sm text-muted-foreground shrink-0">
+              <Avatar className="h-5 w-5">
+                <AvatarFallback className="text-[10px] bg-muted">
+                  {getInitials(task.assignedToName)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="hidden sm:inline">{task.assignedToName}</span>
+            </div>
+          )}
+          {task.dueDate && (
+            <div className={cn(
+              'flex items-center gap-1 text-xs md:text-sm shrink-0',
+              dueStatus?.urgent ? 'text-destructive' : 'text-muted-foreground'
+            )}>
+              <Calendar className="h-3.5 w-3.5" />
+              <span className="whitespace-nowrap">{format(new Date(task.dueDate), 'MMM d')}</span>
+              {dueStatus && (
+                <span className="text-[10px] md:text-xs whitespace-nowrap">({dueStatus.text})</span>
+              )}
+            </div>
+          )}
+          {task.createdDate && (
+            <div className="hidden md:flex items-center gap-1 text-sm text-muted-foreground shrink-0">
+              <CalendarPlus className="h-3.5 w-3.5" />
+              <span className="whitespace-nowrap">Created: {format(new Date(task.createdDate), 'MMM d')}</span>
+            </div>
+          )}
+          {task.priority && (
+            <Badge variant="outline" className={cn('text-[11px] md:text-xs whitespace-nowrap', priorityConfig.color)}>
+              {task.priority}
+            </Badge>
+          )}
+        </div>
       </div>
     );
   }
