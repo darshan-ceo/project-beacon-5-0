@@ -148,6 +148,11 @@ export const HelpEntryCard: React.FC<HelpEntryCardProps> = ({
               <Icon className="h-4 w-4" />
             </div>
             <div className="flex-1 min-w-0">
+              {/* Parent context breadcrumb */}
+              <div className="text-[10px] text-muted-foreground mb-0.5">
+                {formatModule(entry.module)}
+                {entry.uiLocation?.tab && ` › ${entry.uiLocation.tab}`}
+              </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h4 className="font-medium text-sm leading-tight">{entry.title}</h4>
                 {entry.isNew && (

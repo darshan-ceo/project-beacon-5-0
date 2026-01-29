@@ -169,7 +169,7 @@ class HelpDiscoveryService {
               entries.push({
                 id: uniqueId,
                 title: item.label || item.tooltip?.title || item.id,
-                description: item.explanation || item.tooltip?.content || '',
+                description: item.explanation || '',
                 source: 'tooltip',
                 module: moduleName,
                 category: type.replace('-', ' '),
@@ -179,6 +179,8 @@ class HelpDiscoveryService {
                 updatedAt: item.updatedAt || data.lastUpdated || new Date().toISOString(),
                 tags: [type, moduleName, ...(item.tags || [])],
                 searchText: `${item.label} ${item.explanation} ${item.tooltip?.content || ''}`,
+                // Map rich tooltip content for detail dialog display
+                content: item.tooltip?.content || '',
                 learnMoreUrl: item.tooltip?.learnMoreUrl
               });
             });
