@@ -160,63 +160,45 @@ class NotificationSystemService {
     }
   ): Promise<Notification | null> {
     try {
-      const context = await this.getContext();
-      if (!context) {
-        log('error', 'createNotification', 'No auth context available');
-        return null;
-      }
-
-      // Dev logging: context and recipient info
-      log('info', 'createNotification:context', { 
-        contextUserId: context.userId, 
-        tenantId: context.tenantId,
+      // Use RPC call to SECURITY DEFINER function to bypass RLS timing issues
+      log('info', 'createNotification:rpc', { 
         recipientUserId: userId,
         type,
         title
       });
 
-      // Generate client-side UUID to avoid dependency on RETURNING/SELECT
-      const notificationId = crypto.randomUUID();
-      const createdAt = new Date().toISOString();
-
-      const notificationData = {
-        id: notificationId,
-        tenant_id: context.tenantId,
-        user_id: userId,
-        type,
-        title,
-        message,
-        related_entity_type: options?.relatedEntityType || null,
-        related_entity_id: options?.relatedEntityId || null,
-        channels: options?.channels || ['in_app'],
-        status: 'pending',
-        read: false,
-        metadata: options?.metadata || null,
-        created_at: createdAt,
-      };
-
-      // Insert WITHOUT .select() to avoid RLS SELECT policy blocking cross-user inserts
-      const { error } = await supabase
-        .from('notifications')
-        .insert(notificationData);
+      const { data: notificationId, error } = await supabase.rpc('create_notification', {
+        p_user_id: userId,
+        p_type: type,
+        p_title: title,
+        p_message: message,
+        p_related_entity_type: options?.relatedEntityType || null,
+        p_related_entity_id: options?.relatedEntityId || null,
+        p_channels: options?.channels || ['in_app'],
+        p_metadata: options?.metadata || null
+      });
 
       if (error) {
-        // Log specific error details for debugging
-        log('error', 'createNotification:insertFailed', { 
+        log('error', 'createNotification:rpcFailed', { 
           code: error.code, 
           message: error.message,
           hint: error.hint,
           details: error.details,
-          recipientUserId: userId,
-          contextUserId: context.userId
+          recipientUserId: userId
         });
         return null;
       }
 
-      // Build notification object from our known data (since we can't SELECT it back)
+      if (!notificationId) {
+        log('error', 'createNotification:noId', 'RPC returned no notification ID');
+        return null;
+      }
+
+      // Build notification object from our known data
+      const context = await this.getContext();
       const notification: Notification = {
         id: notificationId,
-        tenant_id: context.tenantId,
+        tenant_id: context?.tenantId || '',
         user_id: userId,
         type,
         title,
@@ -227,7 +209,7 @@ class NotificationSystemService {
         status: 'pending' as any,
         read: false,
         metadata: options?.metadata || null,
-        created_at: createdAt,
+        created_at: new Date().toISOString(),
       };
 
       log('success', 'createNotification', { 
@@ -237,8 +219,7 @@ class NotificationSystemService {
         recipientUserId: userId 
       });
 
-      // Show toast for in-app notifications (only to the creator, not recipient)
-      // Toast is shown locally; recipient will see via realtime/fetch
+      // Show toast for in-app notifications
       if (notification.channels.includes('in_app')) {
         toast({
           title: `Notification sent`,
