@@ -123,6 +123,23 @@ export const CreateTask: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [isLinkageExpanded, setIsLinkageExpanded] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Fetch current user on mount
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+    };
+    fetchCurrentUser();
+  }, []);
+
+  // Get creator info for display
+  const creatorEmployee = currentUserId ? state.employees.find(e => e.id === currentUserId) : null;
+  const creatorName = creatorEmployee?.full_name || 'You';
+  const creatorRole = creatorEmployee?.role || '';
 
   // Summary text for collapsed linkage state
   const linkageSummary = selectedClient 
@@ -373,6 +390,15 @@ export const CreateTask: React.FC = () => {
               </p>
             )}
           </div>
+          {/* Show who is creating the task */}
+          <div className="bg-muted/30 rounded-lg px-4 py-2 flex items-center gap-2 text-sm">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Creating as:</span>
+            <span className="font-medium">{creatorName}</span>
+            {creatorRole && (
+              <Badge variant="outline" className="text-xs">{creatorRole}</Badge>
+            )}
+          </div>
         </div>
         <Button
           variant="outline"
@@ -557,17 +583,17 @@ export const CreateTask: React.FC = () => {
               Task Settings
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {/* Assignee with Combobox + Category Auto-fill */}
+            {/* Assign To with Combobox + Category Auto-fill */}
             <div className="space-y-1.5 col-span-2 sm:col-span-1">
               <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <User className="h-3.5 w-3.5" />
-                Assignee
+                Assign To
               </Label>
               <EmployeeCombobox
                 employees={state.employees}
                 value={formData.assignedTo}
                 onValueChange={handleAssigneeChange}
-                placeholder="Select assignee..."
+                placeholder="Who will complete this?"
                 className="h-9"
               />
             </div>

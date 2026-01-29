@@ -266,7 +266,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <div className="flex items-center gap-1">
-                <Label htmlFor="assignee">Assigned To <span className="text-destructive">*</span></Label>
+                <Label htmlFor="assignee">Assign To <span className="text-destructive">*</span></Label>
                 <FieldTooltip formId="create-task" fieldId="assignee" />
               </div>
               <EmployeeSelector
@@ -284,7 +284,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                 showWorkload
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Assign responsible employee for this task
+                Who will complete this task? Can include managers, partners, or admins.
               </p>
             </div>
 

@@ -165,7 +165,7 @@ export const ActionItemModal: React.FC<ActionItemModalProps> = ({
                   <Label htmlFor="assignee">Assign To <span className="text-destructive">*</span></Label>
                   <Select value={formData.assignee} onValueChange={(value) => setFormData({ ...formData, assignee: value })}>
                     <SelectTrigger id="assignee">
-                      <SelectValue placeholder="Select assignee" />
+                      <SelectValue placeholder="Who will complete this?" />
                     </SelectTrigger>
                     <SelectContent>
                       {availableAssignees.map((assignee) => (
@@ -175,6 +175,9 @@ export const ActionItemModal: React.FC<ActionItemModalProps> = ({
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Can assign to any team member including managers and partners.
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="dueDate">Due Date <span className="text-destructive">*</span></Label>
