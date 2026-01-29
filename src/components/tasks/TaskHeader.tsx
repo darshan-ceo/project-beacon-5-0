@@ -2,11 +2,9 @@ import React from 'react';
 import { format } from 'date-fns';
 import { 
   Calendar, 
-  User, 
   Flag, 
   Clock,
   Briefcase,
-  ChevronRight,
   CalendarPlus
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -17,22 +15,21 @@ import { cn } from '@/lib/utils';
 
 interface TaskHeaderProps {
   task: Task;
-  compact?: boolean;
 }
 
-export const TaskHeader: React.FC<TaskHeaderProps> = ({ task, compact = false }) => {
+export const TaskHeader: React.FC<TaskHeaderProps> = ({ task }) => {
   const getPriorityConfig = (priority: string) => {
     switch (priority?.toLowerCase()) {
       case 'critical':
-        return { color: 'bg-destructive/10 text-destructive border-destructive/20', icon: '🔴' };
+        return { color: 'bg-destructive/10 text-destructive border-destructive/20' };
       case 'high':
-        return { color: 'bg-warning/10 text-warning border-warning/20', icon: '🟠' };
+        return { color: 'bg-warning/10 text-warning border-warning/20' };
       case 'medium':
-        return { color: 'bg-primary/10 text-primary border-primary/20', icon: '🟡' };
+        return { color: 'bg-primary/10 text-primary border-primary/20' };
       case 'low':
-        return { color: 'bg-success/10 text-success border-success/20', icon: '🟢' };
+        return { color: 'bg-success/10 text-success border-success/20' };
       default:
-        return { color: 'bg-muted text-muted-foreground', icon: '⚪' };
+        return { color: 'bg-muted text-muted-foreground' };
     }
   };
 
@@ -73,51 +70,6 @@ export const TaskHeader: React.FC<TaskHeaderProps> = ({ task, compact = false })
       .toUpperCase()
       .slice(0, 2);
   };
-
-  if (compact) {
-    return (
-      <div className="flex items-center gap-2 md:gap-3 py-2 overflow-x-auto scrollbar-thin pb-1">
-        <div className="flex items-center gap-2 md:gap-3 shrink-0">
-          <Badge variant="secondary" className={cn('text-[11px] md:text-xs font-medium whitespace-nowrap', statusConfig.color)}>
-            {statusConfig.label}
-          </Badge>
-          {task.assignedToName && (
-            <div className="flex items-center gap-1.5 text-xs md:text-sm text-muted-foreground shrink-0">
-              <Avatar className="h-5 w-5">
-                <AvatarFallback className="text-[10px] bg-muted">
-                  {getInitials(task.assignedToName)}
-                </AvatarFallback>
-              </Avatar>
-              <span className="hidden sm:inline">{task.assignedToName}</span>
-            </div>
-          )}
-          {task.dueDate && (
-            <div className={cn(
-              'flex items-center gap-1 text-xs md:text-sm shrink-0',
-              dueStatus?.urgent ? 'text-destructive' : 'text-muted-foreground'
-            )}>
-              <Calendar className="h-3.5 w-3.5" />
-              <span className="whitespace-nowrap">{format(new Date(task.dueDate), 'MMM d')}</span>
-              {dueStatus && (
-                <span className="text-[10px] md:text-xs whitespace-nowrap">({dueStatus.text})</span>
-              )}
-            </div>
-          )}
-          {task.createdDate && (
-            <div className="hidden md:flex items-center gap-1 text-sm text-muted-foreground shrink-0">
-              <CalendarPlus className="h-3.5 w-3.5" />
-              <span className="whitespace-nowrap">Created: {format(new Date(task.createdDate), 'MMM d')}</span>
-            </div>
-          )}
-          {task.priority && (
-            <Badge variant="outline" className={cn('text-[11px] md:text-xs whitespace-nowrap', priorityConfig.color)}>
-              {task.priority}
-            </Badge>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-3">
