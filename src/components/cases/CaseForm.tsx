@@ -67,6 +67,13 @@ export interface CaseFormData {
   financial_year: string;
   authorityId: string;
   city: string;
+  // Phase 5: Order & Appeal Milestone Fields
+  order_date: string;           // Date of adjudication order (DRC-07)
+  order_received_date: string;  // Date order was received (for deadline calc)
+  appeal_filed_date: string;    // Date appeal was filed
+  impugned_order_no: string;    // Order number being appealed
+  impugned_order_date: string;  // Date of impugned order
+  impugned_order_amount: string; // Amount in dispute
 }
 
 export interface CaseFormProps {
@@ -667,12 +674,16 @@ export const CaseForm: React.FC<CaseFormProps> = ({
                   <SelectValue placeholder="Select form type" />
                 </SelectTrigger>
                 <SelectContent className="z-[200] bg-popover" position="popper" sideOffset={5}>
+                  <SelectItem value="DRC-01A">DRC-01A (Pre-SCN Intimation)</SelectItem>
                   <SelectItem value="DRC-01">DRC-01 (Show Cause Notice)</SelectItem>
                   <SelectItem value="DRC-03">DRC-03 (Audit Intimation)</SelectItem>
                   <SelectItem value="DRC-07">DRC-07 (Order)</SelectItem>
+                  <SelectItem value="DRC-08">DRC-08 (Rectification)</SelectItem>
                   <SelectItem value="ASMT-10">ASMT-10 (Notice for Clarification)</SelectItem>
                   <SelectItem value="ASMT-11">ASMT-11 (Summary of Order)</SelectItem>
                   <SelectItem value="ASMT-12">ASMT-12 (Final Notice)</SelectItem>
+                  <SelectItem value="APL-01">APL-01 (Appeal Filed)</SelectItem>
+                  <SelectItem value="APL-05">APL-05 (Appeal Order)</SelectItem>
                   <SelectItem value="SCN">SCN (Show Cause Notice)</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
@@ -842,7 +853,123 @@ export const CaseForm: React.FC<CaseFormProps> = ({
         </CardContent>
       </Card>
 
-      {/* Section 9: Description */}
+      {/* Section 9: Order & Appeal Milestones (Visible for Adjudication and above) */}
+      {['Adjudication', 'First Appeal', 'Tribunal', 'High Court', 'Supreme Court'].includes(formData.currentStage) && (
+        <Card className="shadow-sm border border-primary/20">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <Scale className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Order & Appeal Milestones</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center gap-1 mb-2">
+                  <Label htmlFor="order_date">
+                    Order Date {formData.currentStage !== 'Assessment' && <span className="text-destructive">*</span>}
+                  </Label>
+                  <FieldTooltip formId="create-case" fieldId="order_date" />
+                </div>
+                <StandardDateInput
+                  id="order_date"
+                  value={formData.order_date}
+                  onChange={(value) => setFormData(prev => ({ ...prev, order_date: value }))}
+                  disabled={isDisabled}
+                  placeholder="Date of order (e.g., DRC-07)"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center gap-1 mb-2">
+                  <Label htmlFor="order_received_date">
+                    Order Received Date
+                  </Label>
+                  <FieldTooltip formId="create-case" fieldId="order_received_date" />
+                </div>
+                <StandardDateInput
+                  id="order_received_date"
+                  value={formData.order_received_date}
+                  onChange={(value) => setFormData(prev => ({ ...prev, order_received_date: value }))}
+                  disabled={isDisabled}
+                  placeholder="Date order was received"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center gap-1 mb-2">
+                  <Label htmlFor="impugned_order_no">
+                    Impugned Order Number
+                  </Label>
+                  <FieldTooltip formId="create-case" fieldId="impugned_order_no" />
+                </div>
+                <Input
+                  id="impugned_order_no"
+                  value={formData.impugned_order_no}
+                  onChange={(e) => setFormData(prev => ({ ...prev, impugned_order_no: e.target.value }))}
+                  disabled={isDisabled}
+                  placeholder="e.g., DRC-07/2025/001"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center gap-1 mb-2">
+                  <Label htmlFor="impugned_order_amount">
+                    Amount in Dispute (₹)
+                  </Label>
+                  <FieldTooltip formId="create-case" fieldId="impugned_order_amount" />
+                </div>
+                <Input
+                  id="impugned_order_amount"
+                  type="number"
+                  value={formData.impugned_order_amount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, impugned_order_amount: e.target.value }))}
+                  disabled={isDisabled}
+                  placeholder="Amount confirmed/disputed"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center gap-1 mb-2">
+                  <Label htmlFor="impugned_order_date">
+                    Impugned Order Date
+                  </Label>
+                  <FieldTooltip formId="create-case" fieldId="impugned_order_date" />
+                </div>
+                <StandardDateInput
+                  id="impugned_order_date"
+                  value={formData.impugned_order_date}
+                  onChange={(value) => setFormData(prev => ({ ...prev, impugned_order_date: value }))}
+                  disabled={isDisabled}
+                  placeholder="Date of impugned order"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center gap-1 mb-2">
+                  <Label htmlFor="appeal_filed_date">
+                    Appeal Filed Date
+                  </Label>
+                  <FieldTooltip formId="create-case" fieldId="appeal_filed_date" />
+                </div>
+                <StandardDateInput
+                  id="appeal_filed_date"
+                  value={formData.appeal_filed_date}
+                  onChange={(value) => setFormData(prev => ({ ...prev, appeal_filed_date: value }))}
+                  disabled={isDisabled}
+                  placeholder="Date appeal was filed"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Section 10: Description */}
       <Card className="shadow-sm border">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">

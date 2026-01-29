@@ -311,6 +311,19 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
             total_demand: c.total_demand || c.totalDemand || 0,
             // Hearing fields
             nextHearingDate: c.next_hearing_date || c.nextHearingDate,
+            // Phase 5: Order & Appeal Milestone Fields
+            orderDate: c.order_date || c.orderDate || '',
+            order_date: c.order_date || c.orderDate || '',
+            orderReceivedDate: c.order_received_date || c.orderReceivedDate || '',
+            order_received_date: c.order_received_date || c.orderReceivedDate || '',
+            appealFiledDate: c.appeal_filed_date || c.appealFiledDate || '',
+            appeal_filed_date: c.appeal_filed_date || c.appealFiledDate || '',
+            impugnedOrderNo: c.impugned_order_no || c.impugnedOrderNo || '',
+            impugned_order_no: c.impugned_order_no || c.impugnedOrderNo || '',
+            impugnedOrderDate: c.impugned_order_date || c.impugnedOrderDate || '',
+            impugned_order_date: c.impugned_order_date || c.impugnedOrderDate || '',
+            impugnedOrderAmount: c.impugned_order_amount || c.impugnedOrderAmount || 0,
+            impugned_order_amount: c.impugned_order_amount || c.impugnedOrderAmount || 0,
           };
           
           // Auto-calculate timeline breach status using SLA service
