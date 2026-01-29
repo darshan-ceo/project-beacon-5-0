@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { TaskMessage, CreateMessageData, TaskAttachment } from '@/types/taskMessages';
 import { toast } from 'sonner';
+import { notificationSystemService } from './notificationSystemService';
 
 class TaskMessagesService {
   async getMessagesByTaskId(taskId: string): Promise<TaskMessage[]> {
@@ -49,6 +50,14 @@ class TaskMessagesService {
     // If there's a status update, also update the task status
     if (messageData.statusUpdate) {
       await this.updateTaskStatus(taskId, messageData.statusUpdate);
+    }
+
+    // Update task's updated_at to reflect latest activity
+    await this.updateTaskTimestamp(taskId);
+
+    // Send notification to the task assignee (if not the sender) - skip for system messages
+    if (!messageData.isSystemMessage) {
+      await this.notifyTaskAssignee(taskId, userId, userName, messageData.message);
     }
 
     toast.success('Message sent');
@@ -111,6 +120,66 @@ class TaskMessagesService {
 
     if (error) {
       console.error('Error updating task status:', error);
+    }
+  }
+
+  private async updateTaskTimestamp(taskId: string): Promise<void> {
+    const { error } = await supabase
+      .from('tasks')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', taskId);
+
+    if (error) {
+      console.error('Error updating task timestamp:', error);
+    }
+  }
+
+  /**
+   * Notify task assignee about a new follow-up message
+   */
+  private async notifyTaskAssignee(
+    taskId: string, 
+    senderId: string, 
+    senderName: string, 
+    messagePreview: string
+  ): Promise<void> {
+    try {
+      // Fetch task to get assignee
+      const { data: task, error } = await supabase
+        .from('tasks')
+        .select('assigned_to, title')
+        .eq('id', taskId)
+        .single();
+
+      if (error || !task) {
+        console.error('Error fetching task for notification:', error);
+        return;
+      }
+
+      // Don't notify if sender is the assignee
+      if (!task.assigned_to || task.assigned_to === senderId) {
+        return;
+      }
+
+      // Create notification for the assignee
+      await notificationSystemService.createNotification(
+        'task_assigned', // Using existing type for task notifications
+        `New follow-up on: ${task.title}`,
+        `${senderName}: ${messagePreview.substring(0, 100)}${messagePreview.length > 100 ? '...' : ''}`,
+        task.assigned_to,
+        {
+          relatedEntityType: 'task',
+          relatedEntityId: taskId,
+          channels: ['in_app'],
+          metadata: {
+            taskId,
+            senderId,
+            senderName
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Error notifying task assignee:', error);
     }
   }
 

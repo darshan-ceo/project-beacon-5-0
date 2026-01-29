@@ -57,6 +57,7 @@ import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
 interface TaskDisplay extends Task {
   assignedTo: string;
   clientName?: string;
+  updatedAt?: string;
 }
 
 interface TaskListProps {
@@ -67,7 +68,7 @@ interface TaskListProps {
   onTaskClick?: (task: TaskDisplay) => void;
 }
 
-type SortField = 'title' | 'status' | 'priority' | 'dueDate' | 'createdDate' | 'assignedTo' | 'caseNumber';
+type SortField = 'title' | 'status' | 'priority' | 'dueDate' | 'createdDate' | 'updatedAt' | 'assignedTo' | 'caseNumber';
 type SortDirection = 'asc' | 'desc';
 
 const priorityOrder = { 'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1 };
@@ -90,8 +91,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   const navigate = useNavigate();
   const { hasPermission } = useAdvancedRBAC();
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
-  const [sortField, setSortField] = useState<SortField>('dueDate');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [sortField, setSortField] = useState<SortField>('updatedAt');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [density, setDensity] = useState<'compact' | 'comfortable'>('comfortable');
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [lockFilter, setLockFilter] = useState<'all' | 'locked' | 'unlocked'>('all');
@@ -131,6 +132,9 @@ export const TaskList: React.FC<TaskListProps> = ({
       } else if (sortField === 'createdDate') {
         aValue = a.createdDate ? new Date(a.createdDate).getTime() : 0;
         bValue = b.createdDate ? new Date(b.createdDate).getTime() : 0;
+      } else if (sortField === 'updatedAt') {
+        aValue = a.updatedAt ? new Date(a.updatedAt).getTime() : (a.createdDate ? new Date(a.createdDate).getTime() : 0);
+        bValue = b.updatedAt ? new Date(b.updatedAt).getTime() : (b.createdDate ? new Date(b.createdDate).getTime() : 0);
       }
 
       if (typeof aValue === 'string') {
