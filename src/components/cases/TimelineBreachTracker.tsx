@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { ActionItemModal } from '@/components/modals/ActionItemModal';
-import { getFormTimelineReport } from '@/services/reportsService';
+import { getFormTimelineReport, getTimelineBreachReport } from '@/services/reportsService';
+import { exportRows } from '@/utils/exporter';
 import { 
   AlertTriangle, 
   Clock, 
@@ -18,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Case as AppStateCase } from '@/contexts/AppStateContext';
+import { differenceInHours, differenceInDays, parseISO, isPast, isValid } from 'date-fns';
 
 interface Case {
   id: string;
@@ -50,43 +52,63 @@ const ALLOWED_FORMS = {
   'APL01_FIRST_APPEAL': { label: 'APL-01', timelineHours: 720 }
 } as const;
 
-const criticalCases = [
-  {
-    id: '1',
-    caseNumber: 'CASE-2024-001',
-    title: 'Tax Assessment Appeal - Acme Corp',
-    form: 'ASMT-12',
-    timeRemaining: '6 hours',
-    status: 'Red',
-    urgency: 'Critical'
-  },
-  {
-    id: '2',
-    caseNumber: 'CASE-2024-005',
-    title: 'GST Demand Notice - TechStart',
-    form: 'DRC-01',
-    timeRemaining: '18 hours',
-    status: 'Amber',
-    urgency: 'High'
-  },
-  {
-    id: '3',
-    caseNumber: 'CASE-2024-008',
-    title: 'Income Tax Assessment',
-    form: 'ASMT-10',
-    timeRemaining: '2 days',
-    status: 'Amber',
-    urgency: 'Medium'
+// Helper to calculate time remaining from a due date
+const calculateTimeRemaining = (dueDate: string | null | undefined): string => {
+  if (!dueDate) return 'No due date';
+  
+  try {
+    const due = typeof dueDate === 'string' ? parseISO(dueDate) : new Date(dueDate);
+    if (!isValid(due)) return 'Invalid date';
+    
+    const now = new Date();
+    
+    if (isPast(due)) {
+      const hoursOverdue = differenceInHours(now, due);
+      if (hoursOverdue < 24) return `${hoursOverdue}h overdue`;
+      const daysOverdue = differenceInDays(now, due);
+      return `${daysOverdue}d overdue`;
+    }
+    
+    const hoursRemaining = differenceInHours(due, now);
+    if (hoursRemaining < 24) return `${hoursRemaining} hours`;
+    const daysRemaining = differenceInDays(due, now);
+    return `${daysRemaining} days`;
+  } catch {
+    return 'Unknown';
   }
-];
+};
 
 export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ cases, selectedCase }) => {
   const [selectedCaseForAction, setSelectedCaseForAction] = useState<{ id: string; urgency: string } | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [timelineBreachMetrics, setTimelineBreachMetrics] = useState<TimelineBreachMetrics[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Filter cases for display based on selectedCase
   const displayedCases = selectedCase ? cases.filter(c => c.id === selectedCase.id) : cases;
+  
+  // Build critical cases from real data - filter for Red/Amber status
+  const criticalCases = useMemo(() => {
+    return cases
+      .filter(c => c.timelineBreachStatus === 'Red' || c.timelineBreachStatus === 'Amber')
+      .map(c => {
+        // Type assertion to access additional case properties
+        const fullCase = c as any;
+        const dueDate = fullCase.reply_due_date || fullCase.replyDueDate || fullCase.nextHearingDate;
+        const formType = fullCase.form_type || fullCase.formType || fullCase.currentStage || 'N/A';
+        
+        return {
+          id: c.id,
+          caseNumber: c.caseNumber,
+          title: c.title || `Case ${c.caseNumber}`,
+          form: formType,
+          timeRemaining: calculateTimeRemaining(dueDate),
+          status: c.timelineBreachStatus,
+          urgency: c.timelineBreachStatus === 'Red' ? 'Critical' : 'High'
+        };
+      })
+      .slice(0, 10); // Limit to top 10 most urgent
+  }, [cases]);
 
   useEffect(() => {
     const loadMetrics = async () => {
@@ -409,25 +431,59 @@ export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ ca
                   <Button 
                     variant="outline" 
                     size="sm"
+                    disabled={isExporting}
                     onClick={async () => {
+                      setIsExporting(true);
                       try {
-                        const { reportsService } = await import('@/services/reportsService');
-                        await reportsService.exportCaseList([], 'excel');
+                        // Fetch timeline breach report data
+                        const result = await getTimelineBreachReport({});
+                        
+                        if (!result.data || result.data.length === 0) {
+                          toast({
+                            title: "No Data",
+                            description: "No timeline breach data to export",
+                          });
+                          return;
+                        }
+                        
+                        // Export using the exporter utility with timeline-specific columns
+                        await exportRows({
+                          moduleKey: 'cases',
+                          rows: result.data.map((item: any) => ({
+                            caseNumber: item.caseId || item.caseNumber,
+                            title: item.caseTitle || item.title,
+                            client: item.client || 'Unknown',
+                            currentStage: item.stage || item.currentStage,
+                            replyDueDate: item.timelineDue,
+                            agingDays: item.agingDays,
+                            timelineBreachStatus: item.ragStatus,
+                            owner: item.owner || 'Unassigned',
+                            breached: item.breached ? 'Yes' : 'No'
+                          })),
+                          options: {
+                            filename: 'timeline-breach-report',
+                            sheetName: 'Timeline Breach Report'
+                          }
+                        });
+                        
                         toast({
-                          title: "Export Started",
-                          description: "Timeline breach report is being generated",
+                          title: "Export Complete",
+                          description: "Timeline breach report has been downloaded",
                         });
                       } catch (error) {
+                        console.error('Export error:', error);
                         toast({
                           title: "Export Failed",
                           description: "Failed to export timeline breach report",
                           variant: "destructive"
                         });
+                      } finally {
+                        setIsExporting(false);
                       }
                     }}
                   >
                     <FileText className="mr-2 h-4 w-4" />
-                    Export Report
+                    {isExporting ? 'Exporting...' : 'Export Report'}
                   </Button>
                   <Button 
                     variant="outline" 
