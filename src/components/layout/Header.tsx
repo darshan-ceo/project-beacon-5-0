@@ -106,10 +106,10 @@ export const Header: React.FC<HeaderProps> = ({ userId }) => {
         {/* Unified User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 px-2 h-11">
-              <Avatar className="h-10 w-10">
+            <Button variant="ghost" className="flex items-center gap-2 px-2 h-11 hover:bg-white/50 rounded-xl transition-all duration-200">
+              <Avatar className="h-10 w-10 ring-2 ring-primary/20 ring-offset-1">
                 <AvatarImage src={avatarUrl} alt={displayName} />
-                <AvatarFallback className="text-sm bg-primary/10 text-primary">
+                <AvatarFallback className="text-sm bg-gradient-to-br from-primary to-secondary text-primary-foreground font-semibold">
                   {getInitials(displayName)}
                 </AvatarFallback>
               </Avatar>

@@ -499,6 +499,28 @@ input[type="date"] {
     transition: all 0.2s ease-in-out;
   }
 
+  /* Vibrant Header 3D Effect */
+  .header-3d {
+    box-shadow: 
+      0 1px 2px hsl(222 47% 33% / 0.05),
+      0 4px 6px -1px hsl(222 47% 33% / 0.08),
+      0 8px 15px -3px hsl(222 47% 33% / 0.05);
+  }
+
+  .header-3d-strong {
+    box-shadow: 
+      0 1px 3px hsl(222 47% 33% / 0.08),
+      0 4px 8px -2px hsl(222 47% 33% / 0.12),
+      0 12px 20px -4px hsl(222 47% 33% / 0.08);
+  }
+
+  /* Frosted glass effect for header elements */
+  .glass-panel {
+    background: hsl(0 0% 100% / 0.8);
+    backdrop-filter: blur(8px);
+    border: 1px solid hsl(222 47% 33% / 0.1);
+  }
+
   /* Enhanced hover state for active items */
   .brand-active-sidebar:hover {
     background: linear-gradient(
