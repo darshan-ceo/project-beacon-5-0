@@ -7,7 +7,7 @@ import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { 
   Bell, CheckCheck, Trash2, FileText, Calendar, CheckSquare, FolderOpen, AlertCircle,
-  Clock, AlertTriangle, XCircle, CalendarPlus, CheckCircle2, Timer
+  Clock, AlertTriangle, XCircle, CalendarPlus, CheckCircle2, Timer, PartyPopper
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -129,10 +129,26 @@ export const NotificationList: React.FC<NotificationListProps> = ({
 
   if (notifications.length === 0) {
     return (
-      <div className="p-8 text-center">
-        <Bell className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-30" />
-        <p className="text-sm text-muted-foreground">No notifications</p>
-        <p className="text-xs text-muted-foreground mt-1">You're all caught up!</p>
+      <div className="flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/5 to-transparent">
+          <div className="flex items-center gap-2">
+            <Bell className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold text-sm">Notifications</h3>
+          </div>
+        </div>
+        {/* Empty State */}
+        <div className="p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 flex items-center justify-center">
+            <CheckCircle2 className="h-8 w-8 text-green-500" />
+          </div>
+          <h4 className="font-semibold text-foreground mb-1">All Caught Up!</h4>
+          <p className="text-sm text-muted-foreground">No new notifications</p>
+          <p className="text-xs text-green-600 dark:text-green-400 mt-2 flex items-center justify-center gap-1">
+            <PartyPopper className="h-3 w-3" />
+            You're doing great!
+          </p>
+        </div>
       </div>
     );
   }
@@ -140,8 +156,11 @@ export const NotificationList: React.FC<NotificationListProps> = ({
   return (
     <div className="flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <h3 className="font-semibold text-sm">Notifications</h3>
+      <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/5 to-transparent">
+        <div className="flex items-center gap-2">
+          <Bell className="h-4 w-4 text-primary" />
+          <h3 className="font-semibold text-sm">Notifications</h3>
+        </div>
         <div className="flex gap-2">
           {notifications.some(n => !n.read) && (
             <Button
