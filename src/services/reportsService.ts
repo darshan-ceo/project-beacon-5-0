@@ -736,7 +736,7 @@ export const reportsService = {
     }
   },
 
-  // Get form timeline reports with filters
+  // Get form timeline reports with filters - uses form_type column from cases
   getFormTimelineReport: async (filters: any): Promise<{ data: any[] }> => {
     try {
       const { storageManager } = await import('@/data/StorageManager');
@@ -747,7 +747,8 @@ export const reportsService = {
 
       const clientMap = new Map(clients.map((c: any) => [c.id, c.display_name || c.name || 'Unknown']));
 
-      let filteredCases = cases;
+      // Filter to active cases only
+      let filteredCases = cases.filter((c: any) => c.status !== 'Completed');
 
       if (filters.clientId) {
         filteredCases = filteredCases.filter((c: any) => (c.client_id || c.clientId) === filters.clientId);
@@ -757,60 +758,76 @@ export const reportsService = {
         filteredCases = filteredCases.filter((c: any) => (c.stage_code || c.currentStage) === filters.stage);
       }
 
-      const reportData: any[] = [];
-
+      // Group cases by form_type and calculate metrics
+      const formTypeGroups = new Map<string, any[]>();
+      
       filteredCases.forEach((caseItem: any) => {
-        if (caseItem.generatedForms && caseItem.generatedForms.length > 0) {
-          caseItem.generatedForms.forEach((form: any) => {
-            const submissionDate = form.generatedDate;
-            const daysElapsed = Math.floor(
-              (new Date().getTime() - new Date(submissionDate).getTime()) / (1000 * 60 * 60 * 24)
-            );
-
-            let status: 'On Time' | 'Delayed' | 'Pending' = 'Pending';
-            let ragStatus: 'Green' | 'Amber' | 'Red' = 'Green';
-
-            if (form.status === 'Generated' || form.status === 'Uploaded') {
-              if (daysElapsed <= 3) {
-                status = 'On Time';
-                ragStatus = 'Green';
-              } else if (daysElapsed <= 7) {
-                status = 'On Time';
-                ragStatus = 'Amber';
-              } else {
-                status = 'Delayed';
-                ragStatus = 'Red';
-              }
-            }
-
-            reportData.push({
-              id: `${caseItem.id}-${form.formCode}`,
-              formCode: form.formCode,
-              formTitle: form.formCode.replace(/_/g, '-'),
-              caseId: caseItem.id,
-              caseNumber: caseItem.case_number || caseItem.caseNumber || 'N/A',
-              caseTitle: caseItem.title,
-              client: clientMap.get(caseItem.client_id || caseItem.clientId) || 'Unknown',
-              stage: caseItem.stage_code || caseItem.currentStage || 'Unknown',
-              submissionDate,
-              dueDate: undefined,
-              status,
-              daysElapsed,
-              ragStatus,
-            });
-          });
+        const formType = caseItem.form_type || caseItem.formType || 'Unknown';
+        if (formType === 'Unknown' || !formType) return; // Skip cases without form type
+        
+        if (!formTypeGroups.has(formType)) {
+          formTypeGroups.set(formType, []);
         }
+        formTypeGroups.get(formType)!.push(caseItem);
       });
 
-      if (filters.dateRange) {
-        const { start, end } = filters.dateRange;
-        return {
-          data: reportData.filter((r: any) => {
-            const subDate = new Date(r.submissionDate);
-            return subDate >= new Date(start) && subDate <= new Date(end);
-          })
-        };
-      }
+      const reportData: any[] = [];
+
+      // Calculate metrics per form type
+      formTypeGroups.forEach((casesInGroup, formType) => {
+        // Calculate based on timeline breach status
+        const onTime = casesInGroup.filter(c => {
+          const status = c.timeline_breach_status || c.timelineBreachStatus;
+          return !status || status === 'Green';
+        }).length;
+        
+        const delayed = casesInGroup.filter(c => {
+          const status = c.timeline_breach_status || c.timelineBreachStatus;
+          return status === 'Red';
+        }).length;
+        
+        const atRisk = casesInGroup.filter(c => {
+          const status = c.timeline_breach_status || c.timelineBreachStatus;
+          return status === 'Amber';
+        }).length;
+
+        // Calculate average days elapsed for this form type
+        const totalDays = casesInGroup.reduce((sum, c) => {
+          const createdDate = new Date(c.created_at || c.createdDate);
+          const daysElapsed = Math.floor(
+            (new Date().getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24)
+          );
+          return sum + daysElapsed;
+        }, 0);
+        const avgDaysElapsed = casesInGroup.length > 0 ? Math.round(totalDays / casesInGroup.length) : 0;
+
+        // Determine overall status and RAG
+        let status: 'On Time' | 'Delayed' | 'Pending' = 'On Time';
+        let ragStatus: 'Green' | 'Amber' | 'Red' = 'Green';
+        
+        if (delayed > 0) {
+          status = 'Delayed';
+          ragStatus = 'Red';
+        } else if (atRisk > 0) {
+          ragStatus = 'Amber';
+        }
+
+        reportData.push({
+          id: formType,
+          formCode: formType,
+          formTitle: formType,
+          totalCases: casesInGroup.length,
+          onTime,
+          delayed,
+          atRisk,
+          status,
+          daysElapsed: avgDaysElapsed,
+          ragStatus,
+        });
+      });
+
+      // Sort by total cases descending
+      reportData.sort((a, b) => b.totalCases - a.totalCases);
 
       return { data: reportData };
     } catch (error) {
