@@ -14,7 +14,7 @@ export const HeaderDateTime: React.FC = () => {
   }, []);
 
   return (
-    <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-border/50">
+    <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-primary/10 shadow-sm">
       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <Calendar className="h-3.5 w-3.5" />
         <span className="font-medium">{format(now, 'EEE, MMM d')}</span>

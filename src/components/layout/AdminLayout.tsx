@@ -68,7 +68,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         {/* Main Content */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
           {/* Sticky Header with Sidebar Trigger + Portal Slot */}
-          <header className="sticky top-0 z-40 bg-background border-b border-border flex-shrink-0">
+          <header className="sticky top-0 z-40 flex-shrink-0 bg-gradient-to-r from-primary/5 via-card to-secondary/5 border-b border-primary/10 shadow-md backdrop-blur-sm">
             <div className="flex items-center gap-4 p-4">
               <SidebarTrigger className="text-foreground bg-background hover:bg-muted border border-border shadow-beacon-sm flex-shrink-0" />
               <Header userId={userId} />
@@ -78,7 +78,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </header>
           
           {/* Scrollable Content Area */}
-          <main className="flex-1 overflow-auto min-h-0">
+          <main className="flex-1 overflow-auto min-h-0 bg-muted/20">
             <div className="p-6">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
