@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { format } from 'date-fns';
 import { 
   MoreVertical,
   Trash2,
@@ -8,11 +7,12 @@ import {
   MessageSquare,
   Plus,
   ArrowLeft,
-  Edit
+  Edit,
+  CheckSquare
 } from 'lucide-react';
-import { TaskHeader } from './TaskHeader';
-import { CollapsibleDescription } from './CollapsibleDescription';
+import { TaskViewContent } from './TaskViewContent';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,10 +26,6 @@ import { TaskMessage, TaskAttachment, TaskStatusUpdate } from '@/types/taskMessa
 import { MessageBubble } from './MessageBubble';
 import { ComposeMessage } from './ComposeMessage';
 import { QuickStatusButton } from './QuickStatusButton';
-import { TaskStickyContextHeader } from './TaskStickyContextHeader';
-import { TaskDetailsPanel } from './TaskDetailsPanel';
-import { TaskInlineReferences } from './TaskInlineReferences';
-import { TaskActivityTimeline } from './TaskActivityTimeline';
 import { TaskEditSheet } from './TaskEditSheet';
 import { supabase } from '@/integrations/supabase/client';
 import { tasksService } from '@/services/tasksService';
@@ -55,7 +51,6 @@ export const TaskConversation: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Mode handling: 'view' (read-only), 'followup' (conversation with composer), 'edit' (task property form)
-  // Support both legacy ?edit=true and new ?mode=xxx params
   const mode = searchParams.get('mode') || (searchParams.get('edit') === 'true' ? 'followup' : 'view');
   const isViewMode = mode === 'view';
   const isFollowUpMode = mode === 'followup';
@@ -69,6 +64,10 @@ export const TaskConversation: React.FC = () => {
   const stateTask = state.tasks.find((t) => t.id === taskId);
   const task = stateTask || fetchedTask;
 
+  // Get linked client and case info
+  const linkedClient = task?.clientId ? state.clients.find(c => c.id === task.clientId) : null;
+  const linkedCase = task?.caseId ? state.cases.find(c => c.id === task.caseId) : null;
+
   // Fetch task from Supabase if not found in local state
   useEffect(() => {
     if (!taskId) {
@@ -76,14 +75,12 @@ export const TaskConversation: React.FC = () => {
       return;
     }
     
-    // If task exists in state, no need to fetch
     if (stateTask) {
       setIsTaskLoading(false);
       setFetchedTask(null);
       return;
     }
     
-    // Fetch directly from Supabase
     const fetchTask = async () => {
       setIsTaskLoading(true);
       try {
@@ -94,7 +91,6 @@ export const TaskConversation: React.FC = () => {
           .maybeSingle();
           
         if (!error && data) {
-          // Map snake_case to camelCase
           setFetchedTask({
             id: data.id,
             title: data.title,
@@ -130,7 +126,6 @@ export const TaskConversation: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUserId(user.id);
-        // Get tenantId from user metadata (primary) or profile (fallback)
         const userTenantId = user.user_metadata?.tenant_id;
         const profile = state.employees.find((e) => e.id === user.id);
         setCurrentUserName(profile?.full_name || user.email || 'User');
@@ -157,7 +152,6 @@ export const TaskConversation: React.FC = () => {
 
     loadMessages();
 
-    // Subscribe to real-time updates
     const channel = supabase
       .channel(`task-messages-${taskId}`)
       .on(
@@ -216,13 +210,11 @@ export const TaskConversation: React.FC = () => {
   ) => {
     if (!taskId || !task) return;
 
-    // Validate tenantId before sending
     if (!tenantId) {
       toast.error('Unable to send message. Please refresh and try again.');
       return;
     }
 
-    // Handle assignee change if provided
     if (assigneeChange && assigneeChange.id) {
       try {
         await tasksService.update(taskId, { 
@@ -230,7 +222,6 @@ export const TaskConversation: React.FC = () => {
           assignedToName: assigneeChange.name 
         }, dispatch);
         
-        // Create system message for reassignment
         await taskMessagesService.createMessage(
           taskId,
           tenantId,
@@ -248,7 +239,6 @@ export const TaskConversation: React.FC = () => {
       }
     }
     
-    // Send the regular message
     if (message || attachments.length > 0 || statusUpdate) {
       await taskMessagesService.createMessage(
         taskId,
@@ -263,7 +253,6 @@ export const TaskConversation: React.FC = () => {
   const handleQuickStatusChange = async (newStatus: string) => {
     if (!task || !taskId) return;
     
-    // Validate tenantId before updating
     if (!tenantId) {
       toast.error('Unable to update status. Please refresh and try again.');
       return;
@@ -273,7 +262,6 @@ export const TaskConversation: React.FC = () => {
     try {
       await tasksService.update(taskId, { status: newStatus as any }, dispatch);
       
-      // Create a system message for the status change
       await taskMessagesService.createMessage(
         taskId,
         tenantId,
@@ -296,7 +284,6 @@ export const TaskConversation: React.FC = () => {
   const handleDeleteTask = async () => {
     if (!task || !taskId) return;
     
-    // RBAC permission check
     if (!canDeleteTasks) {
       toast.error("You don't have permission to delete tasks");
       return;
@@ -307,15 +294,11 @@ export const TaskConversation: React.FC = () => {
         await tasksService.delete(taskId, dispatch);
         navigate('/tasks');
       } catch (error: any) {
-        // Error already handled by tasksService with toast
-        // Just log for debugging
         console.error('Error deleting task:', error);
-        // Don't navigate away - task still exists
       }
     }
   };
 
-  // Show loading while task is being fetched
   if (isTaskLoading) {
     return (
       <div className="h-full flex items-center justify-center bg-background">
@@ -342,9 +325,9 @@ export const TaskConversation: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-muted/30">
-      {/* Compact Header with Gradient */}
-      <div className="border-b bg-gradient-to-r from-card via-card to-muted/50 shadow-sm">
+    <div className="h-full flex flex-col bg-muted/20">
+      {/* Clean Single-Row Header */}
+      <div className="sticky top-0 z-20 border-b bg-card shadow-sm">
         <div className="px-3 md:px-4 py-2.5 md:py-3 flex items-center gap-2 md:gap-3">
           <Button
             variant="ghost"
@@ -355,9 +338,9 @@ export const TaskConversation: React.FC = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
 
-          <div className="flex-1 min-w-0">
-            <h1 className="text-base md:text-lg font-semibold truncate">{task.title}</h1>
-          </div>
+          <CheckSquare className="h-5 w-5 text-primary shrink-0" />
+
+          <h1 className="flex-1 text-base md:text-lg font-semibold truncate">{task.title}</h1>
 
           <div className="flex items-center gap-2">
             {isFollowUpMode && (
@@ -389,56 +372,72 @@ export const TaskConversation: React.FC = () => {
             )}
           </div>
         </div>
-
-        {/* Task Meta Info */}
-        <div className="px-3 md:px-4 pb-2.5 md:pb-3 border-t border-border/50 pt-2.5 md:pt-3 bg-muted/20 overflow-x-auto scrollbar-thin">
-          <TaskHeader task={task} compact />
-        </div>
       </div>
 
-      {/* Collapsible Description */}
-      <CollapsibleDescription description={task.description || ''} />
+      {/* Main Content Area */}
+      <ScrollArea className="flex-1">
+        <div className="p-3 md:p-4 space-y-4 md:space-y-6">
+          {/* Task Overview & Linked Context Cards */}
+          <TaskViewContent 
+            task={task}
+            clientName={linkedClient?.name}
+            caseNumber={linkedCase?.caseNumber}
+            onNavigateToClient={linkedClient ? () => navigate(`/clients/${linkedClient.id}`) : undefined}
+            onNavigateToCase={linkedCase ? () => navigate(`/cases/${linkedCase.id}`) : undefined}
+          />
 
-      {/* Messages - Chat Style */}
-      <ScrollArea className="flex-1 bg-background">
-        <div className="divide-y divide-border/50 px-2 md:px-4 py-2 space-y-1 md:space-y-2">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="text-center space-y-3">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />
-                <p className="text-sm text-muted-foreground">Loading conversation...</p>
+          {/* Card 3: Conversation */}
+          <Card className="shadow-sm border">
+            <CardHeader className="pb-3 md:pb-4">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-primary" />
+                <CardTitle className="text-base">
+                  Conversation {messages.length > 0 && `(${messages.length})`}
+                </CardTitle>
               </div>
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="text-center space-y-3">
-                <MessageSquare className="h-12 w-12 text-muted-foreground/50 mx-auto" />
-                <div>
-                  <p className="font-medium text-foreground">No messages yet</p>
-                  <p className="text-sm text-muted-foreground">
-                    {isEditMode 
-                      ? 'Start the conversation by adding an update below'
-                      : 'No updates have been added to this task yet'
-                    }
-                  </p>
-                </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-border/50 px-3 md:px-4">
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center space-y-3">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mx-auto" />
+                      <p className="text-sm text-muted-foreground">Loading conversation...</p>
+                    </div>
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center space-y-2">
+                      <MessageSquare className="h-10 w-10 text-muted-foreground/50 mx-auto" />
+                      <p className="font-medium text-foreground">No messages yet</p>
+                      <p className="text-sm text-muted-foreground">
+                        {isFollowUpMode 
+                          ? 'Start the conversation by adding an update below'
+                          : 'No updates have been added to this task yet'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-2 space-y-2">
+                    {messages.map((msg) => (
+                      <div key={msg.id} className="py-1">
+                        <MessageBubble
+                          message={msg}
+                          isOwnMessage={msg.createdBy === currentUserId}
+                        />
+                      </div>
+                    ))}
+                    <div ref={messagesEndRef} className="h-2" />
+                  </div>
+                )}
               </div>
-            </div>
-          ) : (
-            messages.map((msg) => (
-              <div key={msg.id} className="py-1">
-                <MessageBubble
-                  message={msg}
-                  isOwnMessage={msg.createdBy === currentUserId}
-                />
-              </div>
-            ))
-          )}
-          <div ref={messagesEndRef} className="h-4" />
+            </CardContent>
+          </Card>
         </div>
       </ScrollArea>
 
-      {/* Quick Compose Bar - Only show in follow-up mode */}
+      {/* Footer Actions */}
       {isFollowUpMode ? (
         <ComposeMessage
           onSend={handleSendMessage}
@@ -447,7 +446,6 @@ export const TaskConversation: React.FC = () => {
           taskId={taskId}
         />
       ) : (
-        /* Floating Action Buttons in View Mode */
         <div className="border-t bg-card p-3 md:p-4 flex flex-col sm:flex-row gap-2 sm:gap-3">
           <Button
             variant="outline"
@@ -469,14 +467,12 @@ export const TaskConversation: React.FC = () => {
         </div>
       )}
 
-      {/* Task Edit Sheet - Opens when mode=edit */}
+      {/* Task Edit Sheet */}
       <TaskEditSheet
         task={task}
         isOpen={isEditMode}
         onClose={() => navigate(`/tasks/${taskId}`)}
-        onSuccess={() => {
-          // Refresh happens via state update
-        }}
+        onSuccess={() => {}}
       />
     </div>
   );
