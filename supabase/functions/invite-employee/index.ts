@@ -337,6 +337,13 @@ serve(async (req) => {
 
       if (authError || !authUser.user) {
         console.error('[invite-employee] Auth error:', authError);
+        
+        // Detect leaked password error and provide clearer message
+        const errorMsg = authError?.message?.toLowerCase() || '';
+        if (errorMsg.includes('weak') && (errorMsg.includes('known') || errorMsg.includes('guess') || errorMsg.includes('easy'))) {
+          throw new Error('Password rejected: This password has appeared in a known data breach. Please use a unique, strong password with at least 12 characters including uppercase, lowercase, numbers, and symbols.');
+        }
+        
         throw new Error(`Failed to create user: ${authError?.message}`);
       }
 

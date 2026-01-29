@@ -7,12 +7,15 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Lock, CheckCircle } from 'lucide-react';
+import { getPasswordErrorMessage, PasswordErrorResult } from '@/utils/errorUtils';
+import { PasswordErrorAlert } from '@/components/ui/password-error-alert';
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [passwordError, setPasswordError] = useState<PasswordErrorResult | null>(null);
   const { updatePassword } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -39,32 +42,38 @@ export default function ResetPassword() {
     }
 
     setLoading(true);
+    setPasswordError(null);
 
     try {
       const { error } = await updatePassword(password);
 
       if (error) {
+        const errorInfo = getPasswordErrorMessage(error);
+        setPasswordError(errorInfo);
         toast({
-          title: 'Update Failed',
-          description: error.message,
+          title: errorInfo.title,
+          description: errorInfo.description,
           variant: 'destructive'
         });
-      } else {
-        setSuccess(true);
-        toast({
-          title: 'Password Updated',
-          description: 'Your password has been changed successfully.'
-        });
-        
-        // Redirect to dashboard after 2 seconds
-        setTimeout(() => {
-          navigate('/');
-        }, 2000);
+        return;
       }
-    } catch (error: any) {
+      
+      setSuccess(true);
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to update password',
+        title: 'Password Updated',
+        description: 'Your password has been changed successfully.'
+      });
+      
+      // Redirect to dashboard after 2 seconds
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
+    } catch (error: unknown) {
+      const errorInfo = getPasswordErrorMessage(error);
+      setPasswordError(errorInfo);
+      toast({
+        title: errorInfo.title,
+        description: errorInfo.description,
         variant: 'destructive'
       });
     } finally {
@@ -132,6 +141,15 @@ export default function ResetPassword() {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Updating...' : 'Update Password'}
               </Button>
+
+              {passwordError && (
+                <PasswordErrorAlert
+                  title={passwordError.title}
+                  description={passwordError.description}
+                  guidance={passwordError.guidance}
+                  className="mt-4"
+                />
+              )}
             </form>
           )}
         </CardContent>
