@@ -1,186 +1,145 @@
 
-# Plan: Clarify Task Assignment Model and Implement Best Practices
 
-## Understanding the User's Questions
+# Plan: Fix Two-Way Task Follow-Up Notifications
 
-Based on the screenshot and questions, there are multiple concerns:
+## Problem Identified
 
-1. **Why can't Staff assign to Admin?** - Currently no restriction exists; all active employees appear
-2. **Why only Staff appear?** - This is data-dependent (likely only Staff employees exist in test data)
-3. **Why is Assignee pre-filled?** - Current user is auto-defaulted
-4. **Why select other staff?** - Delegation feature for task assignment
-5. **Why no "Assigned By" field?** - System auto-captures the creator
+The current notification logic only works **one-way**:
 
-## Current Behavior Analysis
+| Scenario | Current Behavior | Expected Behavior |
+|----------|------------------|-------------------|
+| Admin → Mahesh (assignee) | Mahesh gets notified ✅ | ✅ Correct |
+| Mahesh (assignee) → Admin | **No notification** ❌ | Admin should be notified |
 
-| Component | Location | Current Filtering |
-|-----------|----------|-------------------|
-| `EmployeeCombobox` | CreateTask.tsx:566 | Active status only, NO role filter |
-| `EmployeeSelector` | TaskForm.tsx:272 | Active status only, NO role filter |
+### Root Cause
 
-**Result**: Both components show ALL active employees regardless of role (Admin, Partner, Manager, Staff, etc.)
-
-## The Core Confusion
-
-The field is labeled **"Assignee"** (who will do the work) but users confuse it with:
-- **"Assigned By"** (who created the task) - this is system-captured automatically
-- **"Owner"** (who is responsible) - not a separate concept here
-
-## Best Practice Recommendation
-
-### Simple, Unambiguous Model
-
-| Field | Purpose | UI Treatment |
-|-------|---------|--------------|
-| **Assignee** | Person responsible for completing the task | Dropdown showing ALL active employees (including Admin) |
-| **Created By** | Who created the task | Auto-captured, shown as read-only info |
-
-### Why Staff SHOULD Be Able to Assign to Admin
-
-In litigation practice, staff may need to:
-- Escalate complex matters to Admin/Partner
-- Assign review tasks to seniors
-- Delegate approvals to management
-
-**Restricting assignment by role would break workflow flexibility.**
-
-## Proposed Changes
-
-### 1. Rename Field for Clarity
-
-Change "Assignee" label to be clearer:
-
-```
-Before: "Assignee"
-After:  "Assign To" (with helper text: "Who will complete this task?")
-```
-
-### 2. Show "Created By" Information
-
-Add a read-only info block showing who created the task:
-
-```
-Created By: Mahesh (Staff) • [Current Date]
-```
-
-### 3. Verify All Roles Appear in Dropdown
-
-Currently `EmployeeCombobox` filters by `status === 'Active'` only. Verify that Admin/Partner employees are in the system and have `status: 'Active'`.
-
-### 4. Add Role Badge in Dropdown
-
-The dropdown already shows role badges - ensure Admin/Partner badges appear distinctly:
+In `taskMessagesService.ts`, the `notifyTaskAssignee()` function:
 
 ```typescript
-// In EmployeeCombobox, enhance role badge styling:
-<Badge 
-  variant={employee.role === 'Admin' ? 'destructive' : 
-           employee.role === 'Partner' ? 'default' : 'outline'}
-  className="text-[10px] px-1 py-0 h-4"
->
-  {employee.role}
-</Badge>
+// Line 159-162
+if (!task.assigned_to || task.assigned_to === senderId) {
+  return;  // When Mahesh sends, this exits early because he IS the assignee
+}
 ```
 
-## Implementation Details
+The function only considers notifying the **assignee** but ignores notifying the **task creator** (`assigned_by`).
 
-### File 1: `src/pages/CreateTask.tsx`
+## Solution: Notify All Relevant Parties
 
-**Change 1**: Update field label (line ~562-564)
-```typescript
-// Before
-<Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-  <User className="h-3.5 w-3.5" />
-  Assignee
-</Label>
+### Logic Change
 
-// After
-<Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-  <User className="h-3.5 w-3.5" />
-  Assign To
-</Label>
+Update notification to work bi-directionally:
+
+```text
+IF sender IS the assignee:
+   → Notify the task creator (assigned_by)
+   
+IF sender is NOT the assignee:
+   → Notify the assignee (assigned_to)
 ```
 
-**Change 2**: Add "Creating as" info block after header (line ~375)
-```typescript
-{/* Show who is creating */}
-<div className="bg-muted/30 rounded-lg px-4 py-2 flex items-center gap-2 text-sm">
-  <User className="h-4 w-4 text-muted-foreground" />
-  <span className="text-muted-foreground">Creating as:</span>
-  <span className="font-medium">{creatorName}</span>
-  <Badge variant="outline" className="text-xs">{creatorRole}</Badge>
-</div>
-```
+### Implementation
 
-### File 2: `src/components/ui/employee-combobox.tsx`
+**File: `src/services/taskMessagesService.ts`**
 
-**Change**: Enhance role badge visibility for senior roles (line ~180)
+Update the `notifyTaskAssignee` method to:
+
+1. Fetch both `assigned_to` AND `assigned_by` from the task
+2. Determine the correct recipient based on who sent the message
+3. Send notification to the appropriate party
+
 ```typescript
-{showRole && employee.role && (
-  <Badge 
-    variant={
-      employee.role === 'Admin' ? 'destructive' : 
-      employee.role === 'Partner' ? 'default' : 
-      'outline'
+private async notifyTaskAssignee(
+  taskId: string, 
+  senderId: string, 
+  senderName: string, 
+  messagePreview: string
+): Promise<void> {
+  try {
+    // Fetch task to get assignee AND creator
+    const { data: task, error } = await supabase
+      .from('tasks')
+      .select('assigned_to, assigned_by, title')
+      .eq('id', taskId)
+      .single();
+
+    if (error || !task) {
+      console.error('Error fetching task for notification:', error);
+      return;
     }
-    className="text-[10px] px-1 py-0 h-4"
-  >
-    {employee.role}
-  </Badge>
-)}
+
+    // Determine notification recipient:
+    // - If sender is the assignee → notify the creator (assigned_by)
+    // - If sender is not the assignee → notify the assignee
+    let recipientId: string | null = null;
+    
+    if (task.assigned_to === senderId) {
+      // Sender is the assignee, notify the task creator
+      recipientId = task.assigned_by;
+    } else {
+      // Sender is not the assignee, notify the assignee
+      recipientId = task.assigned_to;
+    }
+
+    // Don't notify if no recipient or sender is the recipient
+    if (!recipientId || recipientId === senderId) {
+      return;
+    }
+
+    // Create notification for the recipient
+    await notificationSystemService.createNotification(
+      'task_assigned',
+      `New follow-up on: ${task.title}`,
+      `${senderName}: ${messagePreview.substring(0, 100)}${messagePreview.length > 100 ? '...' : ''}`,
+      recipientId,
+      {
+        relatedEntityType: 'task',
+        relatedEntityId: taskId,
+        channels: ['in_app'],
+        metadata: {
+          taskId,
+          senderId,
+          senderName
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Error notifying task participant:', error);
+  }
+}
 ```
 
-### File 3: `src/components/tasks/TaskForm.tsx`
+## How It Works Now
 
-**Change**: Update label for consistency (line ~269)
-```typescript
-// Before
-<Label htmlFor="assignee">Assigned To <span className="text-destructive">*</span></Label>
+```text
+Task: "xxxxxxxxxxxxxxxx"
+├── assigned_by: Admin (906a6cbc-...)  ← Task creator
+└── assigned_to: Mahesh (dfb45acf-...) ← Task worker
 
-// After (add helper text)
-<Label htmlFor="assignee">Assign To <span className="text-destructive">*</span></Label>
-...
-<p className="text-xs text-muted-foreground mt-1">
-  Who will complete this task? Can be anyone including managers and admins.
-</p>
+SCENARIO 1: Admin sends follow-up
+├── senderId = Admin
+├── task.assigned_to = Mahesh ≠ Admin
+├── recipientId = Mahesh (assignee)
+└── ✅ Mahesh gets notified
+
+SCENARIO 2: Mahesh sends follow-up  
+├── senderId = Mahesh
+├── task.assigned_to = Mahesh = senderId
+├── recipientId = Admin (assigned_by)
+└── ✅ Admin gets notified
 ```
 
-## Data Verification Required
-
-The screenshot only shows Staff employees. We should verify:
-
-1. **Admin employees exist** in the database with `status: 'Active'`
-2. **Employee data is loaded** into `state.employees`
-3. **No additional filtering** is applied elsewhere
-
-Run this query to check:
-```sql
-SELECT id, full_name, role, status 
-FROM employees 
-WHERE status = 'Active'
-ORDER BY role, full_name;
-```
-
-## Summary of Changes
+## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/pages/CreateTask.tsx` | Add "Creating as" info, rename label to "Assign To" |
-| `src/components/ui/employee-combobox.tsx` | Enhance role badge colors for Admin/Partner |
-| `src/components/tasks/TaskForm.tsx` | Update label and add helper text |
-
-## Outcome
-
-After these changes:
-- **Clarity**: Users understand they are assigning work, not changing creator
-- **Flexibility**: Staff can assign to Admin/Partner when needed
-- **Visibility**: Creator info is displayed explicitly
-- **Professional**: Role badges help identify seniority at a glance
+| `src/services/taskMessagesService.ts` | Update `notifyTaskAssignee()` to also notify task creator |
 
 ## Testing Checklist
 
-1. Create task as Staff user
-2. Verify dropdown shows ALL active employees (including Admin/Partner)
-3. Verify "Creating as" info shows current user
-4. Assign task to Admin and verify it saves correctly
-5. View task and verify "Assigned By" shows Staff who created it
+1. Login as Admin, send follow-up on task assigned to Mahesh
+2. Verify Mahesh's notification bell shows the message
+3. Login as Mahesh (Staff), send follow-up reply
+4. Verify Admin's notification bell shows the message
+5. Verify self-messages don't create notifications (sender ≠ recipient)
+
