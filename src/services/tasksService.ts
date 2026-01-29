@@ -3,6 +3,7 @@ import { storageManager } from '@/data/StorageManager';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { auditService } from '@/services/auditService';
+import { notificationSystemService } from '@/services/notificationSystemService';
 
 export interface CreateTaskData {
   title: string;
@@ -115,6 +116,32 @@ class TasksService {
         }
       } catch (auditError) {
         console.warn('Failed to log audit event for task creation:', auditError);
+      }
+
+      // Send notification to assignee (if different from current user)
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (persistedTask.assignedToId && persistedTask.assignedToId !== currentUser?.id) {
+          await notificationSystemService.createNotification(
+            'task_assigned',
+            `New Task: ${persistedTask.title}`,
+            `You have been assigned a new task${persistedTask.caseNumber ? ` for case ${persistedTask.caseNumber}` : ''}. ${persistedTask.dueDate ? `Due: ${persistedTask.dueDate}` : ''}`,
+            persistedTask.assignedToId,
+            {
+              relatedEntityType: 'task',
+              relatedEntityId: persistedTask.id,
+              channels: ['in_app'],
+              metadata: { 
+                priority: persistedTask.priority, 
+                caseId: persistedTask.caseId,
+                assignedBy: currentUser?.id
+              }
+            }
+          );
+          console.log('[TasksService] Notification sent to assignee:', persistedTask.assignedToId);
+        }
+      } catch (notifError) {
+        console.warn('Failed to send notification for task assignment:', notifError);
       }
 
       return persistedTask;

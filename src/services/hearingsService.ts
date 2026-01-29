@@ -10,6 +10,7 @@ import { generateOutcomeTasks } from './hearingOutcomeTemplates';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { auditService } from '@/services/auditService';
+import { notificationSystemService } from '@/services/notificationSystemService';
 
 const isDev = import.meta.env.DEV;
 
@@ -277,6 +278,41 @@ export const hearingsService = {
         console.log(`[Hearings] Automation event emitted for hearing: ${newHearing.id}`);
       } catch (eventError) {
         console.error('[Hearings] Failed to emit automation event:', eventError);
+      }
+
+      // Send notification to case assignee about new hearing
+      try {
+        const appState = await loadAppState();
+        const relatedCase = appState.cases.find(c => c.id === data.case_id);
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        
+        // Get assignee ID using both possible property names (camelCase and snake_case)
+        const assigneeId = (relatedCase as any)?.assignedToId || (relatedCase as any)?.assigned_to || (relatedCase as any)?.assigned_to_id;
+        const caseNumber = (relatedCase as any)?.caseNumber || (relatedCase as any)?.case_number || 'Unknown';
+        
+        // Notify case assignee if different from current user
+        if (assigneeId && assigneeId !== currentUser?.id) {
+          await notificationSystemService.createNotification(
+            'hearing_scheduled',
+            `Hearing Scheduled: ${format(new Date(data.date), 'dd MMM yyyy')}`,
+            `A hearing has been scheduled for case ${caseNumber} on ${format(new Date(data.date), 'dd MMM yyyy')} at ${data.start_time || '10:00'}`,
+            assigneeId,
+            {
+              relatedEntityType: 'hearing',
+              relatedEntityId: newHearing.id,
+              channels: ['in_app'],
+              metadata: { 
+                caseId: data.case_id, 
+                hearingDate: data.date,
+                startTime: data.start_time,
+                scheduledBy: currentUser?.id
+              }
+            }
+          );
+          console.log(`[Hearings] Notification sent to case assignee: ${assigneeId}`);
+        }
+      } catch (notifError) {
+        console.warn('[Hearings] Failed to send notification for hearing scheduled:', notifError);
       }
 
       return newHearing;

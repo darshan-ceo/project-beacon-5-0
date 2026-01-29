@@ -24,6 +24,16 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ userId }) =>
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    if (!userId) return;
+
+    // Immediately fetch notifications on mount
+    const loadInitial = async () => {
+      const initial = await notificationSystemService.getNotifications(userId);
+      setNotifications(initial);
+      setUnreadCount(initial.filter(n => !n.read).length);
+    };
+    loadInitial();
+
     // Subscribe to notification updates via service
     const unsubscribe = notificationSystemService.subscribe((updatedNotifications) => {
       const userNotifications = updatedNotifications.filter(n => n.user_id === userId);

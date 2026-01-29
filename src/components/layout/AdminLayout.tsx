@@ -57,7 +57,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     return 'Staff' as const;
   }, [userProfile?.role]);
   
-  const userId = user?.id || userProfile?.full_name || 'user';
+  // Ensure we always pass a valid UUID to NotificationBell - never fallback to strings
+  const userId = user?.id || '';
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -75,7 +76,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 <Header />
               </div>
               <div className="flex items-center gap-2">
-                <NotificationBell userId={userId} />
+                {userId && <NotificationBell userId={userId} />}
               </div>
             </div>
             {/* Portal slot for StickyCaseActionBar - inside sticky header so it never scrolls */}
