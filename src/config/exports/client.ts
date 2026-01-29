@@ -43,7 +43,9 @@ export const CLIENT_EXPORT_COLUMNS: ExportColumn<Client>[] = [
     type: 'string',
     get: (client) => {
       if (typeof client.address === 'object' && client.address !== null) {
-        return (client.address as Address).state || 'N/A';
+        const addr = client.address as Address;
+        // Support both UnifiedAddress (stateName) and legacy (state)
+        return (addr as any).stateName || addr.state || 'N/A';
       }
       return 'N/A';
     }
@@ -182,7 +184,9 @@ export const CLIENT_EXPORT_COLUMNS: ExportColumn<Client>[] = [
     type: 'string',
     get: (client) => {
       if (typeof client.address === 'object' && client.address !== null) {
-        return (client.address as Address).city || 'N/A';
+        const addr = client.address as Address;
+        // Support both UnifiedAddress (cityName) and legacy (city)
+        return (addr as any).cityName || addr.city || 'N/A';
       }
       return 'N/A';
     }
@@ -193,7 +197,9 @@ export const CLIENT_EXPORT_COLUMNS: ExportColumn<Client>[] = [
     type: 'string',
     get: (client) => {
       if (typeof client.address === 'object' && client.address !== null) {
-        return (client.address as Address).state || 'N/A';
+        const addr = client.address as Address;
+        // Support both UnifiedAddress (stateName) and legacy (state)
+        return (addr as any).stateName || addr.state || 'N/A';
       }
       return 'N/A';
     }
@@ -215,7 +221,9 @@ export const CLIENT_EXPORT_COLUMNS: ExportColumn<Client>[] = [
     type: 'string',
     get: (client) => {
       if (typeof client.address === 'object' && client.address !== null) {
-        return (client.address as Address).country || 'India';
+        const addr = client.address as Address;
+        // Support both UnifiedAddress (countryName) and legacy (country)
+        return (addr as any).countryName || addr.country || 'India';
       }
       return 'India';
     }

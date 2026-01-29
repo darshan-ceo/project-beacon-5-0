@@ -1,6 +1,7 @@
 /**
  * AddressView Component
  * Read-only display component for enhanced address data
+ * Uses centralized addressUtils for formatting consistency
  */
 
 import React from 'react';
@@ -13,7 +14,7 @@ import { SourceChip, DataSource } from '@/components/ui/source-chip';
 import { EnhancedAddressData } from '@/services/addressMasterService';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-
+import { formatDisplayAddress as formatAddressUtil } from '@/utils/addressUtils';
 interface AddressViewProps {
   address: EnhancedAddressData | null;
   showSource?: boolean;
@@ -49,28 +50,19 @@ export const AddressView: React.FC<AddressViewProps> = ({
     fullAddress: address
   });
 
-  const formatDisplayAddress = (address: EnhancedAddressData): string => {
-    const parts = [
-      address.line1,
-      address.line2,
-      address.landmark,
-      address.locality,
-      address.district,
-      address.stateName,
-      address.pincode
-    ].filter(Boolean);
-
-    return parts.join(', ');
+  // Use centralized address formatting utility for consistency
+  const formatAddress = (addr: EnhancedAddressData): string => {
+    return formatAddressUtil(addr);
   };
 
   const copyToClipboard = () => {
-    const addressText = formatDisplayAddress(address);
+    const addressText = formatAddress(address);
     navigator.clipboard.writeText(addressText);
     toast.success('Address copied to clipboard');
   };
 
   const openInMaps = () => {
-    const addressText = formatDisplayAddress(address);
+    const addressText = formatAddress(address);
     const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(addressText)}`;
     window.open(mapsUrl, '_blank');
   };
@@ -79,7 +71,7 @@ export const AddressView: React.FC<AddressViewProps> = ({
     return (
       <div className={cn('flex items-start gap-2', className)}>
         <div className="flex-1 text-sm">
-          {formatDisplayAddress(address)}
+          {formatAddress(address)}
         </div>
         {showSource && (
           <SourceChip source={address.source} />
@@ -231,21 +223,8 @@ export const AddressDisplay: React.FC<AddressDisplayProps> = ({
     );
   }
 
-  const formatDisplayAddress = (address: EnhancedAddressData): string => {
-    const parts = [
-      address.line1,
-      address.line2,
-      address.landmark,
-      address.locality,
-      address.district,
-      address.stateName,
-      address.pincode
-    ].filter(Boolean);
-
-    return parts.join(', ');
-  };
-
-  const addressText = formatDisplayAddress(address);
+  // Use centralized address formatting utility
+  const addressText = formatAddressUtil(address);
   const displayText = addressText.length > maxLength 
     ? addressText.substring(0, maxLength) + '...'
     : addressText;

@@ -211,8 +211,9 @@ const MASTER_ENTITIES: EntityTestConfig[] = [
     updatePayload: { department: 'Legal' },
     requiredFields: ['full_name', 'employee_code', 'email', 'department', 'role'],
     skipCreate: true,
-    skipReason: 'Employees require auth provisioning (profile + auth.users FK)'
-    // No address verification for employees (uses legacy current_address/permanent_address)
+    skipReason: 'Employees require auth provisioning (profile + auth.users FK)',
+    // Enable JSONB address verification for employees
+    verifyFields: ['address']
   }
 ];
 
