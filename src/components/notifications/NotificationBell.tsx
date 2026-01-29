@@ -14,12 +14,14 @@ import { notificationSystemService } from '@/services/notificationSystemService'
 import { NotificationList } from './NotificationList';
 import { Notification } from '@/types/notification';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 
 interface NotificationBellProps {
   userId: string;
+  className?: string;
 }
 
-export const NotificationBell: React.FC<NotificationBellProps> = ({ userId }) => {
+export const NotificationBell: React.FC<NotificationBellProps> = ({ userId, className }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -86,7 +88,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ userId }) =>
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative"
+                className={cn("relative", className)}
                 aria-label={`Notifications (${unreadCount} unread)`}
               >
                 <Bell className="h-5 w-5" />

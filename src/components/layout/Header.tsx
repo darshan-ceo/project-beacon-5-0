@@ -22,8 +22,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { GlobalSearch } from '@/components/search/GlobalSearch';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { HeaderDateTime } from './HeaderDateTime';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  userId?: string;
+}
+
+export const Header: React.FC<HeaderProps> = ({ userId }) => {
   const { signOut, userProfile, user } = useAuth();
   const navigate = useNavigate();
 
@@ -67,14 +73,14 @@ export const Header: React.FC = () => {
   const isDevMode = envConfig.QA_ON || !envConfig.API_SET || envConfig.MOCK_ON;
 
   return (
-    <div className="flex items-center justify-between w-full">
+    <div className="flex items-center justify-between w-full gap-4">
       {/* Left Section - Global Search */}
-      <div className="flex items-center space-x-4 flex-1">
+      <div className="flex items-center flex-1 max-w-lg">
         <GlobalSearch />
       </div>
 
-      {/* Right Section */}
-      <div className="flex items-center gap-2 sm:gap-4">
+      {/* Right Section - Grouped items with uniform height */}
+      <div className="flex items-center gap-1 md:gap-2">
         {/* Dev Mode Badge - Hidden on mobile */}
         {isDevMode && (
           <Badge variant="destructive" className="hidden md:flex items-center gap-1 animate-pulse">
@@ -82,26 +88,39 @@ export const Header: React.FC = () => {
             DEV MODE
           </Badge>
         )}
+
+        {/* Date/Time Display - Hidden on mobile */}
+        <HeaderDateTime />
         
+        {/* Vertical Separator */}
+        <div className="hidden md:block h-8 w-px bg-border mx-1" />
+        
+        {/* Notification Bell - Larger touch target */}
+        {userId && (
+          <NotificationBell 
+            userId={userId} 
+            className="h-10 w-10"
+          />
+        )}
 
         {/* Unified User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 px-2 sm:px-3">
-              <Avatar className="h-8 w-8">
+            <Button variant="ghost" className="flex items-center gap-2 px-2 h-11">
+              <Avatar className="h-10 w-10">
                 <AvatarImage src={avatarUrl} alt={displayName} />
-                <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                <AvatarFallback className="text-sm bg-primary/10 text-primary">
                   {getInitials(displayName)}
                 </AvatarFallback>
               </Avatar>
               {/* User info - Hidden on mobile */}
               <div className="hidden lg:flex flex-col items-start">
-                <span className="text-sm font-medium">{displayName}</span>
-                <Badge className={`text-xs ${getRoleColor(userRole)}`}>
+                <span className="text-sm font-medium leading-tight">{displayName}</span>
+                <Badge className={`text-[10px] ${getRoleColor(userRole)}`}>
                   {userRole}
                 </Badge>
               </div>
-              <ChevronDown className="h-4 w-4 hidden sm:block" />
+              <ChevronDown className="h-4 w-4 hidden sm:block text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
