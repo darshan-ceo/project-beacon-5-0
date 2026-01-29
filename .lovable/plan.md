@@ -1,205 +1,232 @@
 
-# Plan: Fix Notification Bell - RLS Policy Insert Failure
 
-## Problem Summary
+# QC Report: Unified Contact Address Validation
 
-The notification bell shows "No notifications – You're all caught up!" because **notification inserts are being blocked by RLS policy**, as confirmed by database error logs:
+## Executive Summary
+
+| Category | Status | Details |
+|----------|--------|---------|
+| Single Source of Truth (SSOT) | **Partial** | Unified address architecture implemented but legacy compatibility layer exists |
+| CRUD Operations | **Pass with Gaps** | All entities support JSONB address; employees have partial legacy dependency |
+| Data Integrity | **Pass** | Validation, normalization, and serialization are centralized |
+| UI/UX Consistency | **Pass** | UnifiedAddressForm used across all modules |
+| Regression Risk | **Medium** | Export configs reference legacy Address interface |
+
+---
+
+## 1. Single Source of Truth (SSOT) Assessment
+
+### Architecture Components Found
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `UnifiedAddress` interface | `src/types/address.ts` | Canonical address schema |
+| `addressUtils.ts` | `src/utils/addressUtils.ts` | Normalization, serialization, validation |
+| `UnifiedAddressForm` | `src/components/ui/UnifiedAddressForm.tsx` | UI wrapper for address input |
+| `AddressForm` | `src/components/ui/AddressForm.tsx` | Legacy UI implementation (wrapped by UnifiedAddressForm) |
+
+### Database Schema Analysis
+
+| Table | JSONB Column | Legacy Columns | Status |
+|-------|--------------|----------------|--------|
+| `clients` | `address` (jsonb) | `city`, `state` (varchar) | SSOT with legacy fallback |
+| `courts` | `address_jsonb` (jsonb) | `address` (text), `city`, `state` (text) | Dual columns - needs cleanup |
+| `judges` | `address` (jsonb) | `city`, `state` (text) | SSOT with legacy fallback |
+| `employees` | `address` (jsonb) | `current_address`, `permanent_address` (text), `city`, `state`, `pincode` (varchar) | Multiple legacy fields - partial migration |
+| `client_contacts` | `address` (jsonb) | None | Fully migrated |
+
+### Compliance Status
+
+- **Clients**: SSOT implemented via JSONB `address` column with `normalizeAddress()` and `serializeAddress()` in service layer
+- **Courts**: Uses `address_jsonb` JSONB column; legacy `address` TEXT column still maintained for backward compatibility
+- **Judges**: SSOT implemented via JSONB `address` column with `parseDbAddress()` on read
+- **Employees**: Partial - JSONB `address` column added but service layer also references legacy `current_address`, `permanent_address`, `city`, `state`, `pincode` fields
+- **Client Contacts**: Fully migrated to JSONB `address` column
+
+### Issues Found
+
+1. **Duplicate Interface Definition**: `Address` interface in `AppStateContext.tsx` (lines 1100-1107) differs from `UnifiedAddress`:
+   ```typescript
+   // Legacy (AppStateContext.tsx)
+   interface Address {
+     line1: string;
+     line2?: string;
+     city: string;      // Uses 'city' not 'cityName'
+     state: string;     // Uses 'state' not 'stateName'
+     pincode: string;
+     country: string;   // Uses 'country' not 'countryName'
+   }
+   ```
+   This creates field naming inconsistency.
+
+2. **Courts Dual Columns**: The `courts` table has both `address` (TEXT) and `address_jsonb` (JSONB). The QC runner tests `address_jsonb`, but legacy code may still read from `address`.
+
+3. **Employees Legacy Fields**: The employees service layer (`employeesService.ts` line 244) writes to JSONB `address`, but the `getEmployeeAddress()` helper (lines 492-510) still falls back to legacy TEXT fields.
+
+---
+
+## 2. CRUD Operations Validation
+
+### Service Layer Implementation
+
+| Entity | Create | Read | Update | Delete | Address Handling |
+|--------|--------|------|--------|--------|------------------|
+| Clients | `serializeAddress()` | `normalizeAddress()` | `serializeAddress()` | N/A | Correct |
+| Courts | `serializeAddress()` | `parseDbAddress()` | `serializeAddress()` | N/A | Correct |
+| Judges | `normalizeAddress()` | `parseDbAddress()` | `serializeAddress()` | N/A | Correct |
+| Employees | `serializeAddress()` | Legacy fallback | `serializeAddress()` | N/A | Partial |
+| Client Contacts | `serializeAddress()` | `parseDbAddress()` | `serializeAddress()` | N/A | Correct |
+
+### QC Runner Verification
+
+The MastersQC runner (`src/pages/MastersQC.tsx`) includes `verify-address` operations for:
+- Clients (verifies `address` field)
+- Client Contacts (verifies `address` field)
+- Courts (verifies `address_jsonb` field)
+- Judges (verifies `address` field)
+- Employees (skipped - noted as using legacy fields)
+
+### Issues Found
+
+1. **Employee Address Read Not Fully Migrated**: The employee list/read operations in `employeesService.ts` do not explicitly use `parseDbAddress()` for the JSONB column - relies on the `getEmployeeAddress()` helper with legacy fallback.
+
+2. **Employees Excluded from QC Address Verification**: Line 214-215 in MastersQC.tsx explicitly skips address verification for employees with the comment "uses legacy current_address/permanent_address".
+
+---
+
+## 3. Data Integrity & Consistency
+
+### Validation Layer
+
+| Function | Location | Status |
+|----------|----------|--------|
+| `validateAddress()` | `addressUtils.ts` | Validates per module requirements |
+| `normalizeAddress()` | `addressUtils.ts` | Handles 15+ field name variants (snake_case, camelCase, legacy) |
+| `serializeAddress()` | `addressUtils.ts` | Consistent JSONB serialization |
+
+### Module-Specific Validation Rules
 
 ```
-ERROR: new row violates row-level security policy for table "notifications"
+ADDRESS_MODULE_CONFIGS defined for:
+- client: requires [line1, cityName, stateName, pincode]
+- court: requires [line1, cityName, stateName]
+- judge: requires [line1, cityName, stateName]
+- employee: requires [line1, cityName, stateName, pincode]
+- contact: requires [line1, cityName, stateName]
 ```
 
-## Root Cause Analysis
+### Pincode Validation
 
-### Database Evidence
-From Postgres logs at timestamp `1769682342004`:
-```sql
-error_severity: ERROR
-event_message: new row violates row-level security policy for table "notifications"
-```
+- 6-digit Indian pincode format enforced in `validateAddress()` (line 131)
+- Also enforced in legacy `clientsService.validatePincode()` (line 72-84)
 
-### Why the RLS Policy Fails
+**Status: PASS** - Validation is uniform and centralized.
 
-The current INSERT policy on `notifications` table is:
-```sql
-WITH CHECK (tenant_id = public.get_user_tenant_id())
-```
+---
 
-The `get_user_tenant_id()` function:
-```sql
-CREATE FUNCTION public.get_user_tenant_id()
-RETURNS uuid AS $$
-  SELECT tenant_id FROM profiles WHERE id = auth.uid()
-$$ LANGUAGE sql STABLE SECURITY DEFINER SET row_security TO 'off';
-```
+## 4. UI/UX Consistency
 
-**Failure scenarios:**
-1. **Session expiry** - If the user's JWT session expires between auth check and insert, `auth.uid()` returns NULL
-2. **Race condition** - If `getContext()` succeeds but the Supabase insert call happens after token refresh, the auth context might be misaligned
-3. **Async timing** - The notification creation is `async` and doesn't `await` the auth refresh before insert
+### Component Usage
 
-When `get_user_tenant_id()` returns NULL:
-- The check `tenant_id = NULL` evaluates to NULL (not TRUE)
-- RLS policy fails even though valid `tenant_id` is provided
+| Modal | Component Used | Mode Support | Status |
+|-------|----------------|--------------|--------|
+| ClientModal | `UnifiedAddressForm` | create/edit/view | Correct |
+| CourtModal | `UnifiedAddressForm` | create/edit/view | Correct |
+| JudgeForm | `UnifiedAddressForm` | create/edit/view | Correct |
+| EmployeeModalV2 | `UnifiedAddressForm` (x2) | create/edit | Correct (current + permanent) |
+| ContactModal | `UnifiedAddressForm` | create/edit | Correct |
 
-## Solution
+### Display Components
 
-### Option A: Make RLS Policy More Robust (Recommended)
-Update the INSERT policy to also allow inserts where the tenant_id matches any existing tenant that the creator belongs to:
+| Component | Purpose | Uses addressUtils? |
+|-----------|---------|-------------------|
+| `AddressView` | Read-only display (card format) | Has local `formatDisplayAddress()` |
+| `AddressDisplay` | Compact table display | Has local `formatDisplayAddress()` |
+| `AddressSummary` | Card preview display | Direct field access |
 
-```sql
--- Drop existing policy
-DROP POLICY IF EXISTS "Users can insert notifications for same tenant" ON notifications;
+**Issue**: `AddressView.tsx` defines its own `formatDisplayAddress()` function (line 52, 234) instead of importing from `addressUtils.ts`. This creates code duplication and potential inconsistency.
 
--- Create more robust policy
-CREATE POLICY "Users can insert notifications for same tenant" 
-ON notifications FOR INSERT
-WITH CHECK (
-  tenant_id = COALESCE(
-    public.get_user_tenant_id(),
-    -- Fallback: verify tenant exists and user is in that tenant
-    (SELECT tenant_id FROM profiles WHERE id = auth.uid())
-  )
-);
-```
+---
 
-Wait - this is redundant since `get_user_tenant_id()` already queries profiles. The real issue is that `auth.uid()` returns NULL.
+## 5. Regression & Side Effects
 
-### Option B: Add Service-Level Retry with Auth Refresh
-In `notificationSystemService.createNotification()`, add auth validation before insert:
+### Export Configuration
 
+The `src/config/exports/client.ts` references the legacy `Address` interface from AppStateContext:
 ```typescript
-async createNotification(...) {
-  // Force refresh auth session before insert
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    log('error', 'createNotification', 'No active session, cannot create notification');
-    return null;
-  }
-  
-  // Refresh if token is expiring soon (within 60 seconds)
-  const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
-  if (expiresAt - Date.now() < 60000) {
-    await supabase.auth.refreshSession();
-  }
-  
-  // Proceed with getContext() and insert...
-}
+import { Client, Address, Signatory } from '@/contexts/AppStateContext';
 ```
 
-### Option C: Use Database Trigger Instead of Direct Insert (Most Reliable)
-Create a database function with SECURITY DEFINER that bypasses RLS entirely:
+Export column getters access:
+- `(client.address as Address).state` (not `stateName`)
+- `(client.address as Address).city` (not `cityName`)
+- `(client.address as Address).country` (not `countryName`)
 
-```sql
-CREATE OR REPLACE FUNCTION public.create_notification(
-  p_user_id uuid,
-  p_type text,
-  p_title text,
-  p_message text,
-  p_related_entity_type text DEFAULT NULL,
-  p_related_entity_id uuid DEFAULT NULL,
-  p_channels text[] DEFAULT ARRAY['in_app'],
-  p_metadata jsonb DEFAULT NULL
-)
-RETURNS uuid
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-SET row_security = off
-AS $$
-DECLARE
-  v_tenant_id uuid;
-  v_notification_id uuid;
-BEGIN
-  -- Get caller's tenant
-  SELECT tenant_id INTO v_tenant_id FROM profiles WHERE id = auth.uid();
-  IF v_tenant_id IS NULL THEN
-    RAISE EXCEPTION 'Unable to determine tenant for current user';
-  END IF;
-  
-  -- Generate notification ID
-  v_notification_id := gen_random_uuid();
-  
-  -- Insert bypassing RLS
-  INSERT INTO notifications (
-    id, tenant_id, user_id, type, title, message,
-    related_entity_type, related_entity_id, channels, status, read, metadata, created_at
-  ) VALUES (
-    v_notification_id, v_tenant_id, p_user_id, p_type, p_title, p_message,
-    p_related_entity_type, p_related_entity_id, p_channels, 'pending', false, p_metadata, now()
-  );
-  
-  RETURN v_notification_id;
-END;
-$$;
+**Risk**: If address data is stored with `cityName`/`stateName` keys (per UnifiedAddress), exports will show "N/A".
 
--- Grant execute to authenticated users
-GRANT EXECUTE ON FUNCTION public.create_notification TO authenticated;
-```
+### Search & Filters
 
-Then update the service to call:
-```typescript
-const { data, error } = await supabase.rpc('create_notification', {
-  p_user_id: userId,
-  p_type: type,
-  p_title: title,
-  p_message: message,
-  p_related_entity_type: options?.relatedEntityType,
-  p_related_entity_id: options?.relatedEntityId,
-  p_channels: options?.channels || ['in_app'],
-  p_metadata: options?.metadata
-});
-```
+Not explicitly tested in this QC scope, but address-based filtering likely uses legacy field names.
 
-## Recommended Approach: Option C (Database Function)
+### Reports
 
-This is the most reliable because:
-1. SECURITY DEFINER ensures the function runs with elevated privileges
-2. SET row_security = off explicitly disables RLS for the insert
-3. Tenant validation happens inside the function, not via RLS policy
-4. No dependency on client-side auth token timing
+Timeline reports and other analytics may use legacy address field patterns.
 
 ---
 
-## Implementation Steps
+## 6. Specific Fix Recommendations
 
-### Step 1: Create Database Function
-Migration to create `create_notification` function with SECURITY DEFINER.
+### Priority 1: Critical
 
-### Step 2: Update Service
-Modify `notificationSystemService.createNotification()` to call `supabase.rpc('create_notification', ...)` instead of direct insert.
+| Issue | Fix | Files Affected |
+|-------|-----|----------------|
+| Duplicate Address Interface | Deprecate `Address` in AppStateContext, use `UnifiedAddress` everywhere | `AppStateContext.tsx`, `client.ts` (exports) |
+| Export Config Legacy References | Update getters to check `cityName || city`, `stateName || state` | `src/config/exports/client.ts` |
 
-### Step 3: Add Error Handling
-Add specific error handling for the RPC call with clear error messages.
+### Priority 2: High
+
+| Issue | Fix | Files Affected |
+|-------|-----|----------------|
+| AddressView Local Function | Import `formatDisplayAddress` from `addressUtils.ts` | `AddressView.tsx` |
+| Employee QC Verification | Add employee address JSONB verification to MastersQC | `MastersQC.tsx` |
+| Courts Dual Columns | Deprecate legacy `address` TEXT column; use only `address_jsonb` | `courtsService.ts`, database migration |
+
+### Priority 3: Medium
+
+| Issue | Fix | Files Affected |
+|-------|-----|----------------|
+| Employee Legacy Fallback | Migrate `getEmployeeAddress()` to prioritize JSONB only | `employeesService.ts` |
+| Employee Read Operation | Add explicit `parseDbAddress()` call in employee list/getById | `employeesService.ts` |
 
 ---
 
-## Files to Modify
+## 7. Modules Compliance Summary
 
-| File | Change Type | Description |
-|------|-------------|-------------|
-| Database Migration | Create | Add `create_notification` function with SECURITY DEFINER |
-| `src/services/notificationSystemService.ts` | Modify | Use `supabase.rpc()` instead of direct insert |
+| Module | SSOT | CRUD | UI | Overall |
+|--------|------|------|-----|---------|
+| Clients | Compliant | Compliant | Compliant | **PASS** |
+| Client Contacts | Compliant | Compliant | Compliant | **PASS** |
+| Courts | Partial (dual columns) | Compliant | Compliant | **PARTIAL - dual column cleanup needed** |
+| Judges | Compliant | Compliant | Compliant | **PASS** |
+| Employees | Partial (legacy fallback) | Partial | Compliant | **PARTIAL - legacy cleanup needed** |
 
 ---
 
-## Testing Checklist
+## 8. Completion Criteria Assessment
 
-1. **Create task assigned to another user**
-   - Login as User A
-   - Create task assigned to User B
-   - Verify notification row exists in database
-   
-2. **Verify notification appears for recipient**
-   - Login as User B
-   - Click notification bell
-   - Verify notification appears in list
+| Criterion | Status |
+|-----------|--------|
+| All address handling uses one unified source | **PARTIAL** - UnifiedAddress is canonical but legacy Address interface exists |
+| CRUD works flawlessly across all modules | **PARTIAL** - Employees have legacy read fallback |
+| No legacy or duplicate address implementations remain | **FAIL** - Legacy Address interface in AppStateContext, dual columns in courts, legacy TEXT fields in employees |
 
-3. **Verify RLS error is resolved**
-   - Check Postgres logs after test
-   - Confirm no RLS policy violation errors
+---
 
-4. **Session expiry scenario**
-   - Let session sit idle near expiry
-   - Create a task
-   - Verify notification still created (function bypasses RLS)
+## Next Steps
+
+1. Update export configurations to use normalized field names
+2. Deprecate legacy `Address` interface in AppStateContext
+3. Complete employee service migration to JSONB-only reads
+4. Add database migration to remove courts legacy `address` TEXT column
+5. Run full MastersQC with employee address verification enabled
+
