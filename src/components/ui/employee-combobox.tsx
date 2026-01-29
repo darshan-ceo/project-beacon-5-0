@@ -177,7 +177,15 @@ export function EmployeeCombobox({
                       <p className="text-sm font-medium truncate">{employee.full_name}</p>
                       <div className="flex items-center gap-1.5">
                         {showRole && employee.role && (
-                          <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
+                          <Badge 
+                            variant={
+                              employee.role === 'Admin' ? 'destructive' : 
+                              employee.role === 'Partner' ? 'default' : 
+                              employee.role === 'Manager' || employee.role === 'RM' ? 'secondary' :
+                              'outline'
+                            }
+                            className="text-[10px] px-1 py-0 h-4"
+                          >
                             {employee.role}
                           </Badge>
                         )}
