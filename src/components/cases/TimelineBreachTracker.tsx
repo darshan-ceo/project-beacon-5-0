@@ -3,8 +3,9 @@ import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { ActionItemModal } from '@/components/modals/ActionItemModal';
 import { getFormTimelineReport, getTimelineBreachReport } from '@/services/reportsService';
-import { exportRows } from '@/utils/exporter';
-import { 
+import { format } from 'date-fns';
+import * as XLSX from 'xlsx';
+import {
   AlertTriangle, 
   Clock, 
   CheckCircle,
@@ -44,12 +45,14 @@ interface TimelineBreachMetrics {
   timelineHours: number;
 }
 
-// Form type mappings
-const ALLOWED_FORMS = {
-  'ASMT10_REPLY': { label: 'ASMT-10', timelineHours: 72 },
-  'DRC1A_REPLY': { label: 'DRC-1A', timelineHours: 168 },
-  'DRC01_REPLY': { label: 'DRC-01', timelineHours: 168 },
-  'APL01_FIRST_APPEAL': { label: 'APL-01', timelineHours: 720 }
+// Form type display mappings (maps database form_type to display label and timeline)
+const FORM_TYPE_LABELS: Record<string, { label: string; timelineHours: number }> = {
+  'ASMT-10': { label: 'ASMT-10', timelineHours: 72 },
+  'DRC-01': { label: 'DRC-01', timelineHours: 168 },
+  'DRC-1A': { label: 'DRC-1A', timelineHours: 168 },
+  'APL-01': { label: 'APL-01', timelineHours: 720 },
+  'GSTR-3B': { label: 'GSTR-3B', timelineHours: 720 },
+  'SCN': { label: 'Show Cause Notice', timelineHours: 720 },
 } as const;
 
 // Helper to calculate time remaining from a due date
@@ -87,6 +90,32 @@ export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ ca
   // Filter cases for display based on selectedCase
   const displayedCases = selectedCase ? cases.filter(c => c.id === selectedCase.id) : cases;
   
+  // Calculate RAG counts dynamically from cases prop
+  const ragCounts = useMemo(() => {
+    const activeCases = cases.filter(c => (c as any).status !== 'Completed');
+    return {
+      green: activeCases.filter(c => 
+        !c.timelineBreachStatus || c.timelineBreachStatus === 'Green'
+      ).length,
+      amber: activeCases.filter(c => c.timelineBreachStatus === 'Amber').length,
+      red: activeCases.filter(c => c.timelineBreachStatus === 'Red').length,
+      total: activeCases.length
+    };
+  }, [cases]);
+
+  // Calculate overview statistics dynamically
+  const overviewStats = useMemo(() => {
+    const total = ragCounts.total;
+    const onTimeCount = ragCounts.green;
+    const criticalCount = ragCounts.red;
+    
+    return {
+      overallCompliance: total > 0 ? Math.round((onTimeCount / total) * 100) : 0,
+      criticalCases: criticalCount,
+      onTimeDelivery: total > 0 ? Math.round((onTimeCount / total) * 100) : 0,
+    };
+  }, [ragCounts]);
+  
   // Build critical cases from real data - filter for Red/Amber status
   const criticalCases = useMemo(() => {
     return cases
@@ -115,53 +144,32 @@ export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ ca
       try {
         const result = await getFormTimelineReport({});
         
-        // Filter to only allowed forms and aggregate metrics
-        const allowedFormCodes = Object.keys(ALLOWED_FORMS);
-        const filteredData = result.data.filter(item => allowedFormCodes.includes(item.formCode));
+        if (!result.data || result.data.length === 0) {
+          setTimelineBreachMetrics([]);
+          return;
+        }
         
-        // Group by form code and calculate metrics
-        const metricsMap = new Map<string, TimelineBreachMetrics>();
-        
-        filteredData.forEach(item => {
-          const formConfig = ALLOWED_FORMS[item.formCode as keyof typeof ALLOWED_FORMS];
-          if (!formConfig) return;
-          
-          const existing = metricsMap.get(item.formCode) || {
-            formType: formConfig.label,
-            totalCases: 0,
-            onTime: 0,
-            breached: 0,
-            avgCompletionTime: 0,
-            timelineHours: formConfig.timelineHours,
-            _completionTimes: [] as number[]
+        // Transform report data to metrics format
+        const metrics = result.data.map(item => {
+          const formConfig = FORM_TYPE_LABELS[item.formCode] || { 
+            label: item.formCode, 
+            timelineHours: 168 
           };
           
-          existing.totalCases++;
-          if (item.status === 'On Time') existing.onTime++;
-          if (item.status === 'Delayed') existing.breached++;
-          
-          // Collect completion times for average (exclude Pending)
-          if (item.status !== 'Pending' && item.daysElapsed) {
-            (existing as any)._completionTimes.push(item.daysElapsed * 24);
-          }
-          
-          metricsMap.set(item.formCode, existing);
-        });
-        
-        // Calculate averages and convert to final format
-        const metrics = Array.from(metricsMap.values()).map(m => {
-          const times = (m as any)._completionTimes || [];
-          const avgCompletionTime = times.length > 0
-            ? Math.round(times.reduce((sum: number, t: number) => sum + t, 0) / times.length)
-            : 0;
-          
-          delete (m as any)._completionTimes;
-          return { ...m, avgCompletionTime };
+          return {
+            formType: formConfig.label,
+            totalCases: item.totalCases || 0,
+            onTime: item.onTime || 0,
+            breached: item.delayed || 0,
+            avgCompletionTime: (item.daysElapsed || 0) * 24, // Convert days to hours
+            timelineHours: formConfig.timelineHours,
+          };
         });
         
         setTimelineBreachMetrics(metrics);
       } catch (error) {
         console.error('Failed to load timeline metrics:', error);
+        setTimelineBreachMetrics([]);
       }
     };
     
@@ -187,6 +195,7 @@ export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ ca
   };
 
   const calculateTimelineCompliance = (metric: TimelineBreachMetrics) => {
+    if (metric.totalCases === 0) return 0;
     return Math.round((metric.onTime / metric.totalCases) * 100);
   };
 
@@ -216,8 +225,8 @@ export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ ca
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Overall Timeline</p>
-                <p className="text-2xl font-bold text-foreground">87.5%</p>
-                <p className="text-xs text-success mt-1">+2.3% from last month</p>
+                <p className="text-2xl font-bold text-foreground">{overviewStats.overallCompliance}%</p>
+                <p className="text-xs text-muted-foreground mt-1">{ragCounts.total} active cases</p>
               </div>
               <Target className="h-8 w-8 text-primary" />
             </div>
@@ -229,7 +238,7 @@ export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ ca
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Critical Cases</p>
-                <p className="text-2xl font-bold text-destructive">8</p>
+                <p className="text-2xl font-bold text-destructive">{overviewStats.criticalCases}</p>
                 <p className="text-xs text-destructive mt-1">Require immediate attention</p>
               </div>
               <AlertTriangle className="h-8 w-8 text-destructive" />
@@ -241,11 +250,11 @@ export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ ca
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Avg Response Time</p>
-                <p className="text-2xl font-bold text-foreground">142h</p>
-                <p className="text-xs text-success mt-1">12h faster than target</p>
+                <p className="text-sm font-medium text-muted-foreground">At Risk Cases</p>
+                <p className="text-2xl font-bold text-warning">{ragCounts.amber}</p>
+                <p className="text-xs text-warning mt-1">Approaching deadline</p>
               </div>
-              <Clock className="h-8 w-8 text-secondary" />
+              <Clock className="h-8 w-8 text-warning" />
             </div>
           </CardContent>
         </Card>
@@ -255,8 +264,8 @@ export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ ca
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">On-Time Delivery</p>
-                <p className="text-2xl font-bold text-foreground">92%</p>
-                <p className="text-xs text-success mt-1">Above target of 90%</p>
+                <p className="text-2xl font-bold text-foreground">{overviewStats.onTimeDelivery}%</p>
+                <p className="text-xs text-success mt-1">{ragCounts.green} cases on track</p>
               </div>
               <CheckCircle className="h-8 w-8 text-success" />
             </div>
@@ -398,7 +407,7 @@ export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ ca
                 <div className="w-16 h-16 bg-success text-success-foreground rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle className="h-8 w-8" />
                 </div>
-                <h3 className="text-2xl font-bold text-success">89</h3>
+                <h3 className="text-2xl font-bold text-success">{ragCounts.green}</h3>
                 <p className="text-sm text-muted-foreground">Green Status</p>
                 <p className="text-xs text-muted-foreground mt-1">Within timeline limits</p>
               </div>
@@ -407,7 +416,7 @@ export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ ca
                 <div className="w-16 h-16 bg-warning text-warning-foreground rounded-full flex items-center justify-center mx-auto mb-4">
                   <Clock className="h-8 w-8" />
                 </div>
-                <h3 className="text-2xl font-bold text-warning">23</h3>
+                <h3 className="text-2xl font-bold text-warning">{ragCounts.amber}</h3>
                 <p className="text-sm text-muted-foreground">Amber Status</p>
                 <p className="text-xs text-muted-foreground mt-1">Approaching deadline</p>
               </div>
@@ -416,7 +425,7 @@ export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ ca
                 <div className="w-16 h-16 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center mx-auto mb-4">
                   <AlertTriangle className="h-8 w-8" />
                 </div>
-                <h3 className="text-2xl font-bold text-destructive">8</h3>
+                <h3 className="text-2xl font-bold text-destructive">{ragCounts.red}</h3>
                 <p className="text-sm text-muted-foreground">Red Status</p>
                 <p className="text-xs text-muted-foreground mt-1">Timeline breached</p>
               </div>
@@ -446,25 +455,26 @@ export const TimelineBreachTracker: React.FC<TimelineBreachTrackerProps> = ({ ca
                           return;
                         }
                         
-                        // Export using the exporter utility with timeline-specific columns
-                        await exportRows({
-                          moduleKey: 'cases',
-                          rows: result.data.map((item: any) => ({
-                            caseNumber: item.caseId || item.caseNumber,
-                            title: item.caseTitle || item.title,
-                            client: item.client || 'Unknown',
-                            currentStage: item.stage || item.currentStage,
-                            replyDueDate: item.timelineDue,
-                            agingDays: item.agingDays,
-                            timelineBreachStatus: item.ragStatus,
-                            owner: item.owner || 'Unassigned',
-                            breached: item.breached ? 'Yes' : 'No'
-                          })),
-                          options: {
-                            filename: 'timeline-breach-report',
-                            sheetName: 'Timeline Breach Report'
-                          }
-                        });
+                        // Direct Excel export without module configs
+                        const wsData = [
+                          ['Case Number', 'Title', 'Client', 'Stage', 'Due Date', 'Aging (Days)', 'RAG Status', 'Owner', 'Breached'],
+                          ...result.data.map((item: any) => [
+                            item.caseNumber || item.caseId || 'N/A',
+                            item.caseTitle || item.title || 'N/A',
+                            item.client || 'Unknown',
+                            item.stage || item.currentStage || 'Unknown',
+                            item.timelineDue || 'N/A',
+                            item.agingDays || 0,
+                            item.ragStatus || 'Unknown',
+                            item.owner || 'Unassigned',
+                            item.breached ? 'Yes' : 'No'
+                          ])
+                        ];
+                        
+                        const ws = XLSX.utils.aoa_to_sheet(wsData);
+                        const wb = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(wb, ws, 'Timeline Breach Report');
+                        XLSX.writeFile(wb, `timeline-breach-report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
                         
                         toast({
                           title: "Export Complete",
