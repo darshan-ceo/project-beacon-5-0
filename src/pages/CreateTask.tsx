@@ -373,42 +373,46 @@ export const CreateTask: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Header */}
-      <div className="border-b bg-card px-4 py-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <div className="border-b bg-card px-3 md:px-4 py-3">
+        <div className="flex items-center justify-between gap-2 md:gap-3 flex-wrap">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => caseId ? navigate(`/cases?caseId=${caseId}`) : navigate('/tasks')}
+              className="shrink-0"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-0">
+              <h1 className="text-base md:text-lg font-semibold truncate">Create New Task</h1>
+              {linkedCase && (
+                <p className="text-xs text-muted-foreground truncate">
+                  For case: {linkedCase.caseNumber || linkedCase.title}
+                </p>
+              )}
+            </div>
+          </div>
           <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => caseId ? navigate(`/cases?caseId=${caseId}`) : navigate('/tasks')}
+            variant="outline"
+            size="sm"
+            onClick={() => setShowTemplatePicker(true)}
+            className="gap-1.5 md:gap-2 shrink-0"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Use Template</span>
+            <span className="sm:hidden">Template</span>
           </Button>
-          <div>
-            <h1 className="text-lg font-semibold">Create New Task</h1>
-            {linkedCase && (
-              <p className="text-xs text-muted-foreground">
-                For case: {linkedCase.caseNumber || linkedCase.title}
-              </p>
-            )}
-          </div>
-          {/* Show who is creating the task */}
-          <div className="bg-muted/30 rounded-lg px-4 py-2 flex items-center gap-2 text-sm">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Creating as:</span>
-            <span className="font-medium">{creatorName}</span>
-            {creatorRole && (
-              <Badge variant="outline" className="text-xs">{creatorRole}</Badge>
-            )}
-          </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowTemplatePicker(true)}
-          className="gap-2"
-        >
-          <FileText className="h-4 w-4" />
-          Use Template
-        </Button>
+        {/* Show who is creating the task - separate row on mobile */}
+        <div className="mt-2 md:mt-3 bg-muted/30 rounded-lg px-3 py-1.5 md:px-4 md:py-2 flex items-center gap-2 text-xs md:text-sm w-fit">
+          <User className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+          <span className="text-muted-foreground hidden sm:inline">Creating as:</span>
+          <span className="font-medium">{creatorName}</span>
+          {creatorRole && (
+            <Badge variant="outline" className="text-[10px] md:text-xs">{creatorRole}</Badge>
+          )}
+        </div>
       </div>
 
       {/* Template Picker Dialog */}
@@ -420,7 +424,7 @@ export const CreateTask: React.FC = () => {
 
       {/* Form - Clean Linear Layout */}
       <div className="flex-1 overflow-auto bg-muted/20">
-        <div className="max-w-2xl mx-auto p-6 space-y-6">
+        <div className="max-w-2xl mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
           {/* Case Context Card - Show when creating from case */}
           {linkedCase && (
             <div className="bg-primary/5 rounded-xl border border-primary/20 p-4 flex items-center gap-3">
@@ -582,7 +586,7 @@ export const CreateTask: React.FC = () => {
               <Flag className="h-4 w-4" />
               Task Settings
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             {/* Assign To with Combobox + Category Auto-fill */}
             <div className="space-y-1.5 col-span-2 sm:col-span-1">
               <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -627,13 +631,13 @@ export const CreateTask: React.FC = () => {
                 <Flag className="h-3.5 w-3.5" />
                 Priority
               </Label>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1 sm:gap-1.5">
                 {PRIORITY_OPTIONS.map((p) => (
                   <Badge
                     key={p}
                     variant={formData.priority === p ? 'default' : 'outline'}
                     className={cn(
-                      'cursor-pointer transition-all text-xs px-2 py-1',
+                      'cursor-pointer transition-all text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1',
                       formData.priority === p ? getPriorityColor(p) : 'hover:bg-muted'
                     )}
                     onClick={() => setFormData((prev) => ({ ...prev, priority: p }))}
@@ -764,11 +768,11 @@ export const CreateTask: React.FC = () => {
       </div>
 
       {/* Footer - Sticky */}
-      <div className="border-t bg-card p-4 flex justify-end gap-3">
-        <Button variant="ghost" onClick={() => navigate('/tasks')}>
+      <div className="border-t bg-card p-3 md:p-4 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
+        <Button variant="ghost" className="w-full sm:w-auto" onClick={() => navigate('/tasks')}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit} disabled={isSubmitting || !formData.title.trim()}>
+        <Button className="w-full sm:w-auto" onClick={handleSubmit} disabled={isSubmitting || !formData.title.trim()}>
           {isSubmitting ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
           ) : null}

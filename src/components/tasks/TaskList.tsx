@@ -256,21 +256,51 @@ export const TaskList: React.FC<TaskListProps> = ({
   const rowHeight = density === 'compact' ? 'h-12' : 'h-16';
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       {/* List Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Task List</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            {filteredAndSortedTasks.length} of {tasks.length} tasks • {selectedTasks.size} selected
-          </p>
+      <div className="flex flex-col gap-3 md:gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold text-foreground">Task List</h2>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">
+              {filteredAndSortedTasks.length} of {tasks.length} tasks • {selectedTasks.size} selected
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {selectedTasks.size > 0 && (
+              <TasksBulkActions
+                selectedTaskIds={Array.from(selectedTasks)}
+                tasks={filteredAndSortedTasks.filter(t => selectedTasks.has(t.id))}
+                onComplete={() => setSelectedTasks(new Set())}
+                userRole={state.userProfile?.role}
+              />
+            )}
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Settings className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">View</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem 
+                  onClick={() => setDensity(density === 'compact' ? 'comfortable' : 'compact')}
+                >
+                  {density === 'compact' ? 'Comfortable' : 'Compact'} view
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
         
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Filters Row */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-wrap w-full">
           {/* Client Filter */}
           <Select value={clientFilter} onValueChange={setClientFilter}>
-            <SelectTrigger className="w-[200px]">
-              <Building2 className="h-4 w-4 mr-2" />
+            <SelectTrigger className="w-full sm:w-[180px] md:w-[200px]">
+              <Building2 className="h-4 w-4 mr-2 shrink-0" />
               <SelectValue placeholder="All Clients" />
             </SelectTrigger>
             <SelectContent>
@@ -285,7 +315,7 @@ export const TaskList: React.FC<TaskListProps> = ({
 
           {/* Lock Status Filter */}
           <Select value={lockFilter} onValueChange={(value: any) => setLockFilter(value)}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-full sm:w-[140px]">
               <SelectValue placeholder="Lock Status" />
             </SelectTrigger>
             <SelectContent>
@@ -299,31 +329,6 @@ export const TaskList: React.FC<TaskListProps> = ({
               <SelectItem value="unlocked">Unlocked Only</SelectItem>
             </SelectContent>
           </Select>
-          
-          {selectedTasks.size > 0 && (
-            <TasksBulkActions
-              selectedTaskIds={Array.from(selectedTasks)}
-              tasks={filteredAndSortedTasks.filter(t => selectedTasks.has(t.id))}
-              onComplete={() => setSelectedTasks(new Set())}
-              userRole={state.userProfile?.role}
-            />
-          )}
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4 mr-2" />
-                View
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem 
-                onClick={() => setDensity(density === 'compact' ? 'comfortable' : 'compact')}
-              >
-                {density === 'compact' ? 'Comfortable' : 'Compact'} view
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 

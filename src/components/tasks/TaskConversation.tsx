@@ -345,7 +345,7 @@ export const TaskConversation: React.FC = () => {
     <div className="h-full flex flex-col bg-muted/30">
       {/* Compact Header with Gradient */}
       <div className="border-b bg-gradient-to-r from-card via-card to-muted/50 shadow-sm">
-        <div className="px-4 py-3 flex items-center gap-3">
+        <div className="px-3 md:px-4 py-2.5 md:py-3 flex items-center gap-2 md:gap-3">
           <Button
             variant="ghost"
             size="icon"
@@ -356,7 +356,7 @@ export const TaskConversation: React.FC = () => {
           </Button>
 
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-semibold truncate">{task.title}</h1>
+            <h1 className="text-base md:text-lg font-semibold truncate">{task.title}</h1>
           </div>
 
           <div className="flex items-center gap-2">
@@ -391,7 +391,7 @@ export const TaskConversation: React.FC = () => {
         </div>
 
         {/* Task Meta Info */}
-        <div className="px-4 pb-3 border-t border-border/50 pt-3 bg-muted/20">
+        <div className="px-3 md:px-4 pb-2.5 md:pb-3 border-t border-border/50 pt-2.5 md:pt-3 bg-muted/20 overflow-x-auto scrollbar-thin">
           <TaskHeader task={task} compact />
         </div>
       </div>
@@ -401,7 +401,7 @@ export const TaskConversation: React.FC = () => {
 
       {/* Messages - Chat Style */}
       <ScrollArea className="flex-1 bg-background">
-        <div className="divide-y divide-border/50 px-4 py-2 space-y-2">
+        <div className="divide-y divide-border/50 px-2 md:px-4 py-2 space-y-1 md:space-y-2">
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
               <div className="text-center space-y-3">
@@ -448,11 +448,11 @@ export const TaskConversation: React.FC = () => {
         />
       ) : (
         /* Floating Action Buttons in View Mode */
-        <div className="border-t bg-card p-4 flex gap-3">
+        <div className="border-t bg-card p-3 md:p-4 flex flex-col sm:flex-row gap-2 sm:gap-3">
           <Button
             variant="outline"
             onClick={() => navigate(`/tasks/${taskId}?mode=followup`)}
-            className="flex-1 gap-2"
+            className="flex-1 gap-2 order-2 sm:order-1"
           >
             <Plus className="h-4 w-4" />
             Add Follow-up
@@ -460,7 +460,7 @@ export const TaskConversation: React.FC = () => {
           {canEditTasks && (
             <Button
               onClick={() => navigate(`/tasks/${taskId}?mode=edit`)}
-              className="flex-1 gap-2"
+              className="flex-1 gap-2 order-1 sm:order-2"
             >
               <Edit className="h-4 w-4" />
               Edit Task

@@ -119,18 +119,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   return (
     <div className={cn(
-      'flex gap-3 px-4 py-4',
+      'flex gap-2 md:gap-3 px-2 md:px-4 py-3 md:py-4',
       isOwnMessage && 'bg-muted/30'
     )}>
-      <Avatar className="h-8 w-8 shrink-0 mt-0.5">
+      <Avatar className="h-7 w-7 md:h-8 md:w-8 shrink-0 mt-0.5">
         <AvatarFallback className={cn(
-          'text-xs font-medium',
+          'text-[10px] md:text-xs font-medium',
           message.isSystemMessage 
             ? 'bg-primary/10 text-primary' 
             : 'bg-secondary'
         )}>
           {message.isSystemMessage ? (
-            <Bot className="h-4 w-4" />
+            <Bot className="h-3.5 w-3.5 md:h-4 md:w-4" />
           ) : (
             getInitials(message.createdByName)
           )}
@@ -138,11 +138,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       </Avatar>
       
       <div className="flex-1 min-w-0 space-y-1.5">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium text-sm">
+        <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
+          <span className="font-medium text-xs md:text-sm">
             {message.isSystemMessage ? 'System' : message.createdByName}
           </span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-[10px] md:text-xs text-muted-foreground">
             {format(new Date(message.createdAt), 'MMM d, yyyy • h:mm a')}
           </span>
           {message.statusUpdate && (
