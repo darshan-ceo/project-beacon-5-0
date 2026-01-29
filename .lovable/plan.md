@@ -1,80 +1,152 @@
 
-# Plan: Remove Low-Level UI Tooltips from Help Discover Tab
+# Plan: Fix Discover Tab Help Content & Navigation Issues
 
-## Overview
+## Problem Summary
 
-This change filters the Help Discovery Hub to only show **feature-level entries** from UI tooltips, while **excluding granular button and field tooltips**. This reduces confusion by keeping low-level help where it belongs (in-context hover tooltips) rather than displaying it as standalone discovery items.
+The Discover tab shows feature-level help entries with several issues:
 
-## What's Being Changed
+1. **One-line explanations only** - The detailed tooltip content isn't displayed
+2. **"View in App" doesn't work** - Navigation goes to wrong page/doesn't open feature
+3. **No meaningful help content** - Detail dialog shows same one-liner, no additional value
+4. **Missing context** - Users don't know where the feature lives in the app
 
-### Current Behavior
-- The Discover tab aggregates ALL entries from `ui-tooltips.json` including:
-  - `buttons` (30+ entries like "Save Template", "Preview", "Generate Code")
-  - `fields` (50+ entries like "Template Code", "Template Title")
-  - `menu-items`
-  - `cards`
-  - `features` (high-level feature descriptions)
+## Root Cause Analysis
 
-- This creates confusing standalone cards for UI elements that only make sense in context
+| Issue | Cause |
+|-------|-------|
+| One-line explanation | `content` field is empty; only short `explanation` populates `description` |
+| No detailed help | Rich `tooltip.content` exists but is **not mapped** to the `content` field |
+| View in App broken | Template Builder URL sets param but nothing triggers the actual UI |
+| Missing context | No parent module breadcrumb shown in cards/dialog |
 
-### New Behavior
-- Only `features` type entries will appear in the Discover tab
-- Articles, tours, operations help, master data help, and glossary remain unchanged
-- Button/field tooltips continue to work for in-app hover help (via `uiHelpService`)
+## Solution Overview
 
-## Implementation Details
+### Part 1: Populate Content Field with Rich Tooltip Content
 
-### File: `src/services/helpDiscoveryService.ts`
+**File: `src/services/helpDiscoveryService.ts`**
 
-**Change in `_loadTooltips()` method (lines 151-191):**
+Update `_loadTooltips()` to properly map the detailed `tooltip.content` to the `content` field:
 
-Current code loads all types:
 ```typescript
-const types = ['buttons', 'fields', 'menu-items', 'cards', 'features'];
+entries.push({
+  id: uniqueId,
+  title: item.label || item.tooltip?.title || item.id,
+  description: item.explanation || item.tooltip?.content || '',
+  source: 'tooltip',
+  module: moduleName,
+  category: type.replace('-', ' '),
+  roles: item.roles || ['all'],
+  uiLocation: this._resolveUILocation(moduleName, item.id),
+  isNew: this._isRecentlyUpdated(item.updatedAt),
+  updatedAt: item.updatedAt || data.lastUpdated || new Date().toISOString(),
+  tags: [type, moduleName, ...(item.tags || [])],
+  searchText: `${item.label} ${item.explanation} ${item.tooltip?.content || ''}`,
+  // FIX: Map tooltip.content to content field for rich display
+  content: item.tooltip?.content || '',
+  learnMoreUrl: item.tooltip?.learnMoreUrl
+});
 ```
 
-Updated code will only load features:
+### Part 2: Fix Template Builder "View in App" Navigation
+
+**File: `src/components/documents/DocumentManagement.tsx`**
+
+The issue: When URL has `openTemplateBuilder=1`, the code only switches tabs but doesn't trigger Template Builder UI:
+
 ```typescript
-// Only load feature-level entries for discovery
-// Button/field tooltips remain available via uiHelpService for in-context help
-const types = ['features'];
+// Current (broken)
+if (openTemplateBuilder === '1') {
+  setActiveTab('templates');
+}
+
+// Fixed: Actually trigger Template Builder
+if (openTemplateBuilder === '1') {
+  setActiveTab('templates');
+  // Trigger the action to open Template Builder panel/modal
+  setTimeout(() => {
+    setShowTemplateBuilder(true); // or equivalent state
+  }, 100);
+}
 ```
 
-This is a single-line change that filters the discovery index while preserving all other functionality.
+### Part 3: Add Parent Context to Help Cards
 
-## Impact Summary
+**File: `src/components/help/HelpEntryCard.tsx`**
 
-| Content Type | Before | After |
-|--------------|--------|-------|
-| Articles | Included | Included (no change) |
-| Tours | Included | Included (no change) |
-| Operations Help | Included | Included (no change) |
-| Master Data Help | Included | Included (no change) |
-| Glossary | Included | Included (no change) |
-| **Feature tooltips** | Included | **Included** |
-| **Button tooltips** | Included | **Removed from Discover** |
-| **Field tooltips** | Included | **Removed from Discover** |
-| **Menu-item tooltips** | Included | **Removed from Discover** |
-| **Card tooltips** | Included | **Removed from Discover** |
+Add a breadcrumb showing where the feature lives:
 
-## What Still Works
+```typescript
+// Add above title
+<div className="text-[10px] text-muted-foreground mb-1">
+  {formatModule(entry.module)}
+  {entry.uiLocation?.tab && ` > ${entry.uiLocation.tab}`}
+</div>
+```
 
-1. **In-Context Tooltips** - `uiHelpService.ts` continues to provide hover tooltips for all UI elements
-2. **Search** - Users can still find feature-level help via search
-3. **Module Help Tab** - Detailed module documentation remains unchanged
-4. **Glossary** - Legal terms and definitions remain available
+### Part 4: Enhance Detail Dialog Content Display
+
+**File: `src/components/help/HelpDetailDialog.tsx`**
+
+If `content` exists, display it prominently:
+
+```typescript
+{/* Rich content if available */}
+{entry.content && (
+  <div className="bg-muted/50 rounded-lg p-4 mt-3">
+    <p className="text-sm text-foreground leading-relaxed">
+      {entry.content}
+    </p>
+  </div>
+)}
+```
+
+## Visual Before/After
+
+```text
+BEFORE:
++------------------------------------------+
+| Template Builder 2.0                      |
+| "Unified interface for creating all..."   | <- One line only
+| [View in App] (goes to wrong page)        |
++------------------------------------------+
+
+AFTER:
++------------------------------------------+
+| Document Management > Templates           | <- Context breadcrumb
+| Template Builder 2.0                      |
+| "Unified interface for creating all..."   |
+|                                           |
+| [Detailed explanation with full tooltip   | <- Rich content
+|  content displayed here]                  |
+|                                           |
+| [View in App] (opens Template Builder)    | <- Working navigation
++------------------------------------------+
+```
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/services/helpDiscoveryService.ts` | Filter `_loadTooltips()` to only include `features` type |
+| `src/services/helpDiscoveryService.ts` | Map `tooltip.content` to `content` field |
+| `src/components/documents/DocumentManagement.tsx` | Fix `openTemplateBuilder` URL handling |
+| `src/components/help/HelpEntryCard.tsx` | Add parent module breadcrumb |
+| `src/components/help/HelpDetailDialog.tsx` | Improve content display styling |
 
 ## Testing Checklist
 
-1. Navigate to Help & Knowledge Center → Discover tab
-2. Verify no individual button/field cards appear (like "Save Template", "Preview")
-3. Verify feature-level help cards still appear
-4. Verify articles, tours, and workflows still appear
-5. Verify total count is reduced (from ~200+ to ~50-80 entries)
-6. Verify in-context hover tooltips still work in Template Builder
+1. Navigate to Help & Knowledge Center > Discover tab
+2. Click on "Template Builder 2.0" card
+3. Verify dialog shows detailed content (not just one line)
+4. Click "View in App" button
+5. Verify navigation goes to Document Management > Templates
+6. Verify Template Builder panel/modal actually opens
+7. Verify element highlighting works if configured
+
+## Alternative Consideration
+
+If feature-level tooltips still don't provide enough value, we can:
+- Remove them entirely from Discover (keep only articles, tours, workflows)
+- Create proper help articles for each feature with step-by-step guides
+- Link tooltips to articles via `learnMoreUrl`
+
+This can be done as a follow-up if the current fix isn't sufficient.
