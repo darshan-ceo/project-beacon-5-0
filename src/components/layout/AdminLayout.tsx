@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { AppSidebar } from './Sidebar';
 import { Header } from './Header';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 
@@ -70,14 +69,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
           {/* Sticky Header with Sidebar Trigger + Portal Slot */}
           <header className="sticky top-0 z-40 bg-background border-b border-border flex-shrink-0">
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center">
-                <SidebarTrigger className="mr-4 text-foreground bg-background hover:bg-muted border border-border shadow-beacon-sm" />
-                <Header />
-              </div>
-              <div className="flex items-center gap-2">
-                {userId && <NotificationBell userId={userId} />}
-              </div>
+            <div className="flex items-center gap-4 p-4">
+              <SidebarTrigger className="text-foreground bg-background hover:bg-muted border border-border shadow-beacon-sm flex-shrink-0" />
+              <Header userId={userId} />
             </div>
             {/* Portal slot for StickyCaseActionBar - inside sticky header so it never scrolls */}
             <div id="case-action-header-slot" className="relative z-[45] bg-background" />
