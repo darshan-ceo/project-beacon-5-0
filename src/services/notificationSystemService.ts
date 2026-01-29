@@ -142,6 +142,10 @@ class NotificationSystemService {
 
   /**
    * Create a new notification
+   * 
+   * IMPORTANT: Uses insert WITHOUT .select() to avoid RLS SELECT policy blocking
+   * cross-user notification creation (e.g., manager creating notification for staff).
+   * We generate client-side UUID to maintain object consistency.
    */
   async createNotification(
     type: NotificationType,
@@ -158,11 +162,25 @@ class NotificationSystemService {
     try {
       const context = await this.getContext();
       if (!context) {
-        log('error', 'createNotification', 'No context');
+        log('error', 'createNotification', 'No auth context available');
         return null;
       }
 
+      // Dev logging: context and recipient info
+      log('info', 'createNotification:context', { 
+        contextUserId: context.userId, 
+        tenantId: context.tenantId,
+        recipientUserId: userId,
+        type,
+        title
+      });
+
+      // Generate client-side UUID to avoid dependency on RETURNING/SELECT
+      const notificationId = crypto.randomUUID();
+      const createdAt = new Date().toISOString();
+
       const notificationData = {
+        id: notificationId,
         tenant_id: context.tenantId,
         user_id: userId,
         type,
@@ -174,36 +192,68 @@ class NotificationSystemService {
         status: 'pending',
         read: false,
         metadata: options?.metadata || null,
+        created_at: createdAt,
       };
 
-      const { data, error } = await supabase
+      // Insert WITHOUT .select() to avoid RLS SELECT policy blocking cross-user inserts
+      const { error } = await supabase
         .from('notifications')
-        .insert(notificationData)
-        .select()
-        .single();
+        .insert(notificationData);
 
-      if (error) throw error;
+      if (error) {
+        // Log specific error details for debugging
+        log('error', 'createNotification:insertFailed', { 
+          code: error.code, 
+          message: error.message,
+          hint: error.hint,
+          details: error.details,
+          recipientUserId: userId,
+          contextUserId: context.userId
+        });
+        return null;
+      }
 
+      // Build notification object from our known data (since we can't SELECT it back)
       const notification: Notification = {
-        ...data,
-        channels: data.channels as any[],
-        type: data.type as NotificationType,
-        status: data.status as any,
+        id: notificationId,
+        tenant_id: context.tenantId,
+        user_id: userId,
+        type,
+        title,
+        message,
+        related_entity_type: options?.relatedEntityType || null,
+        related_entity_id: options?.relatedEntityId || null,
+        channels: options?.channels || ['in_app'],
+        status: 'pending' as any,
+        read: false,
+        metadata: options?.metadata || null,
+        created_at: createdAt,
       };
 
-      log('success', 'createNotification', { type, title });
+      log('success', 'createNotification', { 
+        notificationId, 
+        type, 
+        title,
+        recipientUserId: userId 
+      });
 
-      // Show toast for in-app notifications
+      // Show toast for in-app notifications (only to the creator, not recipient)
+      // Toast is shown locally; recipient will see via realtime/fetch
       if (notification.channels.includes('in_app')) {
         toast({
-          title: notification.title,
-          description: notification.message,
+          title: `Notification sent`,
+          description: `"${notification.title}" sent to assignee.`,
         });
       }
 
       return notification;
     } catch (error) {
-      log('error', 'createNotification', error);
+      const err = error as any;
+      log('error', 'createNotification:exception', { 
+        message: err?.message, 
+        code: err?.code,
+        stack: err?.stack?.slice(0, 200)
+      });
       return null;
     }
   }

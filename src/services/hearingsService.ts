@@ -286,9 +286,28 @@ export const hearingsService = {
         const relatedCase = appState.cases.find(c => c.id === data.case_id);
         const { data: { user: currentUser } } = await supabase.auth.getUser();
         
-        // Get assignee ID using both possible property names (camelCase and snake_case)
-        const assigneeId = (relatedCase as any)?.assignedToId || (relatedCase as any)?.assigned_to || (relatedCase as any)?.assigned_to_id;
+        // Get assignee ID using ALL possible property names (camelCase, snake_case, with/without Id suffix)
+        // Data comes in different formats depending on source (DB vs context vs adapter transform)
+        const assigneeId = 
+          (relatedCase as any)?.assignedTo ||       // camelCase without Id (from SupabaseAdapter transform)
+          (relatedCase as any)?.assignedToId ||     // camelCase with Id
+          (relatedCase as any)?.assigned_to ||      // snake_case (raw DB column)
+          (relatedCase as any)?.assigned_to_id;     // snake_case with _id suffix
+        
         const caseNumber = (relatedCase as any)?.caseNumber || (relatedCase as any)?.case_number || 'Unknown';
+        
+        // Dev logging: show assignee resolution
+        if (isDev) {
+          console.log('[Hearings] Notification check:', {
+            caseId: data.case_id,
+            currentUserId: currentUser?.id,
+            resolvedAssigneeId: assigneeId,
+            rawAssignedTo: (relatedCase as any)?.assignedTo,
+            rawAssignedToId: (relatedCase as any)?.assignedToId,
+            rawAssigned_to: (relatedCase as any)?.assigned_to,
+            willNotify: assigneeId && assigneeId !== currentUser?.id
+          });
+        }
         
         // Notify case assignee if different from current user
         if (assigneeId && assigneeId !== currentUser?.id) {
@@ -310,6 +329,10 @@ export const hearingsService = {
             }
           );
           console.log(`[Hearings] Notification sent to case assignee: ${assigneeId}`);
+        } else if (isDev && !assigneeId) {
+          console.log('[Hearings] Notification skipped: No assignee found for case');
+        } else if (isDev && assigneeId === currentUser?.id) {
+          console.log('[Hearings] Notification skipped: Self-assignment (creator is assignee)');
         }
       } catch (notifError) {
         console.warn('[Hearings] Failed to send notification for hearing scheduled:', notifError);
