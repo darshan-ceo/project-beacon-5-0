@@ -135,7 +135,9 @@ class TaskMessagesService {
   }
 
   /**
-   * Notify task assignee about a new follow-up message
+   * Notify relevant party about a new follow-up message
+   * - If sender is the assignee → notify the task creator (assigned_by)
+   * - If sender is not the assignee → notify the assignee
    */
   private async notifyTaskAssignee(
     taskId: string, 
@@ -144,10 +146,10 @@ class TaskMessagesService {
     messagePreview: string
   ): Promise<void> {
     try {
-      // Fetch task to get assignee
+      // Fetch task to get assignee AND creator
       const { data: task, error } = await supabase
         .from('tasks')
-        .select('assigned_to, title')
+        .select('assigned_to, assigned_by, title')
         .eq('id', taskId)
         .single();
 
@@ -156,17 +158,30 @@ class TaskMessagesService {
         return;
       }
 
-      // Don't notify if sender is the assignee
-      if (!task.assigned_to || task.assigned_to === senderId) {
+      // Determine notification recipient:
+      // - If sender is the assignee → notify the creator (assigned_by)
+      // - If sender is not the assignee → notify the assignee
+      let recipientId: string | null = null;
+      
+      if (task.assigned_to === senderId) {
+        // Sender is the assignee, notify the task creator
+        recipientId = task.assigned_by;
+      } else {
+        // Sender is not the assignee, notify the assignee
+        recipientId = task.assigned_to;
+      }
+
+      // Don't notify if no recipient or sender is the recipient
+      if (!recipientId || recipientId === senderId) {
         return;
       }
 
-      // Create notification for the assignee
+      // Create notification for the recipient
       await notificationSystemService.createNotification(
-        'task_assigned', // Using existing type for task notifications
+        'task_assigned',
         `New follow-up on: ${task.title}`,
         `${senderName}: ${messagePreview.substring(0, 100)}${messagePreview.length > 100 ? '...' : ''}`,
-        task.assigned_to,
+        recipientId,
         {
           relatedEntityType: 'task',
           relatedEntityId: taskId,
@@ -179,7 +194,7 @@ class TaskMessagesService {
         }
       );
     } catch (error) {
-      console.error('Error notifying task assignee:', error);
+      console.error('Error notifying task participant:', error);
     }
   }
 
