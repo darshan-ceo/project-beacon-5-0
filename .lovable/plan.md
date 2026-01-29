@@ -1,206 +1,309 @@
 
-
-# Plan: Vibrant Header UI Enhancement with Brand Gradient and 3D Effects
+# Plan: Task Home Page UI/UX Enhancement for Uniform Experience
 
 ## Current State Analysis
 
-Based on code review, the current header has:
-- Plain white `bg-background` with subtle `border-b border-border`
-- No visual distinction from the main content area below
-- Flat appearance without depth or brand identity
-- Date/time component uses `bg-muted/50 border-border/50` - also muted
+Based on the screenshot and code review, the Task Management page has several areas that don't align with the newly enhanced header:
 
-| Current Issues | Impact |
-|----------------|--------|
-| Plain white background | No brand presence in header |
-| Flat design | Appears dull, no visual depth |
-| Poor separation from content | Header blends into page |
-| No 3D/elevated effect | Missing modern, polished feel |
-
-## Solution: Brand-Infused Header with 3D Effects
-
-Apply the Legal Blue brand guidelines to create a vibrant, professional header with depth and clear separation from the main content area.
-
-### Design Goals
-
-1. **Brand Gradient Background** - Subtle gradient using primary blue and secondary teal
-2. **3D Depth Effect** - Multi-layer shadow for elevated appearance
-3. **Clear Visual Separation** - Distinct boundary between header and content
-4. **Component Enhancement** - Update DateTime and user section styling
+| Component | Current State | Target State (Like Header) |
+|-----------|---------------|----------------------------|
+| **Navigation Tabs** | Plain border-b with flat TabsList | Subtle gradient/glass effect, active state with brand accent |
+| **View Toggle Buttons** | Basic outline/default variants | Glass-panel effect, brand-colored active state |
+| **Metric Cards** | Plain Card with no depth | Subtle shadow, glass effect borders |
+| **Task List/Board Table** | Plain border rounded-lg | Elevated with shadow-sm, subtle glass effect |
+| **Filter Dropdowns** | Standard outline style | Glass-panel effect matching header DateTime |
+| **Task Rows** | Basic hover:bg-muted/50 | Subtle gradient hover, improved visual hierarchy |
 
 ---
 
-## Design Approach
+## Solution: Apply Header Design System to Task Page
 
-### Option A: Subtle Brand Gradient (Recommended)
+### Design Goals
 
-Uses the brand colors subtly for a professional legal aesthetic:
-
-```text
-Header: bg-gradient-to-r from-primary/5 via-card to-secondary/5
-        with shadow-md and backdrop-blur
-
-Content: bg-muted/30 (slightly darker than header for contrast)
-```
-
-### Option B: Bold Brand Gradient
-
-More vibrant for stronger brand presence:
-
-```text
-Header: bg-gradient-to-r from-primary/10 via-primary/5 to-secondary/10
-        with ring-1 ring-primary/10 and shadow-lg
-```
-
-### Visual Mockup
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│ ≡ │ 🔍 Global Search                 │📅 Wed, Jan 30│🔔│ [👤 Admin ▼] │ ← HEADER
-│   │                                   │   ⏰ 3:05 AM │  │              │   Gradient
-│ ↓ Subtle blue gradient fade          ↓               ↓   ↓ Polished    │   + Shadow
-│   Multi-layer shadow for 3D depth                      │  glass effect │
-├─────────────────────────────────────────────────────────────────────────┤
-│ ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ shadow creates visual gap ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │
-│                                                                         │
-│                           MAIN CONTENT AREA                             │ ← Distinct
-│                        (Slightly muted background)                      │   bg-muted/20
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+1. **Tab Bar Enhancement** - Brand gradient background for active tab, glass effect for tab container
+2. **View Toggle Polish** - Active state with brand accent and glass effect
+3. **Metric Cards Depth** - Subtle 3D shadow and brand-tinted borders
+4. **Table/List Elevation** - Lifted appearance with shadow and refined borders
+5. **Filter Consistency** - Glass-panel styling matching header elements
 
 ---
 
 ## Detailed Implementation
 
-### File 1: `src/components/layout/AdminLayout.tsx`
+### File 1: `src/components/tasks/TaskManagement.tsx`
 
-Update the header container to add the brand gradient background, enhanced shadow for 3D effect, and improved separation.
+#### Change 1: Enhance Tabs Container (lines 838-876)
 
 **Current:**
 ```tsx
-<header className="sticky top-0 z-40 bg-background border-b border-border flex-shrink-0">
+<div className="border-b border-border bg-background relative">
 ```
 
 **After:**
 ```tsx
-<header className="sticky top-0 z-40 flex-shrink-0 bg-gradient-to-r from-primary/5 via-card to-secondary/5 border-b border-primary/10 shadow-md backdrop-blur-sm">
+<div className="border-b border-primary/10 bg-gradient-to-r from-primary/5 via-card to-secondary/5 backdrop-blur-sm rounded-t-lg shadow-sm relative">
 ```
 
-**Key Changes:**
-- `bg-gradient-to-r from-primary/5 via-card to-secondary/5` - Subtle brand gradient using Legal Blue primary and Teal secondary
-- `border-b border-primary/10` - Subtle brand-colored border
-- `shadow-md` - 3D elevation effect (can upgrade to custom multi-layer shadow)
-- `backdrop-blur-sm` - Modern frosted glass effect
-
-**Additionally, update the main content area for contrast:**
+#### Change 2: Enhance TabsTrigger Styling
 
 **Current:**
 ```tsx
-<main className="flex-1 overflow-auto min-h-0">
-  <div className="p-6">
+<TabsTrigger value="board" className="min-w-[70px] md:min-w-[90px] whitespace-nowrap text-xs md:text-sm">
 ```
 
 **After:**
 ```tsx
-<main className="flex-1 overflow-auto min-h-0 bg-muted/20">
-  <div className="p-6">
+<TabsTrigger 
+  value="board" 
+  className="min-w-[70px] md:min-w-[90px] whitespace-nowrap text-xs md:text-sm data-[state=active]:bg-white/80 data-[state=active]:shadow-sm data-[state=active]:border-primary/20"
+>
 ```
 
-The slight muted background on main creates clear visual separation from the header.
+#### Change 3: Enhance View Toggle Buttons (lines 881-907)
+
+**Current:**
+```tsx
+<Button
+  variant={viewMode === 'board' ? 'default' : 'outline'}
+  size="sm"
+  className="flex items-center gap-1.5 text-xs sm:text-sm"
+>
+```
+
+**After:**
+```tsx
+<Button
+  variant={viewMode === 'board' ? 'default' : 'outline'}
+  size="sm"
+  className={cn(
+    "flex items-center gap-1.5 text-xs sm:text-sm transition-all duration-200",
+    viewMode === 'board' 
+      ? "bg-primary shadow-sm" 
+      : "bg-white/80 backdrop-blur-sm border-primary/10 hover:bg-white/90"
+  )}
+>
+```
+
+#### Change 4: Enhance Metric Cards (lines 749-818)
+
+**Current:**
+```tsx
+<Card>
+  <CardContent className="p-4 md:p-6">
+```
+
+**After:**
+```tsx
+<Card className="bg-gradient-to-br from-card to-muted/30 border-primary/10 shadow-sm hover:shadow-md transition-shadow">
+  <CardContent className="p-4 md:p-6">
+```
 
 ---
 
-### File 2: `src/components/layout/HeaderDateTime.tsx`
+### File 2: `src/components/tasks/TaskList.tsx`
 
-Enhance the DateTime component to complement the vibrant header.
+#### Change 1: Enhance Table Container (lines 336-342)
 
 **Current:**
 ```tsx
-<div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-border/50">
+<motion.div
+  className="border rounded-lg bg-background overflow-hidden"
+>
 ```
 
 **After:**
 ```tsx
-<div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-primary/10 shadow-sm">
+<motion.div
+  className="border border-primary/10 rounded-lg bg-card shadow-sm overflow-hidden"
+>
 ```
 
-**Changes:**
-- `bg-white/80 backdrop-blur-sm` - Frosted glass effect
-- `border border-primary/10` - Subtle brand accent border
-- `shadow-sm` - Slight elevation for 3D effect
-
----
-
-### File 3: `src/components/layout/Header.tsx`
-
-Enhance the user menu button and notification bell area with complementary styling.
-
-**Avatar/Button Enhancement:**
+#### Change 2: Enhance Table Header Row
 
 **Current:**
 ```tsx
-<Button variant="ghost" className="flex items-center gap-2 px-2 h-11">
-  <Avatar className="h-10 w-10">
-    ...
-    <AvatarFallback className="text-sm bg-primary/10 text-primary">
+<TableHeader>
+  <TableRow>
 ```
 
 **After:**
 ```tsx
-<Button variant="ghost" className="flex items-center gap-2 px-2 h-11 hover:bg-white/50 rounded-xl transition-all duration-200">
-  <Avatar className="h-10 w-10 ring-2 ring-primary/20 ring-offset-1">
-    ...
-    <AvatarFallback className="text-sm bg-gradient-to-br from-primary to-secondary text-primary-foreground font-semibold">
+<TableHeader className="bg-gradient-to-r from-muted/50 to-muted/30">
+  <TableRow className="border-b border-primary/10">
 ```
 
-**Changes:**
-- Avatar ring for polished look: `ring-2 ring-primary/20 ring-offset-1`
-- Gradient avatar fallback for brand identity
-- Hover state with glass effect: `hover:bg-white/50`
+#### Change 3: Enhance Task Row Hover States (lines 408-415)
+
+**Current:**
+```tsx
+<TableRow 
+  className={`${rowHeight} cursor-pointer ${
+    isHighlighted ? 'bg-primary/5 border-primary' : ''
+  } hover:bg-muted/50`}
+>
+```
+
+**After:**
+```tsx
+<TableRow 
+  className={`${rowHeight} cursor-pointer transition-colors ${
+    isHighlighted ? 'bg-primary/10 border-l-2 border-l-primary' : ''
+  } hover:bg-gradient-to-r hover:from-primary/5 hover:to-transparent`}
+>
+```
+
+#### Change 4: Enhance Filter Dropdowns (lines 299-332)
+
+**Current:**
+```tsx
+<SelectTrigger className="w-full sm:w-[180px] md:w-[200px]">
+```
+
+**After:**
+```tsx
+<SelectTrigger className="w-full sm:w-[180px] md:w-[200px] bg-white/80 backdrop-blur-sm border-primary/10 shadow-sm">
+```
 
 ---
 
-### File 4: `src/index.css` (New 3D Header Utilities)
+### File 3: `src/components/tasks/TaskBoard.tsx`
 
-Add custom CSS utilities for enhanced 3D shadow effects.
+#### Change 1: Enhance Column Headers (lines 316-335)
 
-**Add to @layer utilities:**
+**Current:**
+```tsx
+<Card className="bg-muted/30">
+  <CardContent className="p-3 md:p-4">
+```
+
+**After:**
+```tsx
+<Card className="bg-gradient-to-br from-muted/40 to-muted/20 border-primary/10 shadow-sm">
+  <CardContent className="p-3 md:p-4">
+```
+
+#### Change 2: Enhance Drop Zones (lines 338-343)
+
+**Current:**
+```tsx
+<div 
+  className={`space-y-3 min-h-[400px] p-2 rounded-lg border-2 border-dashed transition-colors ${
+    dragOverColumn === column.id 
+      ? 'border-primary bg-primary/5' 
+      : 'border-border/50'
+  }`}
+>
+```
+
+**After:**
+```tsx
+<div 
+  className={`space-y-3 min-h-[400px] p-2 rounded-lg border-2 border-dashed transition-all ${
+    dragOverColumn === column.id 
+      ? 'border-primary bg-gradient-to-b from-primary/10 to-transparent shadow-inner' 
+      : 'border-primary/20 bg-muted/10'
+  }`}
+>
+```
+
+#### Change 3: Enhance Task Cards (lines 142-158)
+
+**Current:**
+```tsx
+<div
+  className={`p-3 md:p-4 bg-background rounded-lg border-l-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ...`}
+>
+```
+
+**After:**
+```tsx
+<div
+  className={`p-3 md:p-4 bg-card rounded-lg border-l-4 shadow-sm hover:shadow-md hover:translate-y-[-1px] transition-all duration-200 cursor-pointer ...`}
+>
+```
+
+#### Change 4: Enhance Quick Stats Cards (lines 396-452)
+
+**Current:**
+```tsx
+<Card>
+  <CardContent className="p-4">
+```
+
+**After:**
+```tsx
+<Card className="bg-gradient-to-br from-card to-muted/20 border-primary/10 shadow-sm">
+  <CardContent className="p-4">
+```
+
+---
+
+### File 4: `src/index.css` (Add Task Page Utilities)
+
+Add new utility classes for consistent task page styling:
 
 ```css
-/* Vibrant Header 3D Effect */
-.header-3d {
+/* Task Module UI Enhancements */
+.task-card-elevated {
   box-shadow: 
-    0 1px 2px rgba(30, 58, 138, 0.05),
-    0 4px 6px -1px rgba(30, 58, 138, 0.08),
-    0 8px 15px -3px rgba(30, 58, 138, 0.05);
+    0 1px 2px hsl(222 47% 33% / 0.04),
+    0 2px 4px hsl(222 47% 33% / 0.06);
 }
 
-.header-3d-strong {
+.task-card-elevated:hover {
   box-shadow: 
-    0 1px 3px rgba(30, 58, 138, 0.08),
-    0 4px 8px -2px rgba(30, 58, 138, 0.12),
-    0 12px 20px -4px rgba(30, 58, 138, 0.08);
+    0 2px 4px hsl(222 47% 33% / 0.06),
+    0 4px 8px hsl(222 47% 33% / 0.08);
 }
 
-/* Frosted glass effect for header elements */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.8);
+.task-tab-active {
+  background: linear-gradient(135deg, hsl(0 0% 100% / 0.9), hsl(0 0% 100% / 0.7));
+  backdrop-filter: blur(4px);
+  box-shadow: 0 1px 2px hsl(222 47% 33% / 0.1);
+}
+
+.task-filter-glass {
+  background: hsl(0 0% 100% / 0.8);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(30, 58, 138, 0.1);
+  border: 1px solid hsl(222 47% 33% / 0.1);
 }
 ```
 
 ---
 
-## Visual Hierarchy After Changes
+## Visual Comparison
 
-| Element | Background | Border | Shadow | Effect |
-|---------|------------|--------|--------|--------|
-| **Header** | `from-primary/5 via-card to-secondary/5` | `border-primary/10` | `shadow-md` or `header-3d` | Elevated, branded |
-| **DateTime** | `bg-white/80 backdrop-blur` | `border-primary/10` | `shadow-sm` | Glass panel |
-| **User Avatar** | Gradient fallback | `ring-primary/20` | - | Brand identity |
-| **Main Content** | `bg-muted/20` | - | - | Subtle recession |
+```text
+BEFORE (Current flat design):           AFTER (Unified with header):
+┌─────────────────────────────┐         ┌─────────────────────────────┐
+│ [Board][Auto][Escal][...]   │         │ ░░░[Board]░░[Auto]░░[...]░░░│  ← Gradient bg
+│ ─────────────────────────── │         │ ═════════════════════════════│  ← Subtle shadow
+│                             │         │                             │
+│ ┌─────┐ ┌─────┐ ┌─────┐    │         │ ┌─────┐ ┌─────┐ ┌─────┐    │
+│ │Total│ │Done │ │Over │    │         │ │▓▓▓▓▓│ │▓▓▓▓▓│ │▓▓▓▓▓│    │  ← Card gradients
+│ │ 190 │ │  45 │ │  12 │    │         │ │ 190 │ │  45 │ │  12 │    │
+│ └─────┘ └─────┘ └─────┘    │         │ └═════┘ └═════┘ └═════┘    │  ← Subtle shadows
+│                             │         │                             │
+│ [Client ▼] [Status ▼]       │         │ ░[Client ▼]░ ░[Status ▼]░   │  ← Glass filters
+│                             │         │                             │
+│ ┌─────────────────────────┐ │         │ ┌═════════════════════════┐ │
+│ │ Task List               │ │         │ │▒▒ Task List ▒▒▒▒▒▒▒▒▒▒▒│ │  ← Header gradient
+│ │ ─ Task Row 1            │ │         │ │ ░ Task Row 1 →          │ │  ← Hover gradient
+│ │ ─ Task Row 2            │ │         │ │ ░ Task Row 2 →          │ │
+│ └─────────────────────────┘ │         │ └═════════════════════════┘ │  ← Elevated border
+└─────────────────────────────┘         └─────────────────────────────┘
+```
+
+---
+
+## File Modifications Summary
+
+| File | Action | Key Changes |
+|------|--------|-------------|
+| `src/components/tasks/TaskManagement.tsx` | **Update** | Tab container gradient, view toggle glass effect, metric card shadows |
+| `src/components/tasks/TaskList.tsx` | **Update** | Table elevation, header gradient, row hover effects, filter glass styling |
+| `src/components/tasks/TaskBoard.tsx` | **Update** | Column header gradients, drop zone styling, card elevation, stats cards |
+| `src/index.css` | **Add utilities** | `task-card-elevated`, `task-tab-active`, `task-filter-glass` classes |
 
 ---
 
@@ -208,55 +311,25 @@ Add custom CSS utilities for enhanced 3D shadow effects.
 
 | Guideline | Implementation |
 |-----------|----------------|
-| Primary Blue (#1E3A8A) | Used in gradient at 5% opacity for subtle brand presence |
-| Secondary Teal (#0F766E) | Used in right side of gradient for visual interest |
-| No Orange except alerts | Orange not used |
-| WCAG AA Contrast | All text remains on light backgrounds for accessibility |
-| Professional legal aesthetic | Subtle gradients, no garish colors |
-
----
-
-## Alternative: Stronger Brand Presence
-
-If the subtle approach is too mild, here's a bolder option:
-
-```tsx
-// AdminLayout header - Bold variant
-<header className="sticky top-0 z-40 flex-shrink-0 
-  bg-gradient-to-r from-primary/10 via-primary/5 to-secondary/8
-  border-b-2 border-primary/15
-  shadow-lg header-3d-strong
-  backdrop-blur-md">
-```
-
-This uses:
-- Stronger opacity on gradients (10% instead of 5%)
-- Thicker border (border-b-2)
-- Larger shadow (shadow-lg + custom header-3d-strong)
-
----
-
-## File Modifications Summary
-
-| File | Action | Changes |
-|------|--------|---------|
-| `src/components/layout/AdminLayout.tsx` | **Update** | Add brand gradient, 3D shadow, backdrop blur to header; add muted bg to main |
-| `src/components/layout/HeaderDateTime.tsx` | **Update** | Glass panel effect, brand border, shadow |
-| `src/components/layout/Header.tsx` | **Update** | Avatar ring, gradient fallback, hover states |
-| `src/index.css` | **Add utilities** | `header-3d`, `header-3d-strong`, `glass-panel` classes |
+| Primary Blue (#1E3A8A) | Tab gradient, card borders at 10% opacity |
+| Secondary Teal (#0F766E) | Gradient right-side accent |
+| 3D Depth | Cards with shadow-sm, hover:shadow-md transitions |
+| Glass Effect | Filters and active states with backdrop-blur |
+| Visual Hierarchy | Elevated header, muted background content separation |
 
 ---
 
 ## Testing Checklist
 
-1. Verify header gradient is visible but not overpowering
-2. Check 3D shadow creates clear separation from content
-3. Test backdrop blur effect on header
-4. Verify DateTime glass panel looks polished
-5. Check avatar ring and gradient fallback display correctly
-6. Test responsive behavior on mobile/tablet
-7. Verify dark mode compatibility (if applicable)
-8. Ensure all text maintains WCAG AA contrast
-9. Test that interactive elements (search, bell, avatar) still work correctly
-10. Compare with sidebar brand styling for consistency
-
+1. Verify tab bar gradient matches header styling
+2. Check active tab state has glass/elevated appearance
+3. Confirm view toggle buttons have proper active/inactive states
+4. Verify metric cards have subtle shadow and gradient
+5. Check task list table has elevated appearance
+6. Test table header has gradient background
+7. Verify task row hover shows gradient effect
+8. Confirm filter dropdowns have glass-panel styling
+9. Test on mobile - ensure no visual regressions
+10. Check Board view column headers match List styling
+11. Verify drag-and-drop zone styling during drag
+12. Compare overall page with header for visual harmony
