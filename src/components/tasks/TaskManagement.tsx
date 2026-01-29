@@ -747,7 +747,7 @@ export const TaskManagement: React.FC = () => {
         transition={{ duration: 0.3, delay: 0.1 }}
         className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6"
       >
-        <Card>
+        <Card className="bg-gradient-to-br from-card to-muted/30 border-primary/10 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4 md:p-6">
             <ThreeLayerHelp helpId="card-total-tasks" showExplanation={false}>
               <div className="flex items-center justify-between">
@@ -761,7 +761,7 @@ export const TaskManagement: React.FC = () => {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-gradient-to-br from-card to-muted/30 border-primary/10 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -774,7 +774,7 @@ export const TaskManagement: React.FC = () => {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-gradient-to-br from-card to-muted/30 border-primary/10 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4 md:p-6">
             <ThreeLayerHelp helpId="card-overdue-tasks" showExplanation={false}>
               <div className="flex items-center justify-between">
@@ -789,7 +789,7 @@ export const TaskManagement: React.FC = () => {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-gradient-to-br from-card to-muted/30 border-primary/10 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -801,7 +801,7 @@ export const TaskManagement: React.FC = () => {
           </CardContent>
         </Card>
         
-        <Card className="col-span-2 sm:col-span-1">
+        <Card className="col-span-2 sm:col-span-1 bg-gradient-to-br from-card to-muted/30 border-primary/10 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4 md:p-6">
             <ThreeLayerHelp helpId="card-auto-generated" showExplanation={false}>
               <div className="flex items-center justify-between">
@@ -836,13 +836,13 @@ export const TaskManagement: React.FC = () => {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="border-b border-border bg-background relative">
+        <div className="border-b border-primary/10 bg-gradient-to-r from-primary/5 via-card to-secondary/5 backdrop-blur-sm rounded-t-lg shadow-sm relative">
           {/* Scroll indicator gradients for mobile */}
           <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-background to-transparent pointer-events-none z-10 md:hidden" />
           <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-background to-transparent pointer-events-none z-10 md:hidden" />
           <div className="overflow-x-auto scrollbar-thin">
             <TabsList className="inline-flex w-max min-w-full h-auto p-1 gap-0.5 md:gap-1" data-tour="task-automation-tabs">
-              <TabsTrigger value="board" data-tour="board-tab" className="min-w-[70px] md:min-w-[90px] whitespace-nowrap text-xs md:text-sm">Board</TabsTrigger>
+              <TabsTrigger value="board" data-tour="board-tab" className="min-w-[70px] md:min-w-[90px] whitespace-nowrap text-xs md:text-sm data-[state=active]:bg-white/80 data-[state=active]:shadow-sm data-[state=active]:border-primary/20">Board</TabsTrigger>
               {canAccessAutomation && (
                 <TabsTrigger value="automation" data-tour="automation-tab" className="min-w-[80px] md:min-w-[100px] whitespace-nowrap text-xs md:text-sm">
                   <Lock className="h-3 w-3 mr-1 text-muted-foreground hidden sm:inline" />
@@ -886,7 +886,11 @@ export const TaskManagement: React.FC = () => {
                   setViewMode('board');
                   uiStateService.saveViewMode('task-management', 'board');
                 }}
-                className="flex items-center gap-1.5 text-xs sm:text-sm"
+                className={`flex items-center gap-1.5 text-xs sm:text-sm transition-all duration-200 ${
+                  viewMode === 'board' 
+                    ? 'bg-primary shadow-sm' 
+                    : 'bg-white/80 backdrop-blur-sm border-primary/10 hover:bg-white/90'
+                }`}
               >
                 <LayoutGrid className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">Board View</span>

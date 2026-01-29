@@ -569,6 +569,31 @@ input[type="date"] {
     border-left-width: 3px !important;
     background: linear-gradient(to right, hsl(var(--primary) / 0.35), hsl(var(--primary) / 0)) !important;
   }
+
+  /* Task Module UI Enhancements */
+  .task-card-elevated {
+    box-shadow: 
+      0 1px 2px hsl(222 47% 33% / 0.04),
+      0 2px 4px hsl(222 47% 33% / 0.06);
+  }
+
+  .task-card-elevated:hover {
+    box-shadow: 
+      0 2px 4px hsl(222 47% 33% / 0.06),
+      0 4px 8px hsl(222 47% 33% / 0.08);
+  }
+
+  .task-tab-active {
+    background: linear-gradient(135deg, hsl(0 0% 100% / 0.9), hsl(0 0% 100% / 0.7));
+    backdrop-filter: blur(4px);
+    box-shadow: 0 1px 2px hsl(222 47% 33% / 0.1);
+  }
+
+  .task-filter-glass {
+    background: hsl(0 0% 100% / 0.8);
+    backdrop-filter: blur(8px);
+    border: 1px solid hsl(222 47% 33% / 0.1);
+  }
 }
 
 @keyframes fadeIn {

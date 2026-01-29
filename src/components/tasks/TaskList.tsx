@@ -299,7 +299,7 @@ export const TaskList: React.FC<TaskListProps> = ({
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-wrap w-full">
           {/* Client Filter */}
           <Select value={clientFilter} onValueChange={setClientFilter}>
-            <SelectTrigger className="w-full sm:w-[180px] md:w-[200px]">
+            <SelectTrigger className="w-full sm:w-[180px] md:w-[200px] bg-white/80 backdrop-blur-sm border-primary/10 shadow-sm">
               <Building2 className="h-4 w-4 mr-2 shrink-0" />
               <SelectValue placeholder="All Clients" />
             </SelectTrigger>
@@ -315,7 +315,7 @@ export const TaskList: React.FC<TaskListProps> = ({
 
           {/* Lock Status Filter */}
           <Select value={lockFilter} onValueChange={(value: any) => setLockFilter(value)}>
-            <SelectTrigger className="w-full sm:w-[140px]">
+            <SelectTrigger className="w-full sm:w-[140px] bg-white/80 backdrop-blur-sm border-primary/10 shadow-sm">
               <SelectValue placeholder="Lock Status" />
             </SelectTrigger>
             <SelectContent>
@@ -337,12 +337,12 @@ export const TaskList: React.FC<TaskListProps> = ({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="border rounded-lg bg-background overflow-hidden"
+        className="border border-primary/10 rounded-lg bg-card shadow-sm overflow-hidden"
       >
         <div className="overflow-x-auto">
           <Table>
-          <TableHeader>
-            <TableRow>
+          <TableHeader className="bg-gradient-to-r from-muted/50 to-muted/30">
+            <TableRow className="border-b border-primary/10">
               <TableHead className="w-12">
                 <Checkbox
                   checked={selectedTasks.size === tasks.length && tasks.length > 0}
@@ -408,9 +408,9 @@ export const TaskList: React.FC<TaskListProps> = ({
                 <TableRow 
                   key={task.id}
                   id={`task-${task.id}`}
-                  className={`${rowHeight} cursor-pointer ${
-                    isHighlighted ? 'bg-primary/5 border-primary' : ''
-                  } hover:bg-muted/50`}
+                  className={`${rowHeight} cursor-pointer transition-colors ${
+                    isHighlighted ? 'bg-primary/10 border-l-2 border-l-primary' : ''
+                  } hover:bg-gradient-to-r hover:from-primary/5 hover:to-transparent`}
                   onClick={() => handleTaskClick(task)}
                 >
                   <TableCell onClick={(e) => e.stopPropagation()}>
