@@ -1,345 +1,347 @@
 
 
-# Plan: Unify "Create New Task" UI with "Create New Case" Modal Pattern
+# Plan: Improve Task View UI/UX to Match Create Task Modal Pattern
 
-## Current State Analysis
+## Problem Analysis
 
-| Aspect | Create New Case | Create New Task (Current) |
-|--------|-----------------|---------------------------|
-| **Container** | `AdaptiveFormShell` (modal/overlay) | Full-page route layout |
-| **Header** | Clean title with icon, X close button | Back arrow with inline title |
-| **Content** | `Card` sections with icons and headers | Mixed divs, collapsibles, inline styling |
-| **Footer** | Sticky footer via `AdaptiveFormShell` | Inline sticky div |
-| **Navigation** | Modal close returns to previous view | Navigate away to `/tasks` |
-| **Form Layout** | Organized into semantic Card groups | Scattered across styled divs |
+Looking at the current Task View (screenshot 1) compared to the new Create Task modal (screenshot 2), the task view appears scattered and inconsistent:
 
-## Solution Approach
+### Current Issues Identified
 
-### Option A: Convert to Modal-Based Flow
-Keep CreateTask as a full-page route but wrap content in `AdaptiveFormShell` to achieve visual consistency. This approach:
-- Preserves the `/tasks/new` route (for bookmarking, deep linking)
-- Uses the same visual container as CaseModal
-- Organizes fields into Card sections like CaseForm
+| Area | Current State | Target State (Like Create Task) |
+|------|---------------|--------------------------------|
+| **Header** | Plain gradient with inline badges | Clean header with icon and title |
+| **Metadata Row** | Inline badges scattered horizontally | Organized in Card sections |
+| **Description** | Collapsible accordion-style | Prominent Card section |
+| **Content Structure** | Mixed divs without visual hierarchy | Semantic Card sections with icons |
+| **Messages** | Plain chat-style list | Card-contained conversation |
+| **Actions** | Bottom bar with two buttons | Consistent footer pattern |
 
-### Architecture Decision
+## Solution: Card-Based Task View Layout
 
-We will adopt **Option A** - wrapping the CreateTask page content in `AdaptiveFormShell` while keeping it as a route. This is consistent with the AFPA memory pattern and ensures uniform experience.
+Restructure the Task View to use the same Card-based pattern as Create Task, organizing information into clear visual sections.
 
 ---
 
 ## Detailed Implementation
 
-### File: `src/pages/CreateTask.tsx`
+### File 1: `src/components/tasks/TaskConversation.tsx`
 
-#### Change 1: Import AdaptiveFormShell and Card Components
+#### Change 1: Replace scattered layout with Card-based structure
 
-Add imports for the adaptive shell and card components:
+**New Layout Architecture:**
 
-```typescript
-import { AdaptiveFormShell } from '@/components/ui/adaptive-form-shell';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+```text
+┌─────────────────────────────────────────────┐
+│ ←  Task Title                    [Status ▼] │  ← Clean header
+├─────────────────────────────────────────────┤
+│                                             │
+│ ┌─────────────────────────────────────────┐ │
+│ │ 📋 Task Overview                        │ │  ← Card 1
+│ │ ┌─────────┐  ┌───────────────────────┐  │ │
+│ │ │ Status  │  │ Description           │  │ │
+│ │ │ Priority│  │ (rendered HTML)       │  │ │
+│ │ │ Due     │  │                       │  │ │
+│ │ │ Assignee│  └───────────────────────┘  │ │
+│ │ └─────────┘                             │ │
+│ └─────────────────────────────────────────┘ │
+│                                             │
+│ ┌─────────────────────────────────────────┐ │
+│ │ 🔗 Linked Context                       │ │  ← Card 2
+│ │ Client: [Name →]    Case: [Number →]    │ │
+│ │ Created: Jan 30     By: Admin           │ │
+│ └─────────────────────────────────────────┘ │
+│                                             │
+│ ┌─────────────────────────────────────────┐ │
+│ │ 💬 Conversation (3 messages)            │ │  ← Card 3
+│ │ ├── System: Jan 30, 3:05 AM             │ │
+│ │ │   "description"                       │ │
+│ │ │   📎 sales-performance.pdf            │ │
+│ │ └── ...                                 │ │
+│ └─────────────────────────────────────────┘ │
+│                                             │
+├─────────────────────────────────────────────┤
+│ [+ Add Follow-up]           [✎ Edit Task]   │  ← Footer
+└─────────────────────────────────────────────┘
 ```
 
-#### Change 2: Replace Container Structure
+#### Change 2: Create new TaskViewCard component
 
-**Before (current):**
+Create a reusable Card-based task overview component.
+
+#### Change 3: Update header to be simpler and cleaner
+
+Replace the multi-row gradient header with a cleaner single-row design matching the Create Task modal header:
+
 ```tsx
-return (
-  <div className="h-full flex flex-col bg-background">
-    {/* Header - custom inline */}
-    <div className="border-b bg-card px-3...">
-      <Button variant="ghost" onClick={() => navigate('/tasks')}>
-        <ArrowLeft />
-      </Button>
-      <h1>Create New Task</h1>
-    </div>
-    
-    {/* Content - inline scroll container */}
-    <div className="flex-1 overflow-auto bg-muted/20">
-      <div className="max-w-2xl mx-auto p-4">
-        {/* Mixed div sections */}
-      </div>
-    </div>
-    
-    {/* Footer - inline sticky */}
-    <div className="border-t bg-card p-4">
-      <Button>Create Task</Button>
-    </div>
-  </div>
-);
-```
-
-**After:**
-```tsx
-return (
-  <AdaptiveFormShell
-    isOpen={true}
-    onClose={() => navigate('/tasks')}
-    title="Create New Task"
-    icon={<FileText className="h-5 w-5" />}
-    complexity="complex"
-    footer={footer}
-    dataTour="task-form"
-  >
-    {/* Content organized in Cards */}
-    <TaskFormContent ... />
-  </AdaptiveFormShell>
-);
-```
-
-#### Change 3: Reorganize Form Content into Card Sections
-
-Restructure the form content to match CaseForm's pattern:
-
-| Card Section | Icon | Fields Included |
-|--------------|------|-----------------|
-| **Task Details** | `FileText` | Title, Description |
-| **Case Linkage** (Optional) | `Link2` | Client selector, Case selector |
-| **Assignment** | `User` | Assign To (with helper text), Category |
-| **Scheduling** | `Calendar` | Due Date, Priority, Estimated Hours |
-| **Attachments & Tags** | `Paperclip` | File upload, Tag selection |
-
-#### Change 4: Update Field Labels and Helper Text
-
-Following the approved plan from the previous task assignment work:
-- Keep "Assign To" label with helper text "Who will complete this task?"
-- Keep "Creating as" context badge at the top (move into form header or first Card)
-
-#### Change 5: Define Footer Component
-
-```typescript
-const footer = (
-  <div className="flex items-center justify-end gap-3 px-6 py-4">
-    <Button type="button" variant="outline" onClick={() => navigate('/tasks')}>
-      Cancel
+// Before: Complex multi-row header with gradient
+<div className="border-b bg-gradient-to-r from-card via-card to-muted/50 shadow-sm">
+  <div className="px-3 md:px-4 py-2.5 md:py-3 flex items-center gap-2 md:gap-3">
+    <Button variant="ghost" size="icon" onClick={() => navigate('/tasks')}>
+      <ArrowLeft className="h-4 w-4" />
     </Button>
-    <Button 
-      type="button" 
-      onClick={handleSubmit} 
-      disabled={isSubmitting || !formData.title.trim()}
-    >
-      {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating...</> : 'Create Task'}
-    </Button>
+    <div className="flex-1 min-w-0">
+      <h1 className="text-base md:text-lg font-semibold truncate">{task.title}</h1>
+    </div>
+    {/* Status, dropdown menu, etc */}
   </div>
-);
+  {/* Second row with TaskHeader compact badges */}
+  <div className="px-3 md:px-4 pb-2.5 md:pb-3 border-t ...">
+    <TaskHeader task={task} compact />
+  </div>
+</div>
+
+// After: Clean single-row header like Create Task modal
+<div className="sticky top-0 z-20 border-b bg-card shadow-sm">
+  <div className="px-4 py-3 flex items-center gap-3">
+    <Button variant="ghost" size="icon" onClick={() => navigate('/tasks')}>
+      <ArrowLeft className="h-4 w-4" />
+    </Button>
+    <CheckSquare className="h-5 w-5 text-primary" />
+    <h1 className="flex-1 text-lg font-semibold truncate">{task.title}</h1>
+    <QuickStatusButton ... />
+    <DropdownMenu ... />
+  </div>
+</div>
 ```
 
----
+#### Change 4: Reorganize content into Card sections
 
-## Detailed Card Structure
-
-### Card 1: Task Details
+**Card 1: Task Overview**
 ```tsx
 <Card className="shadow-sm border">
   <CardHeader className="pb-4">
-    <div className="flex items-center gap-2">
-      <FileText className="h-5 w-5 text-primary" />
-      <CardTitle className="text-base">Task Details</CardTitle>
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <FileText className="h-5 w-5 text-primary" />
+        <CardTitle className="text-base">Task Overview</CardTitle>
+      </div>
+      <div className="flex items-center gap-2">
+        <Badge variant="secondary" className={statusConfig.color}>
+          {statusConfig.label}
+        </Badge>
+        <Badge variant="outline" className={priorityConfig.color}>
+          {task.priority}
+        </Badge>
+      </div>
     </div>
   </CardHeader>
   <CardContent className="space-y-4">
-    {/* Creator context badge */}
-    <div className="bg-muted/30 rounded-lg px-4 py-2 flex items-center gap-2 text-sm">
-      <User className="h-4 w-4 text-muted-foreground" />
-      <span className="text-muted-foreground">Creating as:</span>
-      <span className="font-medium">{creatorName}</span>
-      {creatorRole && <Badge variant="outline" className="text-xs">{creatorRole}</Badge>}
-    </div>
-    
-    {/* Title */}
-    <div className="space-y-2">
-      <Label>Task Title <span className="text-destructive">*</span></Label>
-      <Input value={formData.title} ... placeholder="What needs to be done?" />
-    </div>
-    
-    {/* Description */}
-    <div className="space-y-2">
-      <Label>Description</Label>
-      <Textarea value={formData.description} ... />
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Left: Key metadata */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-sm">
+          <User className="h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground">Assigned to:</span>
+          <span className="font-medium">{task.assignedToName || 'Unassigned'}</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground">Due:</span>
+          <span className={cn('font-medium', isOverdue && 'text-destructive')}>
+            {format(new Date(task.dueDate), 'MMM d, yyyy')}
+            {dueStatus && <span className="ml-2 text-xs">({dueStatus.text})</span>}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <CalendarPlus className="h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground">Created:</span>
+          <span>{format(new Date(task.createdDate), 'MMM d, yyyy')}</span>
+        </div>
+      </div>
+      
+      {/* Right: Description */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-muted-foreground">Description</Label>
+        {task.description ? (
+          <div 
+            className="prose prose-sm dark:prose-invert max-w-none text-sm bg-muted/30 rounded-lg p-3"
+            dangerouslySetInnerHTML={{ __html: task.description }}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground italic">No description provided</p>
+        )}
+      </div>
     </div>
   </CardContent>
 </Card>
 ```
 
-### Card 2: Case Linkage (Optional)
+**Card 2: Linked Context**
 ```tsx
 <Card className="shadow-sm border">
   <CardHeader className="pb-4">
     <div className="flex items-center gap-2">
       <Link2 className="h-5 w-5 text-primary" />
-      <CardTitle className="text-base">Link to Case (Optional)</CardTitle>
+      <CardTitle className="text-base">Linked Context</CardTitle>
     </div>
   </CardHeader>
-  <CardContent className="space-y-4">
+  <CardContent>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {/* Client selector */}
-      {/* Case selector */}
-    </div>
-    {/* Selected case context badge */}
-  </CardContent>
-</Card>
-```
-
-### Card 3: Assignment
-```tsx
-<Card className="shadow-sm border">
-  <CardHeader className="pb-4">
-    <div className="flex items-center gap-2">
-      <User className="h-5 w-5 text-primary" />
-      <CardTitle className="text-base">Assignment</CardTitle>
-    </div>
-  </CardHeader>
-  <CardContent className="space-y-4">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {/* Assign To with EmployeeCombobox */}
-      <div className="space-y-2">
-        <Label>Assign To</Label>
-        <EmployeeCombobox ... />
-        <p className="text-xs text-muted-foreground">
-          Who will complete this task? Can include managers, partners, or admins.
-        </p>
+      {/* Client link */}
+      <div className="flex items-center gap-2 text-sm">
+        <Building2 className="h-4 w-4 text-muted-foreground" />
+        <span className="text-muted-foreground">Client:</span>
+        {clientName ? (
+          <Button variant="link" className="h-auto p-0 text-sm font-medium">
+            {clientName} <ChevronRight className="h-3 w-3 ml-1" />
+          </Button>
+        ) : (
+          <span className="text-muted-foreground italic">Not linked</span>
+        )}
       </div>
       
-      {/* Category */}
-      <div className="space-y-2">
-        <Label>Category</Label>
-        <Select ... />
+      {/* Case link */}
+      <div className="flex items-center gap-2 text-sm">
+        <Briefcase className="h-4 w-4 text-muted-foreground" />
+        <span className="text-muted-foreground">Case:</span>
+        {caseNumber ? (
+          <Button variant="link" className="h-auto p-0 text-sm font-medium">
+            {caseNumber} <ChevronRight className="h-3 w-3 ml-1" />
+          </Button>
+        ) : (
+          <span className="text-muted-foreground italic">Not linked</span>
+        )}
       </div>
     </div>
   </CardContent>
 </Card>
 ```
 
-### Card 4: Scheduling
+**Card 3: Conversation**
 ```tsx
-<Card className="shadow-sm border">
-  <CardHeader className="pb-4">
+<Card className="shadow-sm border flex-1 flex flex-col min-h-0">
+  <CardHeader className="pb-4 shrink-0">
     <div className="flex items-center gap-2">
-      <Calendar className="h-5 w-5 text-primary" />
-      <CardTitle className="text-base">Scheduling</CardTitle>
+      <MessageSquare className="h-5 w-5 text-primary" />
+      <CardTitle className="text-base">
+        Conversation {messages.length > 0 && `(${messages.length})`}
+      </CardTitle>
     </div>
   </CardHeader>
-  <CardContent className="space-y-4">
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {/* Due Date */}
-      {/* Priority (badge selector) */}
-      {/* Estimated Hours */}
-    </div>
-  </CardContent>
-</Card>
-```
-
-### Card 5: Attachments & Tags
-```tsx
-<Card className="shadow-sm border">
-  <CardHeader className="pb-4">
-    <div className="flex items-center gap-2">
-      <Paperclip className="h-5 w-5 text-primary" />
-      <CardTitle className="text-base">Attachments & Tags</CardTitle>
-    </div>
-  </CardHeader>
-  <CardContent className="space-y-4">
-    {/* Tags selection */}
-    <div className="space-y-2">
-      <Label className="flex items-center gap-2">
-        <Tag className="h-4 w-4" /> Tags
-      </Label>
-      <div className="flex flex-wrap gap-2">
-        {DEFAULT_TAGS.map(...)}
-      </div>
-    </div>
-    
-    {/* File upload */}
-    <div className="space-y-2">
-      {/* Attachment list and upload button */}
-    </div>
+  <CardContent className="flex-1 overflow-auto p-0">
+    <ScrollArea className="h-full">
+      {/* Message list */}
+    </ScrollArea>
   </CardContent>
 </Card>
 ```
 
 ---
 
-## Template Button Handling
+### File 2: Create `src/components/tasks/TaskViewContent.tsx`
 
-The "Use Template" button currently lives in the header. We have two options:
+New component to encapsulate the Card-based view content, making TaskConversation cleaner:
 
-**Option 1**: Move to top of first Card as a secondary action
 ```tsx
-<Card>
-  <CardHeader className="pb-4">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <FileText className="h-5 w-5 text-primary" />
-        <CardTitle className="text-base">Task Details</CardTitle>
-      </div>
-      <Button variant="outline" size="sm" onClick={() => setShowTemplatePicker(true)}>
-        <Sparkles className="h-4 w-4 mr-1" /> Use Template
-      </Button>
-    </div>
-  </CardHeader>
-  ...
-</Card>
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+// ... other imports
+
+interface TaskViewContentProps {
+  task: Task;
+  messages: TaskMessage[];
+  isLoading: boolean;
+  currentUserId: string;
+  onNavigateToClient?: (clientId: string) => void;
+  onNavigateToCase?: (caseId: string) => void;
+}
+
+export const TaskViewContent: React.FC<TaskViewContentProps> = ({
+  task,
+  messages,
+  isLoading,
+  currentUserId,
+  onNavigateToClient,
+  onNavigateToCase,
+}) => {
+  // ... component logic with Card sections
+};
 ```
 
-**Option 2**: Pass as description/action in AdaptiveFormShell
+---
 
-We will use **Option 1** for cleaner integration with the Card-based layout.
+### File 3: Update `src/components/tasks/TaskHeader.tsx`
+
+Remove the `compact` mode since we'll display metadata in Cards instead. Keep the standard (non-compact) mode for any other uses but simplify it.
+
+---
+
+### File 4: Update `src/components/tasks/CollapsibleDescription.tsx`
+
+**Remove this component** - description will now be part of the Task Overview Card, not a separate collapsible section.
+
+---
+
+## Responsive Considerations
+
+| Device | Layout Behavior |
+|--------|-----------------|
+| **Desktop** | Two-column grid in Task Overview Card (metadata left, description right) |
+| **Tablet** | Two-column with reduced spacing |
+| **Mobile** | Single-column stack, all Cards full-width |
+
+```tsx
+// Grid responsive pattern
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  {/* Stacks on mobile, side-by-side on tablet+ */}
+</div>
+```
 
 ---
 
 ## File Modifications Summary
 
-| File | Changes |
-|------|---------|
-| `src/pages/CreateTask.tsx` | Replace full-page layout with `AdaptiveFormShell`, reorganize content into Card sections |
+| File | Action | Changes |
+|------|--------|---------|
+| `src/components/tasks/TaskConversation.tsx` | **Major refactor** | Replace scattered layout with Card-based sections |
+| `src/components/tasks/TaskViewContent.tsx` | **Create new** | Card-based content component for task view |
+| `src/components/tasks/TaskHeader.tsx` | **Simplify** | Remove compact mode, clean up for card context |
+| `src/components/tasks/CollapsibleDescription.tsx` | **Remove** | No longer needed - description in Card |
 
 ---
 
 ## Visual Comparison
 
 ```text
-BEFORE (CreateTask):                    AFTER (Unified):
-┌─────────────────────────┐            ┌─────────────────────────┐
-│ ← Create New Task   📄  │            │                         │
-│ Creating as: Admin      │            │ ┌─────────────────────┐ │
-├─────────────────────────┤            │ │ 📄 Create New Task X │ │
-│ ┌─Link to Case────────┐ │            │ ├─────────────────────┤ │
-│ │ Client | Case       │ │            │ │ Card: Task Details  │ │
-│ └─────────────────────┘ │            │ │ Creating as: Admin  │ │
-│                         │            │ │ Title: ___________  │ │
-│ ┌─Main Form Card──────┐ │            │ │ Description: ______ │ │
-│ │ Title               │ │            │ ├─────────────────────┤ │
-│ │ Description         │ │            │ │ Card: Link to Case  │ │
-│ └─────────────────────┘ │            │ │ Client | Case       │ │
-│                         │            │ ├─────────────────────┤ │
-│ ┌─Task Settings───────┐ │            │ │ Card: Assignment    │ │
-│ │ Assign|Cat|Pri|Hours│ │            │ │ Assign To | Category│ │
-│ └─────────────────────┘ │            │ ├─────────────────────┤ │
-│                         │            │ │ Card: Scheduling    │ │
-│ ┌─Tags────────────────┐ │            │ │ Due | Priority | Hr │ │
-│ │ [Tag] [Tag] [Tag]   │ │            │ ├─────────────────────┤ │
-│ └─────────────────────┘ │            │ │ Card: Attachments   │ │
-│                         │            │ │ Tags + Files        │ │
-│ ┌─Attachments─────────┐ │            │ └─────────────────────┘ │
-│ │ Click to attach     │ │            ├─────────────────────────┤
-│ └─────────────────────┘ │            │ [Cancel]   [Create Task]│
-├─────────────────────────┤            └─────────────────────────┘
-│ [Cancel]   [Create Task]│
-└─────────────────────────┘
+BEFORE (Current scattered):              AFTER (Card-based like Create Task):
+┌─────────────────────────┐              ┌─────────────────────────┐
+│ ← title - dialy work    │              │ ← ☑ title - dialy work  │
+│ [Not Started] M Jan 31..│              └─────────────────────────┘
+├─────────────────────────┤              ┌─────────────────────────┐
+│ ▼ Task Description      │              │ 📋 Task Overview        │
+│   — desciption          │              │ ┌───────┐ ┌───────────┐ │
+├─────────────────────────┤              │ │Status │ │Description│ │
+│ ⚙ System Jan 30...      │              │ │Due    │ │           │ │
+│   desciption            │              │ │Assign │ └───────────┘ │
+│   📎 sales-performance  │              │ └───────┘               │
+│                         │              └─────────────────────────┘
+│                         │              ┌─────────────────────────┐
+│                         │              │ 🔗 Linked Context       │
+│                         │              │ Client: —  Case: —      │
+│                         │              └─────────────────────────┘
+│                         │              ┌─────────────────────────┐
+│                         │              │ 💬 Conversation (1)     │
+├─────────────────────────┤              │ ⚙ System Jan 30...      │
+│[+Add Follow-up][Edit]   │              │   📎 sales-performance  │
+└─────────────────────────┘              ├─────────────────────────┤
+                                         │[+Add Follow-up][Edit]   │
+                                         └─────────────────────────┘
 ```
 
 ---
 
 ## Testing Checklist
 
-1. Open `/tasks/new` on desktop - verify full-page overlay appears (like CaseModal)
-2. Open on tablet - verify large slide-over drawer
-3. Open on mobile - verify full-screen modal
-4. Verify "Use Template" button works in new location
-5. Verify Case linkage (Client/Case selectors) work correctly
-6. Verify form submission creates task successfully
-7. Verify Cancel closes the shell and navigates back to `/tasks`
-8. Compare visual appearance with CaseModal for consistency
-9. Test keyboard navigation (Escape to close)
-10. Verify responsive behavior of Card sections
+1. Open task view on desktop - verify Card layout displays correctly
+2. Open task view on tablet - verify responsive 2-column → 1-column transition
+3. Open task view on mobile - verify single-column stacked Cards
+4. Verify Client/Case navigation links work in Linked Context Card
+5. Verify Conversation Card displays messages correctly
+6. Verify "Add Follow-up" and "Edit Task" buttons work
+7. Compare visual appearance with Create Task modal for consistency
+8. Test with task that has no description - verify fallback text
+9. Test with task not linked to any case/client - verify "Not linked" states
+10. Verify status badge colors match throughout the app
 
