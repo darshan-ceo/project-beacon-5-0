@@ -121,8 +121,21 @@ class TasksService {
       // Send notification to assignee (if different from current user)
       try {
         const { data: { user: currentUser } } = await supabase.auth.getUser();
+        const isDev = import.meta.env.DEV;
+        
+        // Dev logging: show assignment and notification decision
+        if (isDev) {
+          console.log('[TasksService] Notification check:', {
+            taskId: persistedTask.id,
+            taskTitle: persistedTask.title,
+            currentUserId: currentUser?.id,
+            assignedToId: persistedTask.assignedToId,
+            willNotify: persistedTask.assignedToId && persistedTask.assignedToId !== currentUser?.id
+          });
+        }
+        
         if (persistedTask.assignedToId && persistedTask.assignedToId !== currentUser?.id) {
-          await notificationSystemService.createNotification(
+          const result = await notificationSystemService.createNotification(
             'task_assigned',
             `New Task: ${persistedTask.title}`,
             `You have been assigned a new task${persistedTask.caseNumber ? ` for case ${persistedTask.caseNumber}` : ''}. ${persistedTask.dueDate ? `Due: ${persistedTask.dueDate}` : ''}`,
@@ -138,7 +151,16 @@ class TasksService {
               }
             }
           );
-          console.log('[TasksService] Notification sent to assignee:', persistedTask.assignedToId);
+          
+          if (result) {
+            console.log('[TasksService] Notification sent to assignee:', persistedTask.assignedToId, 'notificationId:', result.id);
+          } else {
+            console.warn('[TasksService] Notification creation returned null for assignee:', persistedTask.assignedToId);
+          }
+        } else if (isDev && !persistedTask.assignedToId) {
+          console.log('[TasksService] Notification skipped: No assignee specified');
+        } else if (isDev && persistedTask.assignedToId === currentUser?.id) {
+          console.log('[TasksService] Notification skipped: Self-assignment (creator is assignee)');
         }
       } catch (notifError) {
         console.warn('Failed to send notification for task assignment:', notifError);
