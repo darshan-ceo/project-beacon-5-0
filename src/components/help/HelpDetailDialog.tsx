@@ -153,16 +153,13 @@ export const HelpDetailDialog: React.FC<HelpDetailDialogProps> = ({
                 </p>
               </div>
 
-              {/* Content if available */}
+              {/* Rich content if available - displayed prominently */}
               {entry.content && (
-                <>
-                  <Separator />
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <p className="text-sm text-muted-foreground">
-                      {entry.content}
-                    </p>
-                  </div>
-                </>
+                <div className="bg-muted/50 rounded-lg p-4 border border-border/50">
+                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
+                    {entry.content}
+                  </p>
+                </div>
               )}
 
               {/* Tags */}

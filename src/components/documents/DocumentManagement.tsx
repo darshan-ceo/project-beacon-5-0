@@ -285,13 +285,15 @@ export const DocumentManagement: React.FC = () => {
       navigate(`?${newSearchParams.toString()}`, { replace: true });
     }
 
-    // Handle template builder redirect
+    // Handle template builder redirect - switch to templates tab
+    // The TemplatesManagement component handles the actual Template Builder UI
     if (openTemplateBuilder === '1') {
       setActiveTab('templates');
-      // Clear the parameter
+      // Clear the parameter after switching tabs
       const newSearchParams = new URLSearchParams(searchParams);
       newSearchParams.delete('openTemplateBuilder');
-      navigate(`?${newSearchParams.toString()}`, { replace: true });
+      newSearchParams.delete('tab');
+      navigate(`/documents?tab=templates`, { replace: true });
     }
 
     // Store return context if present
