@@ -430,7 +430,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
       <Button type="button" variant="outline" onClick={onClose}>
         {mode === 'view' ? 'Close' : 'Cancel'}
       </Button>
-      {mode === 'edit' && (
+      {mode === 'edit' && canDeleteCases && (
         <Button type="button" variant="destructive" onClick={handleDelete} disabled={isDeleting}>
           {isDeleting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Deleting...</> : 'Delete Case'}
         </Button>
