@@ -1277,6 +1277,7 @@ export type Database = {
           name: string
           officer_designation: string | null
           phone: string | null
+          residence_address: Json | null
           state: string | null
           status: string | null
           tax_jurisdiction: string | null
@@ -1300,6 +1301,7 @@ export type Database = {
           name: string
           officer_designation?: string | null
           phone?: string | null
+          residence_address?: Json | null
           state?: string | null
           status?: string | null
           tax_jurisdiction?: string | null
@@ -1323,6 +1325,7 @@ export type Database = {
           name?: string
           officer_designation?: string | null
           phone?: string | null
+          residence_address?: Json | null
           state?: string | null
           status?: string | null
           tax_jurisdiction?: string | null

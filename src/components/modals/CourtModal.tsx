@@ -13,11 +13,11 @@ import { AdaptiveFormShell } from '@/components/ui/adaptive-form-shell';
 import { FormStickyFooter } from '@/components/ui/form-sticky-footer';
 import { Court, useAppState } from '@/contexts/AppStateContext';
 import { UnifiedAddressForm } from '@/components/ui/UnifiedAddressForm';
-import { UnifiedAddress } from '@/types/address';
+import { UnifiedAddress, PartialAddress } from '@/types/address';
 import { AddressView } from '@/components/ui/AddressView';
 import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
 import { featureFlagService } from '@/services/featureFlagService';
-import { MapPin, Phone, Mail, Building2, Scale, Globe, Loader2 } from 'lucide-react';
+import { MapPin, Phone, Mail, Building2, Scale, Globe, Loader2, Home } from 'lucide-react';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { AUTHORITY_LEVEL_OPTIONS, AUTHORITY_LEVEL_METADATA, AuthorityLevel } from '@/types/authority-level';
 import { clientsService } from '@/services/clientsService';
@@ -67,6 +67,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     // NEW: CGST/SGST fields
     taxJurisdiction?: TaxJurisdiction;
     officerDesignation?: OfficerDesignation;
+    // NEW: Independent Residence Address (clean implementation)
+    residenceAddress: PartialAddress;
   }>({
     name: '',
     type: 'District Court',
@@ -95,7 +97,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     city: '',
     status: 'Active',
     taxJurisdiction: undefined,
-    officerDesignation: undefined
+    officerDesignation: undefined,
+    residenceAddress: {} // Empty initial state for new residence address
   });
   const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -204,7 +207,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         city: cityValue,
         status: courtData.status || 'Active',
         taxJurisdiction: courtData.taxJurisdiction as TaxJurisdiction | undefined,
-        officerDesignation: courtData.officerDesignation as OfficerDesignation | undefined
+        officerDesignation: courtData.officerDesignation as OfficerDesignation | undefined,
+        residenceAddress: courtData.residenceAddress || {} // Hydrate residence address
       });
     } else if (mode === 'create') {
       setFormData({
@@ -233,7 +237,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         city: '',
         status: 'Active',
         taxJurisdiction: undefined,
-        officerDesignation: undefined
+        officerDesignation: undefined,
+        residenceAddress: {} // Empty for create mode
       });
     }
   }, [courtData, mode]);
@@ -327,7 +332,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
           city: formData.city,
           status: formData.status,
           taxJurisdiction: formData.taxJurisdiction,
-          officerDesignation: formData.officerDesignation
+          officerDesignation: formData.officerDesignation,
+          residenceAddress: formData.residenceAddress // NEW: Include residence address
         };
 
         const created = await courtsService.create(courtToCreate, dispatch);
@@ -365,7 +371,8 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
           city: formData.city,
           status: formData.status,
           taxJurisdiction: formData.taxJurisdiction,
-          officerDesignation: formData.officerDesignation
+          officerDesignation: formData.officerDesignation,
+          residenceAddress: formData.residenceAddress // NEW: Include residence address
         };
 
         await courtsService.update(courtData.id, updates, dispatch);
@@ -796,6 +803,30 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                   mode={mode}
                 />
               )}
+              </CardContent>
+            </Card>
+
+            {/* Section: Residence Address - Independent Clean Implementation */}
+            <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
+              <CardHeader className="border-b border-border p-6 pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  <Home className="h-4 w-4" />
+                  Residence Address
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 p-6">
+                <UnifiedAddressForm
+                  value={formData.residenceAddress || {}}
+                  onChange={(address: UnifiedAddress) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      residenceAddress: address
+                    }));
+                  }}
+                  module="contact" // Use contact module config (proven stable)
+                  mode={mode}
+                  required={false}
+                />
               </CardContent>
             </Card>
 

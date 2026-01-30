@@ -84,6 +84,10 @@ class CourtsService {
         bench_location: newCourt.benchLocation,
         tax_jurisdiction: normalizedData.taxJurisdiction,
         officer_designation: normalizedData.officerDesignation,
+        // NEW: Independent residence address (JSONB only - no legacy TEXT)
+        residence_address: (normalizedData as any).residenceAddress 
+          ? JSON.stringify((normalizedData as any).residenceAddress) 
+          : null,
       } as any);
 
       // Get server-generated UUID
@@ -150,6 +154,12 @@ class CourtsService {
         ...(updates.benchLocation && { bench_location: updates.benchLocation }),
         ...(updates.taxJurisdiction !== undefined && { tax_jurisdiction: updates.taxJurisdiction }),
         ...(updates.officerDesignation !== undefined && { officer_designation: updates.officerDesignation }),
+        // NEW: Independent residence address (JSONB only)
+        ...((updates as any).residenceAddress !== undefined && { 
+          residence_address: (updates as any).residenceAddress 
+            ? JSON.stringify((updates as any).residenceAddress) 
+            : null 
+        }),
         updated_at: new Date().toISOString(),
       } as any);
 
@@ -236,6 +246,8 @@ class CourtsService {
       return courts.map((c: any) => {
         // Parse JSONB address if available, fallback to legacy fields
         const parsedAddress = c.address_jsonb ? parseDbAddress(c.address_jsonb) : null;
+        // Parse residence address (independent JSONB field)
+        const parsedResidenceAddress = c.residence_address ? parseDbAddress(c.residence_address) : undefined;
         
         return {
           id: c.id,
@@ -252,6 +264,7 @@ class CourtsService {
           benchLocation: c.bench_location,
           taxJurisdiction: c.tax_jurisdiction,
           officerDesignation: c.officer_designation,
+          residenceAddress: parsedResidenceAddress, // NEW: Independent residence address
           activeCases: 0,
           avgHearingTime: '30 mins',
           digitalFiling: false,
@@ -276,6 +289,8 @@ class CourtsService {
       
       // Parse JSONB address if available
       const parsedAddress = court.address_jsonb ? parseDbAddress(court.address_jsonb) : null;
+      // Parse residence address (independent JSONB field)
+      const parsedResidenceAddress = court.residence_address ? parseDbAddress(court.residence_address) : undefined;
       
       return {
         id: court.id,
@@ -292,6 +307,7 @@ class CourtsService {
         benchLocation: court.bench_location,
         taxJurisdiction: court.tax_jurisdiction,
         officerDesignation: court.officer_designation,
+        residenceAddress: parsedResidenceAddress, // NEW: Independent residence address
         activeCases: 0,
         avgHearingTime: '30 mins',
         digitalFiling: false,
