@@ -5,6 +5,7 @@
 
 import { unifiedStore } from '@/persistence/unifiedStore';
 import { formatDateForDisplay, formatDateForStorage, parseDateInput } from '@/utils/dateFormatters';
+import { isTaskOverdue } from '@/utils/taskHelpers';
 import type { Task, Case, Client, Hearing } from '@/contexts/AppStateContext';
 
 export interface MigrationAction {
@@ -534,7 +535,7 @@ async function addMissingSLAData(tasksWithoutSLA: Task[]): Promise<{ added: numb
       let slaStatus: 'on_track' | 'at_risk' | 'breached' = 'on_track';
       if (task.status === 'Completed') {
         slaStatus = 'on_track';
-      } else if (task.status === 'Overdue') {
+      } else if (isTaskOverdue(task)) {
         slaStatus = 'breached';
       }
       

@@ -99,7 +99,7 @@ export interface CreateTaskData {
 }
 
 export interface UpdateTaskData extends Partial<CreateTaskData> {
-  status?: 'Not Started' | 'In Progress' | 'Review' | 'Completed' | 'Overdue';
+  status?: 'Not Started' | 'In Progress' | 'Need Info' | 'On Hold' | 'Review' | 'Completed' | 'Cancelled';
   completedDate?: string;
   actualHours?: number;
 }

@@ -54,7 +54,7 @@ interface TasksBulkActionsProps {
 
 type ActionType = 'status' | 'priority' | 'reassign' | 'dueDate' | 'comment' | 'delete' | null;
 
-const STATUS_OPTIONS = ['Not Started', 'In Progress', 'Review', 'Completed'];
+const STATUS_OPTIONS = ['Not Started', 'In Progress', 'Need Info', 'On Hold', 'Review', 'Completed', 'Cancelled'];
 const PRIORITY_OPTIONS = ['Critical', 'High', 'Medium', 'Low'];
 
 export const TasksBulkActions: React.FC<TasksBulkActionsProps> = ({

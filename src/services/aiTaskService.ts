@@ -1,4 +1,5 @@
 import { Task } from '@/contexts/AppStateContext';
+import { isTaskOverdue } from '@/utils/taskHelpers';
 
 export interface AITaskSuggestion {
   id: string;
@@ -199,7 +200,7 @@ class AITaskService {
       }
     ]`;
 
-    const overdueTasks = tasks.filter(t => t.status === 'Overdue').length;
+    const overdueTasks = tasks.filter(t => isTaskOverdue(t)).length;
     const totalTasks = tasks.length;
     const avgWorkload = Object.values(teamCapacity).reduce((a, b) => a + b, 0) / Object.keys(teamCapacity).length;
 
@@ -210,7 +211,7 @@ class AITaskService {
     - Average Workload: ${avgWorkload.toFixed(1)}%
     
     Critical Tasks:
-    ${tasks.filter(t => t.priority === 'Critical' || t.status === 'Overdue').map(t => 
+    ${tasks.filter(t => t.priority === 'Critical' || isTaskOverdue(t)).map(t => 
       `- ${t.title} (${t.status}, Due: ${t.dueDate}, Assigned: ${t.assignedToName})`
     ).join('\n')}
     

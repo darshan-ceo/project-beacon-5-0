@@ -20,7 +20,7 @@ export interface TaskFormData {
   caseId: string;
   stage: string;
   priority: 'Critical' | 'High' | 'Medium' | 'Low';
-  status: 'Not Started' | 'In Progress' | 'Review' | 'Completed' | 'Overdue';
+  status: 'Not Started' | 'In Progress' | 'Need Info' | 'On Hold' | 'Review' | 'Completed' | 'Cancelled';
   assignedToId: string;
   assignedToName: string;
   estimatedHours: number;

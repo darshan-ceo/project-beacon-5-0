@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Task } from '@/contexts/AppStateContext';
+import { isTaskOverdue } from '@/utils/taskHelpers';
 
 interface TaskInsightsProps {
   tasks: Task[];
@@ -49,7 +50,7 @@ export const TaskInsights: React.FC<TaskInsightsProps> = ({ tasks }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   const insights = useMemo((): Insight[] => {
-    const overdueTasks = tasks.filter(t => t.status === 'Overdue').length;
+    const overdueTasks = tasks.filter(t => isTaskOverdue(t)).length;
     const totalTasks = tasks.length;
     const highPriorityTasks = tasks.filter(t => t.priority === 'High' || t.priority === 'Critical').length;
     

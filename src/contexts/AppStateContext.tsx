@@ -113,7 +113,7 @@ interface Task {
   caseNumber: string; // Derived from Case.caseNumber (auto-populated)
   stage: string;
   priority: 'Critical' | 'High' | 'Medium' | 'Low';
-  status: 'Not Started' | 'In Progress' | 'Review' | 'Completed' | 'Overdue';
+  status: 'Not Started' | 'In Progress' | 'Need Info' | 'On Hold' | 'Review' | 'Completed' | 'Cancelled';
   assignedToId: string; // FK to Employee.id
   assignedToName: string; // Display name derived from Employee
   assignedById: string; // FK to Employee.id
