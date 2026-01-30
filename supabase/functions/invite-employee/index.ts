@@ -338,8 +338,19 @@ serve(async (req) => {
       if (authError || !authUser.user) {
         console.error('[invite-employee] Auth error:', authError);
         
-        // Detect leaked password error and provide clearer message
+        // Detect password errors and provide clearer messages
         const errorMsg = authError?.message?.toLowerCase() || '';
+        
+        // Password reuse/same password detection
+        if (errorMsg.includes('same_password') || 
+            errorMsg.includes('previously used') || 
+            errorMsg.includes('password reuse') ||
+            errorMsg.includes('already used') ||
+            errorMsg.includes('different password')) {
+          throw new Error('Password already used. Please create a different password.');
+        }
+        
+        // Leaked password detection (HaveIBeenPwned)
         if (errorMsg.includes('weak') && (errorMsg.includes('known') || errorMsg.includes('guess') || errorMsg.includes('easy'))) {
           throw new Error('Password rejected: This password has appeared in a known data breach. Please use a unique, strong password with at least 12 characters including uppercase, lowercase, numbers, and symbols.');
         }

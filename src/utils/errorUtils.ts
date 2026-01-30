@@ -144,6 +144,23 @@ export function getPasswordErrorMessage(err: unknown): PasswordErrorResult {
   const rawMessage = getErrorMessage(err);
   const lowerMessage = rawMessage.toLowerCase();
   
+  // Password reuse/same password detection
+  if (lowerMessage.includes('already used') || 
+      lowerMessage.includes('same_password') ||
+      lowerMessage.includes('previously used') ||
+      lowerMessage.includes('password reuse') ||
+      lowerMessage.includes('different password')) {
+    return {
+      title: 'Password Already Used',
+      description: 'Password already used. Please create a different password.',
+      guidance: [
+        'Choose a password you have not used previously',
+        'Use a unique combination of characters',
+        'Consider using a password manager to track unique passwords'
+      ]
+    };
+  }
+  
   // Leaked password detection (HaveIBeenPwned integration)
   if (lowerMessage.includes('weak') && 
       (lowerMessage.includes('known') || lowerMessage.includes('guess') || lowerMessage.includes('easy'))) {

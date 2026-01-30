@@ -62,15 +62,20 @@ interface EmployeeModalV2Props {
 }
 
 const designations = [
-  'Sr. Partner',
-  'Associate',
-  'CA',
-  'Advocate',
-  'Paralegal',
-  'Research Analyst',
-  'Clerk',
-  'Intern',
-  'IT/Support',
+  'Managing Partner',
+  'Senior Partner',
+  'Partner',
+  'Associate Partner',
+  'Director',
+  'Associate Director',
+  'Sr. Manager',
+  'Manager',
+  'Deputy Manager',
+  'Assistant Manager',
+  'Sr. Executive',
+  'Executive',
+  'Senior Article',
+  'Article',
 ];
 
 const departments = ['Legal', 'Accounts', 'IT', 'Admin', 'Operations'];
@@ -682,11 +687,27 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
       }
     } catch (error) {
       console.error('Employee save error:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to save employee',
-        variant: 'destructive',
-      });
+      
+      // Check if this is a password-related error
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const isPasswordError = errorMsg.toLowerCase().includes('password');
+      
+      if (isPasswordError) {
+        // Import getPasswordErrorMessage dynamically to avoid circular deps
+        const { getPasswordErrorMessage } = await import('@/utils/errorUtils');
+        const passwordError = getPasswordErrorMessage(error);
+        toast({
+          title: passwordError.title,
+          description: passwordError.description,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: errorMsg || 'Failed to save employee',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -1271,7 +1292,7 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
 
   const renderCredentialsTab = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {showConditionalField(formData.designation, ['Advocate', 'Sr. Partner']) && (
+      {showConditionalField(formData.designation, ['Managing Partner', 'Senior Partner', 'Partner', 'Associate Partner']) && (
         <div className="space-y-2">
           <Label htmlFor="barCouncilNo">Bar Council Registration No.</Label>
           <Input
@@ -1284,7 +1305,7 @@ export const EmployeeModalV2: React.FC<EmployeeModalV2Props> = ({
         </div>
       )}
 
-      {showConditionalField(formData.designation, ['CA', 'Sr. Partner', 'Associate']) && (
+      {showConditionalField(formData.designation, ['Managing Partner', 'Senior Partner', 'Partner', 'Associate Partner', 'Director', 'Associate Director']) && (
         <div className="space-y-2">
           <Label htmlFor="icaiNo">ICAI Membership No.</Label>
           <Input
