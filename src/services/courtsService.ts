@@ -59,15 +59,22 @@ class CourtsService {
       };
 
       // Build unified address for JSONB storage
-      // Check if addressJsonb already contains structured address data
-      const rawAddress = normalizedData.addressJsonb || (normalizedData as any).address_jsonb || {};
+      // FIX: Extract from the address OBJECT passed by the form (EnhancedAddressData)
+      const addressData = typeof normalizedData.address === 'object' ? normalizedData.address : {};
       const unifiedAddress: UnifiedAddress = normalizeAddress({
-        ...rawAddress,
-        // Fallback to legacy fields if no JSONB address structure
-        line1: rawAddress.line1 || (typeof normalizedData.address === 'string' ? normalizedData.address : '') || '',
-        cityName: rawAddress.cityName || normalizedData.city || '',
-        stateName: rawAddress.stateName || (normalizedData as any).state || '',
-        source: rawAddress.source || 'manual'
+        line1: (addressData as any).line1 || '',
+        line2: (addressData as any).line2 || '',
+        pincode: (addressData as any).pincode || '',
+        locality: (addressData as any).locality || '',
+        district: (addressData as any).district || '',
+        cityId: (addressData as any).cityId || '',
+        cityName: (addressData as any).cityName || normalizedData.city || '',
+        stateId: (addressData as any).stateId || '',
+        stateCode: (addressData as any).stateCode || '',
+        stateName: (addressData as any).stateName || (normalizedData as any).state || '',
+        countryId: (addressData as any).countryId || 'IN',
+        countryName: (addressData as any).countryName || 'India',
+        source: 'manual'
       });
 
       // Persist to Supabase
@@ -126,16 +133,23 @@ class CourtsService {
 
       // Build unified address for JSONB storage if address-related fields are updated
       let addressJsonb: string | undefined;
-      if (updates.address || updates.city || (updates as any).state || (updates as any).addressJsonb) {
-        // Check if addressJsonb already contains structured address data
-        const rawAddress = (updates as any).addressJsonb || (updates as any).address_jsonb || {};
+      if (updates.address || updates.city || (updates as any).state) {
+        // FIX: Extract from the address OBJECT passed by the form (EnhancedAddressData)
+        const addressData = typeof updates.address === 'object' ? updates.address : {};
         const unifiedAddress: UnifiedAddress = normalizeAddress({
-          ...rawAddress,
-          // Fallback to legacy fields if no JSONB address structure
-          line1: rawAddress.line1 || (typeof updates.address === 'string' ? updates.address : '') || '',
-          cityName: rawAddress.cityName || updates.city || '',
-          stateName: rawAddress.stateName || (updates as any).state || '',
-          source: rawAddress.source || 'edited'
+          line1: (addressData as any).line1 || '',
+          line2: (addressData as any).line2 || '',
+          pincode: (addressData as any).pincode || '',
+          locality: (addressData as any).locality || '',
+          district: (addressData as any).district || '',
+          cityId: (addressData as any).cityId || '',
+          cityName: (addressData as any).cityName || updates.city || '',
+          stateId: (addressData as any).stateId || '',
+          stateCode: (addressData as any).stateCode || '',
+          stateName: (addressData as any).stateName || (updates as any).state || '',
+          countryId: (addressData as any).countryId || 'IN',
+          countryName: (addressData as any).countryName || 'India',
+          source: 'edited'
         });
         addressJsonb = serializeAddress(unifiedAddress);
       }
