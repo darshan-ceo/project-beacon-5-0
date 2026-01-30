@@ -15,6 +15,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { isTaskOverdue } from '@/utils/taskHelpers';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -50,7 +51,7 @@ export const TaskAnalytics: React.FC<TaskAnalyticsProps> = ({ tasks }) => {
   const analytics = useMemo(() => {
     const totalTasks = tasks.length;
     const completedTasks = tasks.filter(t => t.status === 'Completed').length;
-    const overdueTasks = tasks.filter(t => t.status === 'Overdue').length;
+    const overdueTasks = tasks.filter(t => isTaskOverdue(t)).length;
     const inProgressTasks = tasks.filter(t => t.status === 'In Progress').length;
     
     const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;

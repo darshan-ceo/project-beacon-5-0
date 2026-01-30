@@ -27,6 +27,7 @@ export type TaskStatusUpdate =
   | 'In Progress' 
   | 'Need Info' 
   | 'On Hold'
+  | 'Review'
   | 'Completed' 
   | 'Cancelled';
 
@@ -55,6 +56,7 @@ export const TASK_STATUS_OPTIONS: { value: TaskStatusUpdate; label: string; colo
   { value: 'In Progress', label: 'In Progress', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' },
   { value: 'Need Info', label: 'Need Info', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' },
   { value: 'On Hold', label: 'On Hold', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' },
+  { value: 'Review', label: 'Review', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' },
   { value: 'Completed', label: 'Completed', color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
   { value: 'Cancelled', label: 'Cancelled', color: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' },
 ];

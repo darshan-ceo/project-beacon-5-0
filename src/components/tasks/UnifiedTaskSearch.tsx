@@ -42,12 +42,14 @@ export const UnifiedTaskSearch: React.FC<UnifiedTaskSearchProps> = ({
       type: 'dropdown',
       icon: CheckSquare,
       options: [
-        { label: 'Pending', value: 'Pending' },
+        { label: 'Not Started', value: 'Not Started' },
         { label: 'In Progress', value: 'In Progress' },
-        { label: 'Completed', value: 'Completed' },
-        { label: 'Overdue', value: 'Overdue' },
+        { label: 'Need Info', value: 'Need Info' },
+        { label: 'On Hold', value: 'On Hold' },
         { label: 'Review', value: 'Review' },
-        { label: 'Not Started', value: 'Not Started' }
+        { label: 'Completed', value: 'Completed' },
+        { label: 'Cancelled', value: 'Cancelled' },
+        { label: 'Overdue', value: 'Overdue' }
       ]
     },
     {

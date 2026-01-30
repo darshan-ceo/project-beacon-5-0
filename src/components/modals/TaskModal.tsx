@@ -42,7 +42,7 @@ const taskFormSchema = z.object({
     errorMap: () => ({ message: "Priority must be Critical, High, Medium, or Low" })
   }),
   
-  status: z.enum(['Not Started', 'In Progress', 'Review', 'Completed', 'Overdue'], {
+  status: z.enum(['Not Started', 'In Progress', 'Need Info', 'On Hold', 'Review', 'Completed', 'Cancelled'], {
     errorMap: () => ({ message: "Invalid status value" })
   }),
   
@@ -115,7 +115,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     caseId: string;
     stage: string;
     priority: 'Critical' | 'High' | 'Medium' | 'Low';
-    status: 'Not Started' | 'In Progress' | 'Review' | 'Completed' | 'Overdue';
+    status: 'Not Started' | 'In Progress' | 'Need Info' | 'On Hold' | 'Review' | 'Completed' | 'Cancelled';
     assignedToId: string;
     assignedToName: string;
     estimatedHours: number;
