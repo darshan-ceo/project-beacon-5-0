@@ -1,151 +1,201 @@
 
-# Data Visibility and Delete Permission Fixes for Manager Role
+# Employee Management Improvements: Password Error Message & Designation List
 
-## Issues Confirmed
+## Summary
 
-### Issue 1: Manager Sees All Cases (Cascading Visibility Bug)
-**Root Cause**: The "Manager scoped case select" RLS policy contains a problematic clause:
-```sql
-OR ((client_id IS NOT NULL) AND can_user_view_client(auth.uid(), client_id))
-```
+Two issues need to be addressed in the Employee Management module:
 
-This creates an unintended cascade:
-1. Kuldip can see his manager Leena's case (upward visibility via `can_view_case_by_hierarchy`)
-2. Leena's case is linked to client "Abc Pharma"
-3. Therefore `can_user_view_client` grants Kuldip access to Abc Pharma
-4. The policy then grants Kuldip access to ALL cases for Abc Pharma, including Manan's case
+1. **Password Error Message**: When a similar/reused password is detected, the error should display "Password already used. Please create a different password." instead of a generic edge function error.
 
-This violates the "Team Cases" restriction because Manan is NOT in Kuldip's hierarchy chain.
-
-### Issue 2: Delete Button Visible for Manager
-**Root Cause**: Dual mismatch between RBAC configuration and database policies:
-1. Manager role does NOT have `cases.delete` permission in `role_permissions` table
-2. BUT there IS a `"Manager scoped case delete"` RLS policy allowing database-level deletion
-3. The UI uses `hasPermission('cases', 'delete')` which correctly returns FALSE
-4. However, the Delete button still appears - suggesting the check isn't applied consistently
+2. **Designation Dropdown Update**: Replace the current designation list with the client-specified job titles.
 
 ---
 
-## Technical Findings
+## Issue 1: Password Error Message Improvement
 
-### Database Evidence
+### Current Behavior
+When creating an employee with a password that has been used before (detected via HaveIBeenPwned), the system shows:
+- "Failed to create employee: Edge Function returned a non-2xx status code"
 
-**Manager's role_permissions (cases module):**
-- cases.create (allowed)
-- cases.read (allowed) 
-- cases.update (allowed)
-- cases.delete NOT present
+### Expected Behavior
+Display a clear, user-friendly message:
+- "Password already used. Please create a different password."
 
-**RLS policies on cases table:**
-- "Manager scoped case delete" EXISTS (allows deletion if data_scope conditions met)
-- This policy should NOT exist if Manager role lacks delete permission
+### Technical Changes
 
-**Cascade visibility trace:**
-```text
-Kuldip (Manager) → reports to Leena (Partner)
-↓
-can_view_case_by_hierarchy(Kuldip, Leena, NULL) = TRUE (upward visibility)
-↓
-Leena has case GST/2025/003 linked to Abc Pharma client
-↓
-can_user_view_client(Kuldip, Abc Pharma) = TRUE
-↓
-Manager policy: "...OR can_user_view_client(client_id)..."
-↓
-Kuldip now sees ALL Abc Pharma cases including Manan's case
+#### File 1: Edge Function - `supabase/functions/invite-employee/index.ts`
+
+Current error detection (lines 341-347):
+```javascript
+const errorMsg = authError?.message?.toLowerCase() || '';
+if (errorMsg.includes('weak') && (errorMsg.includes('known') || ...)) {
+  throw new Error('Password rejected: This password has appeared in ...');
+}
+```
+
+Add new detection for "same_password" or password reuse errors:
+```javascript
+// Add detection for password reuse/same password error
+if (errorMsg.includes('same_password') || 
+    errorMsg.includes('previously used') || 
+    errorMsg.includes('password reuse') ||
+    errorMsg.includes('already used')) {
+  throw new Error('Password already used. Please create a different password.');
+}
+```
+
+#### File 2: Client-Side Error Utility - `src/utils/errorUtils.ts`
+
+Update `getPasswordErrorMessage()` function to detect reused password errors:
+
+```javascript
+// Add BEFORE the existing weak password check (around line 147)
+
+// Password reuse detection
+if (lowerMessage.includes('already used') || 
+    lowerMessage.includes('same_password') ||
+    lowerMessage.includes('previously used') ||
+    lowerMessage.includes('password reuse')) {
+  return {
+    title: 'Password Already Used',
+    description: 'This password has been used before. Please create a different password.',
+    guidance: [
+      'Choose a password you have not used previously',
+      'Use a unique combination of characters',
+      'Consider using a password manager to track unique passwords'
+    ]
+  };
+}
+```
+
+#### File 3: Employee Modal Error Handling - `src/components/modals/EmployeeModalV2.tsx`
+
+Update the error handling (lines 683-689) to use password-specific error detection:
+
+```javascript
+// Import at top of file
+import { getPasswordErrorMessage } from '@/utils/errorUtils';
+
+// In catch block (lines 683-689)
+} catch (error) {
+  console.error('Employee save error:', error);
+  
+  // Check if this is a password-related error
+  const errorMsg = error instanceof Error ? error.message : String(error);
+  const isPasswordError = errorMsg.toLowerCase().includes('password');
+  
+  if (isPasswordError) {
+    const passwordError = getPasswordErrorMessage(error);
+    toast({
+      title: passwordError.title,
+      description: passwordError.description,
+      variant: 'destructive',
+    });
+  } else {
+    toast({
+      title: 'Error',
+      description: errorMsg || 'Failed to save employee',
+      variant: 'destructive',
+    });
+  }
+}
 ```
 
 ---
 
-## Implementation Plan
+## Issue 2: Designation Dropdown Update
 
-### Phase 1: Fix Cascading Visibility in Manager Case Select Policy
-
-**Remove the client-based cascade** from the Manager policy. Cases should only be visible through direct assignment, ownership, or hierarchy - NOT through client visibility.
-
-```sql
--- Drop the problematic policy
-DROP POLICY IF EXISTS "Manager scoped case select" ON cases;
-
--- Create fixed policy WITHOUT client cascade
-CREATE POLICY "Manager scoped case select" ON cases
-FOR SELECT TO authenticated
-USING (
-  tenant_id = get_user_tenant_id() 
-  AND has_role(auth.uid(), 'manager')
-  AND (
-    -- 'All Cases' scope - full org access
-    get_employee_data_scope(auth.uid()) = 'All Cases'
-    OR
-    -- 'Team Cases' scope: own + hierarchy (NO CLIENT CASCADE)
-    (get_employee_data_scope(auth.uid()) = 'Team Cases' 
-     AND (
-       assigned_to = auth.uid() 
-       OR owner_id = auth.uid() 
-       OR can_view_case_by_hierarchy(auth.uid(), assigned_to, owner_id)
-     ))
-    OR
-    -- 'Own Cases' scope: only assigned or owned
-    (get_employee_data_scope(auth.uid()) = 'Own Cases' 
-     AND (assigned_to = auth.uid() OR owner_id = auth.uid()))
-  )
-);
+### Current List (lines 64-74 in EmployeeModalV2.tsx)
+```javascript
+const designations = [
+  'Sr. Partner',
+  'Associate',
+  'CA',
+  'Advocate',
+  'Paralegal',
+  'Research Analyst',
+  'Clerk',
+  'Intern',
+  'IT/Support',
+];
 ```
 
-### Phase 2: Fix Delete Permission Enforcement
-
-**Option A (Recommended)**: Remove the Manager delete RLS policy entirely since Manager role doesn't have delete permission in RBAC:
-
-```sql
-DROP POLICY IF EXISTS "Manager scoped case delete" ON cases;
+### New List (Client Requirement)
+```javascript
+const designations = [
+  'Managing Partner',
+  'Senior Partner',
+  'Partner',
+  'Associate Partner',
+  'Director',
+  'Associate Director',
+  'Sr. Manager',
+  'Manager',
+  'Deputy Manager',
+  'Assistant Manager',
+  'Sr. Executive',
+  'Executive',
+  'Senior Article',
+  'Article',
+];
 ```
 
-**Option B**: If you want Managers to be able to delete, add the permission to `role_permissions`:
+### Technical Change
 
-```sql
-INSERT INTO role_permissions (role, permission_key) 
-VALUES ('manager', 'cases.delete')
-ON CONFLICT DO NOTHING;
+#### File: `src/components/modals/EmployeeModalV2.tsx`
+
+Replace lines 64-74 with the new designation list.
+
+**Impact Note**: The `showConditionalField()` function (line 695) checks for specific designations like `'Advocate'`, `'Sr. Partner'`, `'CA'` to show/hide credential fields (Bar Council No., ICAI No.). Since these designations are being removed, we should update the conditional logic:
+
+Current (line 1274):
+```javascript
+{showConditionalField(formData.designation, ['Advocate', 'Sr. Partner']) && (
+  // Bar Council Registration No.
+)}
 ```
 
-### Phase 3: Apply Same Fix to Related Policies (CA, Advocate)
+Updated:
+```javascript
+// Bar Council - relevant for Partner-level and legal designations
+{showConditionalField(formData.designation, ['Managing Partner', 'Senior Partner', 'Partner', 'Associate Partner']) && (
+  // Bar Council Registration No.
+)}
+```
 
-Check and fix similar cascade issues in:
-- "CA and Advocate view cases based on data_scope"
-- "CA_Advocate view cases based on data_scope"
+Current (line 1287):
+```javascript
+{showConditionalField(formData.designation, ['CA', 'Sr. Partner', 'Associate']) && (
+  // ICAI Membership No.
+)}
+```
 
-### Phase 4: Update Client-Side Logic
-
-Ensure CaseModal.tsx correctly hides the Delete button:
-
-```typescript
-// Current code at line 59
-const canDeleteCases = hasPermission('cases', 'delete');
-
-// Verify the button is properly wrapped:
-{mode === 'edit' && canDeleteCases && (
-  <Button variant="destructive" onClick={handleDelete}>
-    Delete Case
-  </Button>
+Updated:
+```javascript
+// ICAI - relevant for Partner and Director level (likely CA-qualified)
+{showConditionalField(formData.designation, ['Managing Partner', 'Senior Partner', 'Partner', 'Associate Partner', 'Director', 'Associate Director']) && (
+  // ICAI Membership No.
 )}
 ```
 
 ---
 
-## Expected Behavior After Fix
+## Files to Modify
 
-| User | Role | Data Scope | Before Fix | After Fix |
-|------|------|------------|------------|-----------|
-| Kuldip | Manager | Team Cases | Sees ALL cases (10) | Sees only Leena's cases + subordinates |
-| Kuldip | Manager | Team Cases | Delete button visible | Delete button hidden |
-| Manan Shah | Partner | Team Cases | Sees ALL cases | Sees only team cases |
+| File | Changes |
+|------|---------|
+| `supabase/functions/invite-employee/index.ts` | Add password reuse error detection (lines 341-347) |
+| `src/utils/errorUtils.ts` | Add password reuse case in `getPasswordErrorMessage()` |
+| `src/components/modals/EmployeeModalV2.tsx` | Update designations array + conditional field logic + password error handling |
 
 ---
 
 ## Testing Checklist
 
-1. Log in as Kuldip → Case list should NOT include cases assigned to Manan
-2. Log in as Kuldip → Verify Delete Case button is NOT visible
-3. Log in as Admin → Verify full access retained
-4. Verify no 500 errors in console after changes
-5. Test case creation by Manager still works
+1. Create new employee with a password that triggers reuse detection - verify message shows "Password already used. Please create a different password."
+2. Create new employee with weak/breached password - verify existing breach detection still works
+3. Create new employee successfully with valid password
+4. Verify Designation dropdown shows all 14 new options
+5. Select "Senior Partner" designation - verify Bar Council and ICAI fields appear
+6. Select "Manager" designation - verify credential fields are hidden
+7. Edit existing employee with old designation value - verify form loads correctly
