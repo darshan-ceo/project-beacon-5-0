@@ -56,15 +56,35 @@ class NoticeExtractionService {
   }
 
   private regexPatterns = {
+    // DIN format - 15-20 characters alphanumeric
     din: /DIN[\s:]*([A-Z0-9]{15,20})/i,
-    noticeNo: /(?:Reference|Notice)\s*(?:No\.?|Number)[\s:]*([A-Z0-9\/\-]+)/i,
-    gstin: /GSTIN[\s:]*([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{1}Z[0-9A-Z]{1})/i,
-    period: /(?:Tax\s*Period|Period|FY)[\s:]*([^,\n]+(?:202[0-9]\s*-\s*202[0-9])?)/i,
-    issueDate: /(?:Date|Issued\s+on)[\s:]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i,
-    dueDate: /(?:Due\s+Date|Last\s+Date|Response\s+Due|Reply\s+by)[\s:]*(\d{2}[\/\-\.]\d{4})/i,
-    office: /(?:Issuing\s+Office|Office|Jurisdiction|Commissionerate)[\s:]*([A-Z][A-Z\s,\-]+(?:GST|CGST|SGST|IGST|Commissionerate)[A-Z\s,\-]*)/i,
-    amount: /(?:Total\s*Amount|Amount)[\s:]*(?:Rs\.?|₹)?\s*([\d,]+)/i,
-    noticeType: /(ASMT-10|ASMT-11|ASMT-12|DRC-01|DRC-07|GSTR[-\s]?[0-9A-Z]+)/i
+    
+    // Notice Number - multiple formats for different notice types
+    noticeNo: /(?:Reference\s*No\.?|Notice\s*(?:No\.?|Number)|Ref\.?\s*No\.?|Case\s*ID)[\s.:]*([A-Z0-9\/\-]+)/i,
+    
+    // GSTIN - standard 15 character format
+    gstin: /GSTIN[\s:]*([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]Z[0-9A-Z])/i,
+    
+    // Period - support F.Y. format, YYYY-YY, and monthly formats
+    period: /(?:F\.?Y\.?\s*(?:From\s*:?)?|Tax\s*Period|Period)[\s:]*(\d{4}[-\s]*(?:to\s*)?[-\s]*\d{2,4}|\d{4}[-\/]\d{2,4}|[A-Z][a-z]+\s+\d{4}\s*[-–to]+\s*[A-Z][a-z]+\s+\d{4})/i,
+    
+    // Issue Date - support DD/MM/YYYY, DD.MM.YYYY, DD-MM-YYYY
+    issueDate: /(?:Date[\s:]*|Dated[\s:]*|Issue\s*Date[\s:]*)(\d{2}[\/\.\-]\d{2}[\/\.\-]\d{4})/i,
+    
+    // Due date - multiple labels
+    dueDate: /(?:Due\s*Date|Last\s*Date|Response\s*Due|Reply\s*by|Comply\s*by|On\s*or\s*before)[\s:]*(\d{2}[\/\.\-]\d{2}[\/\.\-]\d{4})/i,
+    
+    // Office - GST office patterns
+    office: /(?:CGST|SGST|GST)[\s\-,]*(?:Range|Division|Commissionerate|Commissioner|Circle)[^\n]*/i,
+    
+    // Amount - Indian lakh format with ₹ and Rs.
+    amount: /(?:Total\s*(?:Tax|Amount|Demand)?|Tax[\s:]*Amount|Demand[\s:]*Amount|(?:IGST|CGST|SGST)[\s:]*)(?:Rs\.?|₹)?\s*([\d,]+(?:\.\d{2})?)/i,
+    
+    // Notice type - all GST notice types including FORM prefix
+    noticeType: /((?:FORM\s+)?GST\s+)?(?:ASMT[-\s]?(?:10|11|12)|DRC[-\s]?(?:01A?|03|07)|GSTR[-\s]?[0-9A-Z]+)/i,
+    
+    // Taxpayer name - look for "Name" or "M/s." label
+    taxpayerName: /(?:Name|M\/s\.?)[\s:]+([A-Z][A-Z\s&.,()'\-]+(?:PVT\.?|PRIVATE|LTD\.?|LIMITED|ENTERPRISES?|TRADERS?|CO\.?|COMPANY)?[A-Z\s&.,()'\-]*)/i
   };
 
   /**
@@ -77,17 +97,31 @@ class NoticeExtractionService {
       
       let fullText = '';
       
-      // Extract text from all pages
+      // Extract text from all pages with improved line detection
       for (let pageNum = 1; pageNum <= Math.min(pdf.numPages, 10); pageNum++) {
         const page = await pdf.getPage(pageNum);
         const textContent = await page.getTextContent();
+        
+        // Improved text joining - add newlines between items with large Y gaps
+        let lastY = 0;
         const pageText = textContent.items
-          .map((item: any) => item.str)
-          .join(' ');
+          .map((item: any) => {
+            const text = item.str;
+            const y = item.transform ? item.transform[5] : 0; // Y position
+            
+            // Add newline if Y position changed significantly (new line)
+            const prefix = (lastY && Math.abs(y - lastY) > 10) ? '\n' : ' ';
+            lastY = y;
+            
+            return prefix + text;
+          })
+          .join('');
+        
         fullText += pageText + '\n';
       }
       
-      return fullText;
+      // Normalize whitespace but preserve newlines
+      return fullText.replace(/[ \t]+/g, ' ').trim();
     } catch (error) {
       console.error('PDF text extraction error:', error);
       throw new Error('Failed to extract text from PDF');
@@ -321,6 +355,65 @@ Return the data as JSON with this structure:
   }
 
   /**
+   * Fallback to Lovable AI when OpenAI fails (uses edge function)
+   */
+  private async extractWithLovableAI(file: File): Promise<{ text: string; fieldConfidence: Record<string, FieldConfidence> }> {
+    console.log('🔄 [Lovable AI] Starting extraction fallback...');
+    
+    try {
+      // Convert PDF to base64 images (same as OpenAI method)
+      const base64Images = await this.pdfToBase64Images(file);
+      
+      // Call the edge function
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/notice-ocr`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`
+        },
+        body: JSON.stringify({ images: base64Images })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Lovable AI edge function error:', response.status, errorText);
+        throw new Error(`Lovable AI extraction failed: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Lovable AI extraction failed');
+      }
+      
+      // Convert to our field confidence format
+      const fieldConfidence: Record<string, FieldConfidence> = {};
+      Object.entries(result.fields || {}).forEach(([key, field]: [string, any]) => {
+        if (field && field.value) {
+          fieldConfidence[key] = {
+            value: field.value,
+            confidence: field.confidence || 0,
+            source: 'ocr'
+          };
+        }
+      });
+      
+      console.log('✅ [Lovable AI] Extraction successful:', Object.keys(fieldConfidence));
+      
+      return {
+        text: result.rawText || '',
+        fieldConfidence
+      };
+    } catch (error) {
+      console.error('❌ [Lovable AI] Error:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Extract structured data using regex patterns with confidence scoring
    */
   private extractDataFromText(text: string): ExtractedNoticeData {
@@ -447,7 +540,7 @@ Return the data as JSON with this structure:
         const errorMessage = aiError instanceof Error ? aiError.message : 'Unknown error';
         const code = (aiError as any).code;
         
-        console.log('AI/OCR extraction failed, falling back to regex:', errorMessage);
+        console.log('AI/OCR extraction failed, trying Lovable AI fallback:', errorMessage);
         
         // Check for specific error codes
         if (code === 'INVALID_API_KEY' || errorMessage.includes('INVALID_API_KEY')) {
@@ -456,24 +549,58 @@ Return the data as JSON with this structure:
           errorCode = 'RATE_LIMIT';
         }
         
-        // Fallback to basic text extraction + regex
+        // Try Lovable AI as secondary fallback before regex
         try {
-          const extractedText = await this.extractTextFromPDF(file);
-          extractedData = this.extractDataFromText(extractedText);
-          usingAI = false;
+          console.log('🔄 Attempting Lovable AI fallback...');
+          const lovableResult = await this.extractWithLovableAI(file);
+          usingAI = true;
           
-          console.debug('Regex extraction completed', {
-            textLength: extractedText.length,
-            fieldsFound: Object.keys(extractedData.fieldConfidence || {}).length,
-            values: extractedData
-          });
-        } catch (pdfError) {
-          console.error('PDF text extraction failed:', pdfError);
-          return {
-            success: false,
-            error: 'Failed to extract text from PDF',
-            errorCode: 'PDF_PARSE_ERROR'
+          // Merge Lovable AI-extracted data with our structure
+          extractedData = {
+            din: lovableResult.fieldConfidence.din?.value || '',
+            gstin: lovableResult.fieldConfidence.gstin?.value || '',
+            period: lovableResult.fieldConfidence.period?.value || '',
+            dueDate: lovableResult.fieldConfidence.dueDate?.value || '',
+            office: lovableResult.fieldConfidence.office?.value || '',
+            amount: lovableResult.fieldConfidence.amount?.value || '',
+            noticeType: lovableResult.fieldConfidence.noticeType?.value || '',
+            noticeNo: lovableResult.fieldConfidence.noticeNo?.value || '',
+            issueDate: lovableResult.fieldConfidence.issueDate?.value || '',
+            taxpayerName: lovableResult.fieldConfidence.taxpayerName?.value || '',
+            tradeName: lovableResult.fieldConfidence.tradeName?.value || '',
+            subject: lovableResult.fieldConfidence.subject?.value || '',
+            legalSection: lovableResult.fieldConfidence.legalSection?.value || '',
+            discrepancies: Array.isArray(lovableResult.fieldConfidence.discrepancies?.value) ? lovableResult.fieldConfidence.discrepancies.value : [],
+            documentType: (lovableResult.fieldConfidence.documentType?.value as 'main_notice' | 'annexure') || 'main_notice',
+            documentTypeLabel: lovableResult.fieldConfidence.documentTypeLabel?.value || '',
+            rawText: lovableResult.text,
+            fieldConfidence: lovableResult.fieldConfidence
           };
+          
+          console.log('✅ Lovable AI fallback successful');
+          errorCode = undefined; // Clear error code since we succeeded with fallback
+        } catch (lovableError) {
+          console.log('Lovable AI fallback also failed, using regex:', lovableError);
+          
+          // Final fallback to basic text extraction + regex
+          try {
+            const extractedText = await this.extractTextFromPDF(file);
+            extractedData = this.extractDataFromText(extractedText);
+            usingAI = false;
+            
+            console.debug('Regex extraction completed', {
+              textLength: extractedText.length,
+              fieldsFound: Object.keys(extractedData.fieldConfidence || {}).length,
+              values: extractedData
+            });
+          } catch (pdfError) {
+            console.error('PDF text extraction failed:', pdfError);
+            return {
+              success: false,
+              error: 'Failed to extract text from PDF',
+              errorCode: 'PDF_PARSE_ERROR'
+            };
+          }
         }
       }
 
