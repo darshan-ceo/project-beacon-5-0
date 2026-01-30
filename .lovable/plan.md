@@ -1,357 +1,198 @@
 
-# Final Scope of Improvements: GST Litigation Lifecycle Enhancement
+# Data Scope Enforcement Fix for Partner/Manager Roles
 
 ## Executive Summary
 
-Based on detailed analysis of the uploaded SOW document against the current implementation, with the client clarification that **"Assessment" stage consolidates both "Scrutiny" and "Demand"** from the original document, the following improvements are required to ensure complete milestone tracking and accurate statutory deadline calculations.
+The user's concern is valid: **"Team Cases" is correctly configured but ignored for Partner and Manager roles**. The system has multiple override mechanisms that grant "All Cases" access to Partners regardless of their Employee Master settings.
 
 ---
 
-## Current Stage Mapping (6-Stage Model)
+## Root Cause (3 Layers of Override)
 
-| # | Client SOW Term | Current System Stage | Form/Notice | Implementation Status |
-|---|-----------------|---------------------|-------------|----------------------|
-| 1 | Scrutiny + Demand | **Assessment** | ASMT-10, DRC-01 | ✅ Implemented |
-| 2 | Adjudication | **Adjudication** | DRC-07 (Order) | ✅ Implemented |
-| 3 | First Appellate Authority | **First Appeal** | APL-01 | ✅ Implemented |
-| 4 | Appellate Tribunal (GSTAT) | **Tribunal** | Appeal Form | ✅ Implemented |
-| 5 | High Court | **High Court** | Writ/Appeal | ✅ Implemented |
-| 6 | Supreme Court | **Supreme Court** | SLP | ✅ Implemented |
-
----
-
-## Gap Analysis: Missing Date Milestones
-
-### Critical Finding
-
-The statutory deadline system in `statutoryMasterData.json` defines `base_date_type` for calculating appeal deadlines:
-- `notice_date` → For SCN replies (Assessment stage)
-- `order_date` → For appeals (Adjudication → First Appeal → Tribunal → HC → SC)
-
-**Current Problem:** The `cases` table has `notice_date` but **lacks `order_date`, `order_received_date`, and `appeal_filed_date`** fields needed to trigger appeal deadlines.
-
-### Impact
-
-| Event | Required Date Field | Current Status | Impact |
-|-------|-------------------|----------------|--------|
-| DRC-07 Order Received | `order_date` | ❌ Missing | Cannot calculate 3-month First Appeal deadline |
-| First Appeal Filed | `appeal_filed_date` | ❌ Missing | Cannot track filing milestone |
-| Appeal Order Received | `appellate_order_date` | ❌ Missing | Cannot calculate Tribunal appeal deadline |
-| Tribunal Order | `tribunal_order_date` | ❌ Missing | Cannot calculate 180-day HC deadline |
-| High Court Order | `hc_order_date` | ❌ Missing | Cannot calculate 30-day SLP deadline |
-
----
-
-## Improvement Scope (Prioritized)
-
-### Phase 1: Critical Date Milestones (Database + Form)
-
-#### 1.1 Add Order/Appeal Date Fields to Cases Table
-
-**Database Migration:**
+### Layer 1: RLS Policies (Database)
+Policies grant Partners unrestricted access without checking `data_scope`:
 ```sql
-ALTER TABLE public.cases 
-ADD COLUMN IF NOT EXISTS order_date DATE,
-ADD COLUMN IF NOT EXISTS order_received_date DATE,
-ADD COLUMN IF NOT EXISTS appeal_filed_date DATE,
-ADD COLUMN IF NOT EXISTS impugned_order_no VARCHAR(100),
-ADD COLUMN IF NOT EXISTS impugned_order_date DATE,
-ADD COLUMN IF NOT EXISTS impugned_order_amount NUMERIC(15,2);
-
-COMMENT ON COLUMN cases.order_date IS 'Date of adjudication order (DRC-07) - triggers appeal deadline';
-COMMENT ON COLUMN cases.order_received_date IS 'Date order was actually received - may differ from order_date';
-COMMENT ON COLUMN cases.appeal_filed_date IS 'Date appeal was filed (APL-01)';
-COMMENT ON COLUMN cases.impugned_order_no IS 'Order number being appealed against';
-COMMENT ON COLUMN cases.impugned_order_date IS 'Date of impugned order';
-COMMENT ON COLUMN cases.impugned_order_amount IS 'Amount in dispute from impugned order';
+-- "Admins view all cases" and "Admin_Partner full case access"
+-- These grant access to ALL cases when role = partner/admin
 ```
 
-#### 1.2 Update CaseFormData Interface
+### Layer 2: SQL Function Override
+The `can_user_view_case()` function immediately returns TRUE for partners:
+```sql
+IF has_role(_user_id, 'admin') OR has_role(_user_id, 'partner') THEN
+  RETURN TRUE;  -- Ignores data_scope entirely
+END IF;
+```
 
-Add to `src/components/cases/CaseForm.tsx`:
+### Layer 3: Client-Side Override
+In `hierarchyService.ts` (line 259-261):
 ```typescript
-export interface CaseFormData {
-  // ... existing fields ...
-  
-  // New Order/Appeal Milestone Fields
-  order_date: string;           // Date of adjudication order (DRC-07)
-  order_received_date: string;  // Date order was received (for deadline calc)
-  appeal_filed_date: string;    // Date appeal was filed
-  impugned_order_no: string;    // Order number being appealed
-  impugned_order_date: string;  // Date of impugned order
-  impugned_order_amount: string; // Amount in dispute
-}
-```
-
-#### 1.3 Add New Form Section: "Order & Appeal Milestones"
-
-Create a new collapsible card in CaseForm.tsx that appears conditionally based on stage:
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ ⚖️ Order & Appeal Milestones                    [Collapse ▼] │
-├─────────────────────────────────────────────────────────────┤
-│ Order Date*          │ Order Received Date                  │
-│ [  2025-01-15  📅 ]  │ [  2025-01-20  📅 ]                 │
-│                      │                                      │
-│ Impugned Order No    │ Impugned Order Amount                │
-│ [ DRC-07/2025/001 ]  │ [ ₹ 25,00,000 ]                      │
-│                      │                                      │
-│ Appeal Filed Date    │ [Auto-calculated Deadline Badge]     │
-│ [  2025-02-10  📅 ]  │ 🔴 First Appeal due by: 20-Apr-2025  │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Visibility Rules:**
-- Show when `currentStage` is `Adjudication` or higher
-- Order fields become editable when transitioning from Assessment to Adjudication
-- Appeal fields appear when advancing to First Appeal or higher
-
----
-
-### Phase 2: Fix Statutory Deadline Timing
-
-#### 2.1 Correct Supreme Court SLP Deadline
-
-**Current (Wrong):** 60 days
-**Correct (per SOW):** 30 days
-
-Update `src/data/seedData/statutoryMasterData.json`:
-```json
-{
-  "act_code": "SC",
-  "code": "SC-SLP",
-  "name": "Supreme Court SLP",
-  "base_date_type": "order_date",
-  "deadline_type": "days",
-  "deadline_count": 30,  // Changed from 60
-  "extension_allowed": true,
-  "max_extension_count": 1,
-  "extension_days": 30,  // Changed from 60
-  "legal_reference": "Article 136 Constitution",
-  "description": "Special Leave Petition to Supreme Court"
-}
-```
-
-#### 2.2 Add Missing Event Types
-
-Add new statutory deadline entries:
-```json
-[
-  {
-    "act_code": "GST",
-    "code": "GST-DRC01A",
-    "name": "DRC-01A Reply (Pre-SCN Intimation)",
-    "base_date_type": "notice_date",
-    "deadline_type": "days",
-    "deadline_count": 30,
-    "extension_allowed": false,
-    "description": "Reply to Pre-SCN Intimation under DRC-01A"
-  },
-  {
-    "act_code": "GST",
-    "code": "GST-TRIBUNAL-APPEAL",
-    "name": "Tribunal Appeal (after First Appeal)",
-    "base_date_type": "order_date",
-    "deadline_type": "months",
-    "deadline_count": 3,
-    "extension_allowed": true,
-    "max_extension_count": 1,
-    "extension_days": 90,
-    "legal_reference": "Section 112 CGST Act",
-    "description": "Appeal to GSTAT after First Appellate Order"
-  }
-]
+const isPartnerOrAdmin = role === 'Partner' || role === 'Admin';
+const effectiveScope = isPartnerOrAdmin ? 'All Cases' : dataScope;
 ```
 
 ---
 
-### Phase 3: Add Missing Form Types
+## Business Requirements Clarification
 
-#### 3.1 Add DRC-01A to Form Type Dropdown
+| User | Role | Desired Scope | Current Behavior | Expected Behavior |
+|------|------|---------------|------------------|-------------------|
+| Manan Shah | Partner | Team Cases | Sees ALL cases | See only team cases |
+| Leena Sanghavi | Partner | Team Cases | Sees ALL cases | See only team cases |
+| Nitesh Jain | Partner | All Cases | Sees ALL cases | See ALL cases (correct) |
+| Kuldip | Manager | Team Cases | TBD - check RLS | See only team cases |
 
-Update `src/components/cases/CaseForm.tsx` (line 669-678):
-```tsx
-<SelectContent>
-  <SelectItem value="DRC-01A">DRC-01A (Pre-SCN Intimation)</SelectItem>  {/* NEW */}
-  <SelectItem value="DRC-01">DRC-01 (Show Cause Notice)</SelectItem>
-  <SelectItem value="DRC-03">DRC-03 (Audit Intimation)</SelectItem>
-  <SelectItem value="DRC-07">DRC-07 (Order)</SelectItem>
-  <SelectItem value="DRC-08">DRC-08 (Rectification)</SelectItem>  {/* Ensure present */}
-  <SelectItem value="ASMT-10">ASMT-10 (Notice for Clarification)</SelectItem>
-  <SelectItem value="ASMT-11">ASMT-11 (Summary of Order)</SelectItem>
-  <SelectItem value="ASMT-12">ASMT-12 (Final Notice)</SelectItem>
-  <SelectItem value="APL-01">APL-01 (Appeal Filed)</SelectItem>  {/* NEW */}
-  <SelectItem value="APL-05">APL-05 (Appeal Order)</SelectItem>  {/* NEW */}
-  <SelectItem value="SCN">SCN (Show Cause Notice)</SelectItem>
-  <SelectItem value="Other">Other</SelectItem>
-</SelectContent>
-```
-
-#### 3.2 Create DRC-01A Form Template
-
-Create `public/form-templates/DRC01A_INTIMATION.json`:
-```json
-{
-  "code": "DRC01A_INTIMATION",
-  "title": "DRC-01A Pre-SCN Intimation Reply",
-  "stage": "Assessment",
-  "version": "1.0",
-  "act_code": "GST",
-  "fields": [
-    { "key": "intimation_no", "label": "Intimation Number", "type": "string", "required": true },
-    { "key": "intimation_date", "label": "Intimation Date", "type": "date", "required": true },
-    { "key": "reply_date", "label": "Reply Date", "type": "date", "required": true },
-    { "key": "proposed_tax", "label": "Proposed Tax Demand", "type": "number" },
-    { "key": "taxpayer_response", "label": "Taxpayer's Response", "type": "text", "maxLength": 5000 }
-  ]
-}
-```
+The client requirement is clear: **Partners should respect their configured `data_scope`**. The current hardcoded override was a design decision that must be changed.
 
 ---
 
-### Phase 4: Enhance Stage Transition Modal
+## Implementation Plan
 
-#### 4.1 Capture Impugned Order on Forward Transition
+### Phase 1: Fix Client-Side Logic (hierarchyService.ts)
 
-When advancing from **Adjudication → First Appeal**, require:
-- Impugned Order Number (DRC-07 reference)
-- Order Date
-- Order Received Date
-- Amount Confirmed/Disputed
+Remove the Partner/Admin override so `data_scope` is always respected:
 
-Update `src/components/modals/StageManagementModal.tsx` to include conditional fields:
-
-```text
-┌────────────────────────────────────────────────────────────────┐
-│                    Advance Case Stage                          │
-├────────────────────────────────────────────────────────────────┤
-│ Current Stage: [Adjudication]                                  │
-│ Next Stage: [First Appeal ▼]                                   │
-│                                                                │
-│ ────────── Impugned Order Details (Required) ──────────       │
-│                                                                │
-│ Order Number*           │ Order Date*                          │
-│ [ DRC-07/2025/001    ]  │ [  2025-01-15  📅 ]                  │
-│                         │                                      │
-│ Order Received Date*    │ Amount Confirmed (₹)                 │
-│ [  2025-01-20  📅 ]     │ [ 25,00,000 ]                        │
-│                                                                │
-│ [Upload Order Document]                                        │
-│                                                                │
-│ Comments: [_______________________________________]            │
-│                                                                │
-│               [Cancel]  [Advance Stage →]                      │
-└────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Phase 5: Enhance Deadline Calculation Hook
-
-#### 5.1 Update useStatutoryDeadlines Hook
-
-Modify `src/hooks/useStatutoryDeadlines.ts` to support order-based deadline calculation:
-
+**Current Code (lines 259-261):**
 ```typescript
-interface UseStatutoryDeadlinesOptions {
-  caseId?: string;
-  noticeDate?: string;      // For Assessment stage
-  orderDate?: string;       // For Appeal stages (NEW)
-  noticeType?: string;
-  autoCalculate?: boolean;
-}
-
-// Add new function
-const calculateAppealDeadline = useCallback(async (
-  orderDateStr: string,
-  currentStage: string
-): Promise<DeadlineCalculationResult | null> => {
-  if (!orderDateStr || !currentStage) return null;
-  
-  // Map stage to statutory event type
-  const stageEventMap: Record<string, string> = {
-    'Adjudication': 'GST-APPEAL-1',      // 3 months
-    'First Appeal': 'GST-TRIBUNAL',       // 3 months
-    'Tribunal': 'HC-WRIT',                // 180 days
-    'High Court': 'SC-SLP'                // 30 days
-  };
-  
-  const eventCode = stageEventMap[currentStage];
-  if (!eventCode) return null;
-  
-  return await statutoryDeadlineService.calculateDeadline(orderDateStr, eventCode);
-}, []);
+// Admin/Partner override - they always get 'All Cases' access
+const isPartnerOrAdmin = role === 'Partner' || role === 'Admin';
+const effectiveScope = isPartnerOrAdmin ? 'All Cases' : dataScope;
 ```
 
----
-
-### Phase 6: Case Interface Update
-
-#### 6.1 Update AppStateContext Case Interface
-
-Add to `src/contexts/AppStateContext.tsx`:
+**New Code:**
 ```typescript
-interface Case {
-  // ... existing fields ...
-  
-  // Phase 1: Order & Appeal Milestones
-  order_date?: string;           // DRC-07 order date
-  orderDate?: string;            // CamelCase variant
-  order_received_date?: string;  // When order was received
-  orderReceivedDate?: string;    // CamelCase variant
-  appeal_filed_date?: string;    // APL-01 filing date
-  appealFiledDate?: string;      // CamelCase variant
-  
-  // Impugned Order (for appeals)
-  impugned_order_no?: string;
-  impugnedOrderNo?: string;
-  impugned_order_date?: string;
-  impugnedOrderDate?: string;
-  impugned_order_amount?: number;
-  impugnedOrderAmount?: number;
-}
+// CRITICAL FIX: Respect data_scope for ALL roles including Partner
+// Only Admin role gets unconditional 'All Cases' access
+// Partners now respect their configured data_scope setting
+const isAdmin = role === 'Admin';
+const effectiveScope = isAdmin ? 'All Cases' : dataScope;
+```
+
+**Files affected:** `src/services/hierarchyService.ts`
+
+---
+
+### Phase 2: Update RLS Policies (Database Migration)
+
+Create new policies that check `data_scope` for Partners instead of granting blanket access.
+
+**SQL Migration:**
+```sql
+-- Drop blanket partner access policies
+DROP POLICY IF EXISTS "Admin_Partner full case access" ON cases;
+DROP POLICY IF EXISTS "Admins view all cases" ON cases;
+
+-- Create data_scope aware policy for Partners
+CREATE POLICY "Partner view cases based on data_scope" ON cases
+FOR SELECT TO authenticated
+USING (
+  tenant_id = get_user_tenant_id() 
+  AND has_role(auth.uid(), 'partner')
+  AND (
+    -- 'All Cases' scope - full org access
+    get_employee_data_scope(auth.uid()) = 'All Cases'
+    OR
+    -- 'Team Cases' scope: own + hierarchy
+    (get_employee_data_scope(auth.uid()) = 'Team Cases' 
+     AND (assigned_to = auth.uid() 
+          OR owner_id = auth.uid() 
+          OR can_view_case_by_hierarchy(auth.uid(), assigned_to, owner_id)))
+    OR
+    -- 'Own Cases' scope: only assigned or owned
+    (get_employee_data_scope(auth.uid()) = 'Own Cases' 
+     AND (assigned_to = auth.uid() OR owner_id = auth.uid()))
+  )
+);
+
+-- Keep Admin full access (they are system administrators)
+CREATE POLICY "Admin full case access" ON cases
+FOR ALL TO authenticated
+USING (
+  tenant_id = get_user_tenant_id() 
+  AND has_role(auth.uid(), 'admin')
+);
 ```
 
 ---
 
-## Implementation Files Summary
+### Phase 3: Fix `can_user_view_case()` Function
 
-| File | Action | Purpose |
+Update the function to respect `data_scope` for Partners:
+
+**Current Code:**
+```sql
+IF has_role(_user_id, 'admin') OR has_role(_user_id, 'partner') THEN
+  RETURN TRUE;
+END IF;
+```
+
+**New Code:**
+```sql
+-- Admin always gets full access (system admin)
+IF has_role(_user_id, 'admin') THEN
+  RETURN TRUE;
+END IF;
+
+-- Partner now respects data_scope setting
+-- (handled by normal data_scope logic below)
+```
+
+---
+
+### Phase 4: Apply Same Fix to Related Tables
+
+Update policies for `clients`, `tasks`, `documents`, `hearings` to also respect Partner's `data_scope`:
+
+1. **clients table** - Update `can_user_view_client()` function
+2. **tasks table** - Update task visibility policies
+3. **hearings table** - Update hearing visibility policies
+4. **documents table** - Update document visibility policies
+
+---
+
+### Phase 5: Fix Manager Behavior
+
+The Manager role should already respect `data_scope` via RLS policy `"Manager scoped case select"`. Verify this policy works correctly by testing.
+
+---
+
+## Files to Modify
+
+| File | Change | Purpose |
 |------|--------|---------|
-| **Database Migration** | CREATE | Add 6 new columns to cases table |
-| `src/components/cases/CaseForm.tsx` | UPDATE | Add Order & Appeal Milestones section, DRC-01A form type |
-| `src/contexts/AppStateContext.tsx` | UPDATE | Extend Case interface with new fields |
-| `src/data/seedData/statutoryMasterData.json` | UPDATE | Fix SC SLP deadline (60→30), add DRC-01A event |
-| `src/hooks/useStatutoryDeadlines.ts` | UPDATE | Add `calculateAppealDeadline()` function |
-| `src/components/modals/StageManagementModal.tsx` | UPDATE | Capture impugned order on stage advancement |
-| `public/form-templates/DRC01A_INTIMATION.json` | CREATE | New form template for DRC-01A |
-| `src/services/casesService.ts` | UPDATE | Handle new date fields in CRUD operations |
-| `src/adapters/SupabaseAdapter.ts` | UPDATE | Whitelist new columns |
+| `src/services/hierarchyService.ts` | Remove Partner override | Client-side visibility calculation |
+| Database migration | Update RLS policies | Server-side access control |
+| Database migration | Update `can_user_view_case()` | Function-level access control |
+| Database migration | Update `can_user_view_client()` | Client visibility |
 
 ---
 
-## Timeline & Compliance Matrix
+## Impact Assessment
 
-| Stage | Trigger Event | Response Time | Auto-Calculated Deadline |
-|-------|--------------|---------------|-------------------------|
-| Assessment | ASMT-10 Received | 30 days | ✅ (from notice_date) |
-| Assessment | DRC-01 Received | 30 days (+15 ext) | ✅ (from notice_date) |
-| Adjudication | DRC-07 Order | 3 months | 🔄 Requires order_date field |
-| First Appeal | APL-05 Order | 3 months (+3m ext) | 🔄 Requires order_date field |
-| Tribunal | GSTAT Order | 180 days | 🔄 Requires order_date field |
-| High Court | HC Order | **30 days** | 🔄 Fix: Currently 60 days |
-| Supreme Court | SLP Decision | - | Final stage |
+### Before Fix
+- Manan Shah (Partner, Team Cases) → Sees ALL cases (wrong)
+- Leena Sanghavi (Partner, Team Cases) → Sees ALL cases (wrong)
+- Nitesh Jain (Partner, All Cases) → Sees ALL cases (correct)
+
+### After Fix
+- Manan Shah (Partner, Team Cases) → Sees only team-related cases (correct)
+- Leena Sanghavi (Partner, Team Cases) → Sees only team-related cases (correct)
+- Nitesh Jain (Partner, All Cases) → Sees ALL cases (correct)
+- Admin role → Always sees ALL cases (unchanged)
 
 ---
 
 ## Testing Checklist
 
-1. Create case at Assessment stage with ASMT-10 notice
-2. Verify reply deadline auto-calculates (30 days from notice_date)
-3. Advance to Adjudication → Verify order date fields appear
-4. Enter DRC-07 order details → Verify appeal deadline calculates (3 months)
-5. Advance to First Appeal → Verify impugned order captured in transition
-6. Test Supreme Court SLP deadline → Should be 30 days, not 60
-7. Verify DRC-01A form type appears in dropdown
-8. Test form template generation for DRC-01A reply
+1. Log in as Manan Shah (Partner, Team Cases) → Should only see cases assigned to self or team
+2. Log in as Nitesh Jain (Partner, All Cases) → Should see all cases
+3. Log in as Kuldip (Manager, Team Cases) → Should only see team cases
+4. Verify Dashboard case counts reflect filtered data
+5. Verify Case Management list shows filtered cases
+6. Test case search respects visibility rules
+
+---
+
+## Security Consideration
+
+The Admin role should retain full access as they are system administrators who may need to manage all data. Only the Partner role's behavior is being modified to respect `data_scope`.
