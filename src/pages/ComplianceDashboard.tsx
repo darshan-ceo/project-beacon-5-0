@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RefreshCw, AlertTriangle, Clock, CalendarClock, TrendingUp, CheckCircle2, Send, Loader2, FileDown, Settings } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Clock, CalendarClock, TrendingUp, CheckCircle2, Send, Loader2, FileDown, Settings, Shield } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,13 +19,18 @@ import { ComplianceStatsBar } from '@/components/compliance/ComplianceStatsBar';
 import { NotificationSettingsModal } from '@/components/compliance/NotificationSettingsModal';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useRBAC } from '@/hooks/useAdvancedRBAC';
 
 type DateRange = '7d' | '30d' | '90d' | 'all';
 
 export const ComplianceDashboard: React.FC = () => {
   const { state } = useAppState();
+  const { hasPermission, isRbacReady, enforcementEnabled } = useRBAC();
   const [dateRange, setDateRange] = useState<DateRange>('30d');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  
+  // RBAC access check for compliance module
+  const canViewCompliance = hasPermission('compliance', 'read');
   
   const {
     summary,
@@ -67,6 +72,35 @@ export const ComplianceDashboard: React.FC = () => {
       description: 'PDF and Excel export will be available in the next update',
     });
   };
+
+  // RBAC enforcement - show loading state while checking permissions
+  if (!isRbacReady && enforcementEnabled) {
+    return (
+      <div className="p-6 space-y-6">
+        <Skeleton className="h-10 w-64" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // RBAC enforcement - show Access Denied if no permission
+  if (enforcementEnabled && isRbacReady && !canViewCompliance) {
+    return (
+      <div className="flex items-center justify-center h-64 flex-col space-y-4">
+        <Shield className="h-12 w-12 text-muted-foreground" />
+        <div className="text-lg font-medium">Access Denied</div>
+        <div className="text-sm text-muted-foreground text-center max-w-md">
+          You do not have permission to access the Compliance Dashboard.
+          <br />
+          Please contact your administrator if you need access.
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

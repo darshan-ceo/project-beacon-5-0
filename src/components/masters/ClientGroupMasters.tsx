@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Plus, Search, Filter, Edit2, Trash2, Eye, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Building2, Plus, Search, Filter, Edit2, Trash2, Eye, ToggleLeft, ToggleRight, Shield } from 'lucide-react';
 import { useAppState } from '@/contexts/AppStateContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,11 +35,15 @@ import { ClientGroupModal } from '@/components/modals/ClientGroupModal';
 import { useToast } from '@/hooks/use-toast';
 import { clientGroupsService } from '@/services/clientGroupsService';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const ClientGroupMasters: React.FC = () => {
   const { state, dispatch } = useAppState();
   const { toast } = useToast();
-  const { hasPermission } = useRBAC();
+  const { hasPermission, isRbacReady, enforcementEnabled } = useRBAC();
+  
+  // RBAC access check for client_groups module
+  const canViewClientGroups = hasPermission('client_groups', 'read');
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'Active' | 'Inactive'>('all');
@@ -128,6 +132,36 @@ export const ClientGroupMasters: React.FC = () => {
       console.error('Failed to toggle status:', error);
     }
   };
+
+  // RBAC enforcement - show loading state while checking permissions
+  if (!isRbacReady && enforcementEnabled) {
+    return (
+      <div className="p-6 space-y-6">
+        <Skeleton className="h-10 w-64" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
+        <Skeleton className="h-[400px]" />
+      </div>
+    );
+  }
+
+  // RBAC enforcement - show Access Denied if no permission
+  if (enforcementEnabled && isRbacReady && !canViewClientGroups) {
+    return (
+      <div className="flex items-center justify-center h-64 flex-col space-y-4">
+        <Shield className="h-12 w-12 text-muted-foreground" />
+        <div className="text-lg font-medium">Access Denied</div>
+        <div className="text-sm text-muted-foreground text-center max-w-md">
+          You do not have permission to access Client Groups.
+          <br />
+          Please contact your administrator if you need access.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">

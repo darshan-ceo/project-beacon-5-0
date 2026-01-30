@@ -70,7 +70,7 @@ export const useModulePermissions = (moduleName: string): ModulePermissions => {
 export const ROUTE_TO_RBAC_MODULE: Record<string, string> = {
   // MONITOR section - always visible
   '/': 'dashboard',
-  '/compliance': 'dashboard',
+  '/compliance': 'compliance',  // FIX: was 'dashboard', now correctly uses 'compliance' module
   
   // LITIGATION section
   '/cases': 'cases',
@@ -81,7 +81,7 @@ export const ROUTE_TO_RBAC_MODULE: Record<string, string> = {
   // CLIENTS section
   '/clients': 'clients',
   '/contacts': 'clients',
-  '/client-groups': 'clients',
+  '/client-groups': 'client_groups',  // FIX: was 'clients', now correctly uses 'client_groups' module
   
   // DOCUMENTS section
   '/documents': 'documents',
