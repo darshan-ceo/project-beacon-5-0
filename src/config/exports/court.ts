@@ -22,22 +22,6 @@ export const COURT_EXPORT_COLUMNS: ExportColumn<Court>[] = [
   { key: 'city', label: 'City', type: 'string' },
   { key: 'jurisdiction', label: 'Jurisdiction', type: 'string' },
   { key: 'benchLocation', label: 'Bench', type: 'string' },
-  { 
-    key: 'address', 
-    label: 'Address', 
-    type: 'string',
-    get: (court) => typeof court.address === 'string' 
-      ? court.address 
-      : `${court.address.line1}${court.address.line2 ? ', ' + court.address.line2 : ''}`
-  },
-  { 
-    key: 'pincode', 
-    label: 'Pincode', 
-    type: 'string',
-    get: (court) => typeof court.address === 'string' 
-      ? 'N/A' 
-      : court.address.pincode || 'N/A'
-  },
   { key: 'phone', label: 'Phone', type: 'phone' },
   { key: 'email', label: 'Email', type: 'email' },
   { 
@@ -55,8 +39,6 @@ export const COURT_VISIBLE_COLUMNS = [
   'city',
   'jurisdiction',
   'benchLocation',
-  'address',
-  'pincode',
   'phone',
   'email'
 ];

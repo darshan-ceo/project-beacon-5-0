@@ -1262,8 +1262,6 @@ export type Database = {
       }
       courts: {
         Row: {
-          address: string | null
-          address_jsonb: Json | null
           bench_location: string | null
           city: string | null
           code: string | null
@@ -1277,7 +1275,6 @@ export type Database = {
           name: string
           officer_designation: string | null
           phone: string | null
-          residence_address: Json | null
           state: string | null
           status: string | null
           tax_jurisdiction: string | null
@@ -1286,8 +1283,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          address?: string | null
-          address_jsonb?: Json | null
           bench_location?: string | null
           city?: string | null
           code?: string | null
@@ -1301,7 +1296,6 @@ export type Database = {
           name: string
           officer_designation?: string | null
           phone?: string | null
-          residence_address?: Json | null
           state?: string | null
           status?: string | null
           tax_jurisdiction?: string | null
@@ -1310,8 +1304,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          address?: string | null
-          address_jsonb?: Json | null
           bench_location?: string | null
           city?: string | null
           code?: string | null
@@ -1325,7 +1317,6 @@ export type Database = {
           name?: string
           officer_designation?: string | null
           phone?: string | null
-          residence_address?: Json | null
           state?: string | null
           status?: string | null
           tax_jurisdiction?: string | null
