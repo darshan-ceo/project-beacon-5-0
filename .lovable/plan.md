@@ -1,162 +1,261 @@
 
-# RBAC Access Control Enforcement Fix for Manager Role
 
-## Issues Identified
+# Fix: Export Timeline and Generate Report Buttons Not Downloading Files
 
-### Issue 1: Client Groups Visible to Manager Without Permission
-**Root Cause**: The route-to-module mapping in `useModulePermissions.ts` maps `/client-groups` → `'clients'`:
-```typescript
-'/client-groups': 'clients',  // Line 84
-```
-Since Manager has `clients.read` permission, the sidebar shows "Client Groups" even though Manager has NO permissions for the `client_groups` module in the database.
+## Problem Identified
 
-**Evidence**: Database query shows Manager has NO `client_groups.*` permissions, only `clients.*` permissions.
+The **"Export Timeline"** and **"Generate Report"** buttons in the Case Management → Timeline section show success toasts but **don't actually download any files**.
 
----
+### Root Cause
 
-### Issue 2: Compliance Dashboard Visible to Manager Without Permission
-**Root Cause**: Similar mapping issue - `/compliance` is mapped to `'dashboard'`:
-```typescript
-'/compliance': 'dashboard',  // Line 73
-```
-Since Manager has `dashboard.read` permission, the Compliance Dashboard appears in the sidebar even though Manager has NO `compliance.*` permissions in the database.
+In `src/components/cases/CaseTimeline.tsx` (lines 265-287), both buttons only display toast messages without calling any export logic:
 
-**Evidence**: Database query shows Manager has `dashboard.read` but NO `compliance.read` or `compliance.manage`.
-
----
-
-### Issue 3: Document Delete Option Visible Without Permission
-**Root Cause**: The DocumentManagement component correctly checks `hasPermission('documents', 'delete')` at line 127, and the UI gate at line 1471 uses `canDeleteDocuments`. The issue is that either:
-1. RBAC enforcement is disabled (demo mode)
-2. The permission check is not properly gating all delete buttons/menu items
-
-**Evidence**: Database confirms Manager does NOT have `documents.delete` permission (only create, read, update).
-
----
-
-## Technical Root Causes
-
-### ROUTE_TO_RBAC_MODULE Mapping Issues (useModulePermissions.ts)
-```typescript
-// Current problematic mappings:
-'/compliance': 'dashboard',      // Should be 'compliance'
-'/client-groups': 'clients',     // Should be 'client_groups'
+```javascript
+// Current code - ONLY shows toast, no actual download
+onClick={() => {
+  toast({
+    title: "Export Timeline",
+    description: "Timeline data exported successfully",
+  });
+}}
 ```
 
-These mappings were designed for simplicity but violate the principle that each distinct permission module should map to its own RBAC module.
+---
+
+## Solution Overview
+
+Replace the placeholder toast handlers with real export functionality that:
+1. **Export Timeline** → Downloads case timeline events as Excel (.xlsx)
+2. **Generate Report** → Downloads a formatted PDF report
 
 ---
 
-## Implementation Plan
+## Technical Implementation
 
-### Phase 1: Fix Route-to-Module Mapping
+### Files to Modify
 
-**File**: `src/hooks/useModulePermissions.ts`
+| File | Change |
+|------|--------|
+| `src/config/reportColumns.ts` | Add CASE_TIMELINE_COLUMNS definition |
+| `src/utils/reportExporter.ts` | Add `exportCaseTimelineReport()` function |
+| `src/components/cases/CaseTimeline.tsx` | Wire buttons to real export functions |
 
-Update ROUTE_TO_RBAC_MODULE to use correct module names:
+---
+
+### Step 1: Add Timeline Event Column Definitions
+
+**File:** `src/config/reportColumns.ts`
+
+Add new column definition for case timeline events:
 
 ```typescript
-// MONITOR section
-'/': 'dashboard',
-'/compliance': 'compliance',  // FIX: was 'dashboard', now correctly uses 'compliance'
-
-// CLIENTS section  
-'/clients': 'clients',
-'/contacts': 'clients',
-'/client-groups': 'client_groups',  // FIX: was 'clients', now correctly uses 'client_groups'
+export const CASE_TIMELINE_COLUMNS: ReportColumn[] = [
+  { key: 'date', header: 'Date', type: 'date', format: 'dd-MM-yyyy', 
+    get: (row) => row.timestamp || row.createdAt || row.date || '' },
+  { key: 'time', header: 'Time', type: 'string', 
+    get: (row) => {
+      const ts = row.timestamp || row.createdAt;
+      if (!ts) return '';
+      return new Date(ts).toLocaleTimeString('en-IN', { 
+        hour: '2-digit', minute: '2-digit' 
+      });
+    }
+  },
+  { key: 'type', header: 'Event Type', type: 'string', 
+    get: (row) => row.type?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || '' },
+  { key: 'title', header: 'Title', type: 'string', 
+    get: (row) => row.title || '' },
+  { key: 'description', header: 'Description', type: 'string', 
+    get: (row) => row.description || '' },
+  { key: 'user', header: 'Actor', type: 'string', 
+    get: (row) => row.user?.name || row.createdByName || row.createdBy || '' },
+  { key: 'stage', header: 'Stage', type: 'string', 
+    get: (row) => row.metadata?.stage || '' },
+];
 ```
 
-This ensures that:
-- `/compliance` checks for `compliance.read` permission
-- `/client-groups` checks for `client_groups.read` permission
-
 ---
 
-### Phase 2: Verify Document Delete Permission Check
+### Step 2: Add Timeline Export Function
 
-**File**: `src/components/documents/DocumentManagement.tsx`
+**File:** `src/utils/reportExporter.ts`
 
-The component already has correct permission checking at:
-- Line 127: `const canDeleteDocuments = hasPermission('documents', 'delete');`
-- Line 1471: `{canDeleteDocuments && (...)}`
-
-However, I need to verify there are no other delete buttons that bypass this check. I'll audit the component for any delete actions without the `canDeleteDocuments` guard.
-
----
-
-### Phase 3: Add Page-Level Access Protection
-
-For defense-in-depth, add access denied checks at the page/component level:
-
-**File**: `src/components/masters/ClientGroupMasters.tsx`
+Add new export function for case timeline:
 
 ```typescript
-// Add at top of component
-const { hasPermission, isRbacReady, enforcementEnabled } = useRBAC();
-const canViewClientGroups = hasPermission('client_groups', 'read');
+import { CASE_TIMELINE_COLUMNS } from '@/config/reportColumns';
 
-// Add early return for unauthorized access
-if (enforcementEnabled && isRbacReady && !canViewClientGroups) {
-  return (
-    <div className="flex items-center justify-center h-64 flex-col space-y-4">
-      <Shield className="h-12 w-12 text-muted-foreground" />
-      <div className="text-lg font-medium">Access Denied</div>
-      <div className="text-sm text-muted-foreground">
-        You do not have permission to access Client Groups.
-      </div>
-    </div>
-  );
+/**
+ * Export Case Timeline Report (for individual case audit trail)
+ */
+export async function exportCaseTimelineReport(
+  data: any[],
+  format: 'xlsx' | 'pdf',
+  caseNumber?: string
+): Promise<void> {
+  const prefix = caseNumber 
+    ? `Case-Timeline-${caseNumber}` 
+    : 'Case-Timeline-Report';
+  const filename = generateFilename(prefix, format);
+  const title = caseNumber 
+    ? `Case Timeline: ${caseNumber}` 
+    : 'Case Timeline Report';
+  
+  if (format === 'pdf') {
+    await exportReportToPDF(data, CASE_TIMELINE_COLUMNS, filename, title);
+  } else {
+    await exportReportToExcel(data, CASE_TIMELINE_COLUMNS, filename, 'Timeline');
+  }
 }
 ```
 
-**File**: `src/pages/ComplianceDashboard.tsx`
-
-Same pattern for Compliance Dashboard access protection.
-
 ---
 
-### Phase 4: Update Legacy Role Arrays in Sidebar
+### Step 3: Wire Buttons to Export Functions
 
-**File**: `src/components/layout/Sidebar.tsx`
+**File:** `src/components/cases/CaseTimeline.tsx`
 
-The legacy `roles` arrays in `sidebarSections` should NOT include 'Manager' for Client Groups:
+#### 3a. Add imports
 
 ```typescript
-// Current (line 125):
-{ icon: Building2, label: 'Client Groups', href: '/client-groups', roles: ['Admin', 'Partner', 'Partner/CA', 'Ca'] },
-// This is already correct - Manager is not listed
+import { exportCaseTimelineReport } from '@/utils/reportExporter';
 ```
 
-However, the RBAC check takes priority, so the real fix is in the route mapping (Phase 1).
+#### 3b. Add loading state for export
 
----
+```typescript
+const [isExporting, setIsExporting] = useState(false);
+```
 
-## Summary of Changes
+#### 3c. Replace "Export Timeline" button handler (lines 265-274)
 
-| File | Change | Purpose |
-|------|--------|---------|
-| `src/hooks/useModulePermissions.ts` | Update `/compliance` → `'compliance'`, `/client-groups` → `'client_groups'` | Fix sidebar visibility filtering |
-| `src/components/masters/ClientGroupMasters.tsx` | Add page-level access check | Defense-in-depth protection |
-| `src/pages/ComplianceDashboard.tsx` | Add page-level access check | Defense-in-depth protection |
-| `src/components/documents/DocumentManagement.tsx` | Audit and verify all delete actions are gated | Ensure delete permission is consistently enforced |
+```typescript
+<Button 
+  variant="outline" 
+  size="sm"
+  disabled={isExporting || timelineEvents.length === 0}
+  onClick={async () => {
+    if (timelineEvents.length === 0) {
+      toast({
+        title: "No Timeline Data",
+        description: "There are no timeline events to export.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsExporting(true);
+    try {
+      await exportCaseTimelineReport(
+        timelineEvents, 
+        'xlsx', 
+        selectedCase?.caseNumber
+      );
+      toast({
+        title: "Export Successful",
+        description: `Timeline exported as Excel with ${timelineEvents.length} events.`,
+      });
+    } catch (error) {
+      console.error('Timeline export error:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export timeline. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }}
+>
+  {isExporting ? (
+    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+  ) : (
+    <Download className="mr-2 h-4 w-4" />
+  )}
+  Export Timeline
+</Button>
+```
+
+#### 3d. Replace "Generate Report" button handler (lines 275-287)
+
+```typescript
+<Button 
+  variant="outline" 
+  size="sm"
+  disabled={isExporting || timelineEvents.length === 0}
+  onClick={async () => {
+    if (timelineEvents.length === 0) {
+      toast({
+        title: "No Timeline Data",
+        description: "There are no timeline events to generate a report from.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsExporting(true);
+    toast({
+      title: "Generating PDF...",
+      description: "Please wait while we prepare your report.",
+    });
+    
+    try {
+      await exportCaseTimelineReport(
+        timelineEvents, 
+        'pdf', 
+        selectedCase?.caseNumber
+      );
+      toast({
+        title: "Report Generated",
+        description: "PDF report downloaded successfully.",
+      });
+    } catch (error) {
+      console.error('Report generation error:', error);
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate report. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }}
+>
+  {isExporting ? (
+    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+  ) : (
+    <FileText className="mr-2 h-4 w-4" />
+  )}
+  Generate Report
+</Button>
+```
+
+#### 3e. Add Loader2 icon import
+
+```typescript
+import { Loader2 } from 'lucide-react';
+```
 
 ---
 
 ## Expected Behavior After Fix
 
-| User | Role | Module | Before Fix | After Fix |
-|------|------|--------|------------|-----------|
-| Kuldip | Manager | Client Groups | Visible in sidebar | Hidden from sidebar |
-| Kuldip | Manager | Compliance Dashboard | Visible in sidebar | Hidden from sidebar |
-| Kuldip | Manager | Document Delete | Delete option visible | Delete option hidden |
+| Action | Before | After |
+|--------|--------|-------|
+| Click "Export Timeline" | Toast only, no download | Downloads `.xlsx` file with timeline events |
+| Click "Generate Report" | Toast only, no download | Downloads formatted `.pdf` report |
+| No timeline events | Toast says "success" | Toast shows "No Timeline Data" error |
+| During export | Button clickable | Button disabled with loading spinner |
 
 ---
 
 ## Testing Checklist
 
-1. Log in as Kuldip (Manager) → Verify "Client Groups" is NOT visible in sidebar
-2. Log in as Kuldip (Manager) → Verify "Compliance Dashboard" is NOT visible in sidebar
-3. Log in as Kuldip (Manager) → Navigate to Documents → Verify Delete option is NOT visible in document menu
-4. Log in as Admin → Verify all modules are still accessible
-5. Direct URL access to `/client-groups` as Manager → Should show "Access Denied"
-6. Direct URL access to `/compliance` as Manager → Should show "Access Denied"
+1. Open a case with timeline events
+2. Click "Export Timeline" → Verify Excel file downloads with correct data
+3. Click "Generate Report" → Verify PDF file downloads with formatted content
+4. Open a case with NO timeline events → Both buttons should show "No Timeline Data" error
+5. Click export while another export is in progress → Button should be disabled
+6. Verify downloaded files contain correct date format (dd-MM-yyyy)
+7. Verify actor names display correctly in exported files
+
