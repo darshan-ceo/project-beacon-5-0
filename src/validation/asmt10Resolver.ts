@@ -218,7 +218,7 @@ const VALIDATION_RULES: ValidationRule[] = [
     normalize: normalizeDate,
     validate: (value, normalized) => {
       if (!normalized) {
-        return { valid: false, message: 'Issue Date could not be parsed. Please use YYYY-MM-DD format' };
+        return { valid: false, message: 'Issue Date could not be parsed. Please use DD-MM-YYYY format (e.g., 15-02-2025)' };
       }
       return { valid: true };
     },
@@ -230,7 +230,7 @@ const VALIDATION_RULES: ValidationRule[] = [
     normalize: normalizeDate,
     validate: (value, normalized) => {
       if (!normalized) {
-        return { valid: false, message: 'Due Date could not be parsed. Please use YYYY-MM-DD format' };
+        return { valid: false, message: 'Due Date could not be parsed. Please use DD-MM-YYYY format (e.g., 15-02-2025)' };
       }
       return { valid: true };
     },

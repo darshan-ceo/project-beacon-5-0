@@ -113,10 +113,14 @@ export const DataGapsResolver: React.FC<DataGapsResolverProps> = ({
         ) : (
           <Input
             id={gap.path}
-            type={gap.type === 'date' ? 'date' : gap.type === 'number' ? 'number' : 'text'}
+            type={gap.type === 'number' ? 'number' : 'text'}
             value={currentValue}
             onChange={(e) => handleFieldChange(gap.path, e.target.value)}
-            placeholder={gap.suggested ? `Suggested: ${gap.suggested}` : `Enter ${gap.label}`}
+            placeholder={gap.type === 'date' 
+              ? 'DD-MM-YYYY (e.g., 15-02-2025)' 
+              : gap.suggested 
+                ? `Suggested: ${gap.suggested}` 
+                : `Enter ${gap.label}`}
             className={gap.critical ? 'border-destructive' : ''}
           />
         )}
