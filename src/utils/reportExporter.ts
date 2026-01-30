@@ -17,6 +17,7 @@ import {
   COMMUNICATION_REPORT_COLUMNS,
   FORM_TIMELINE_COLUMNS,
   STATUTORY_DEADLINE_COLUMNS,
+  CASE_TIMELINE_COLUMNS,
 } from '@/config/reportColumns';
 
 /**
@@ -451,5 +452,28 @@ export async function exportStatutoryDeadlineReport(
     await exportReportToPDF(data, STATUTORY_DEADLINE_COLUMNS, filename, title);
   } else {
     await exportReportToExcel(data, STATUTORY_DEADLINE_COLUMNS, filename, 'Statutory Deadlines');
+  }
+}
+
+/**
+ * Export Case Timeline Report (for individual case audit trail)
+ */
+export async function exportCaseTimelineReport(
+  data: any[],
+  format: 'xlsx' | 'pdf',
+  caseNumber?: string
+): Promise<void> {
+  const prefix = caseNumber 
+    ? `Case-Timeline-${caseNumber}` 
+    : 'Case-Timeline-Report';
+  const filename = generateFilename(prefix, format);
+  const title = caseNumber 
+    ? `Case Timeline: ${caseNumber}` 
+    : 'Case Timeline Report';
+  
+  if (format === 'pdf') {
+    await exportReportToPDF(data, CASE_TIMELINE_COLUMNS, filename, title);
+  } else {
+    await exportReportToExcel(data, CASE_TIMELINE_COLUMNS, filename, 'Timeline');
   }
 }
