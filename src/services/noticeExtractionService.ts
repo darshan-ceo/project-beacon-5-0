@@ -25,7 +25,7 @@ export interface ExtractedNoticeData {
   issueDate?: string;
   rawText?: string;
   fieldConfidence?: Record<string, FieldConfidence>;
-  // NEW: Extended extraction fields
+  // Extended extraction fields
   taxpayerName?: string;
   tradeName?: string;
   subject?: string;
@@ -36,6 +36,9 @@ export interface ExtractedNoticeData {
     asPerDept: number;
     difference: number;
   }>;
+  // Document type detection
+  documentType?: 'main_notice' | 'annexure';
+  documentTypeLabel?: string;
 }
 
 interface ExtractionResult {
@@ -92,37 +95,40 @@ class NoticeExtractionService {
   }
 
   /**
-   * Convert PDF first page to PNG image for Vision API
+   * Convert PDF pages to PNG images for Vision API (up to 4 pages)
    */
-  private async pdfToBase64Image(file: File): Promise<string> {
+  private async pdfToBase64Images(file: File): Promise<string[]> {
     try {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       
-      // Render first page to canvas
-      const page = await pdf.getPage(1);
-      const viewport = page.getViewport({ scale: 2.0 }); // Higher resolution
+      const images: string[] = [];
+      const maxPages = Math.min(pdf.numPages, 4); // Process up to 4 pages
       
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      if (!context) throw new Error('Failed to get canvas context');
+      for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1.5 }); // Slightly lower for multiple pages
+        
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('Failed to get canvas context');
+        
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport
+        };
+        
+        await page.render(renderContext as any).promise;
+        images.push(canvas.toDataURL('image/png').split(',')[1]);
+      }
       
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
-      
-      const renderContext = {
-        canvasContext: context,
-        viewport: viewport
-      };
-      
-      await page.render(renderContext as any).promise;
-      
-      // Convert canvas to base64 PNG
-      const base64 = canvas.toDataURL('image/png').split(',')[1];
-      return base64;
+      return images;
     } catch (error) {
       console.error('PDF to image conversion error:', error);
-      throw new Error('Failed to convert PDF to image');
+      throw new Error('Failed to convert PDF to images');
     }
   }
 
@@ -137,8 +143,16 @@ class NoticeExtractionService {
     }
 
     try {
-      // Convert PDF to base64 image
-      const base64Image = await this.pdfToBase64Image(file);
+      // Convert PDF to base64 images (up to 4 pages)
+      const base64Images = await this.pdfToBase64Images(file);
+
+      // Build image content array for Vision API
+      const imageContent = base64Images.map(img => ({
+        type: 'image_url' as const,
+        image_url: {
+          url: `data:image/png;base64,${img}`
+        }
+      }));
 
       // Call OpenAI Vision API with structured extraction prompt
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -154,44 +168,70 @@ class NoticeExtractionService {
               role: 'system',
               content: `You are an expert at extracting structured data from GST notices (ASMT-10, ASMT-11, DRC-01, DRC-01A, DRC-03, DRC-07, etc.). Extract the following fields from the notice image and provide confidence scores (0-100) for each field:
 
+DOCUMENT TYPE DETECTION:
+- Identify if this is a main notice (DRC-01, ASMT-10, DRC-01A) or an annexure (Annexure-A, B, C, D)
+- Return documentType: "main_notice" or "annexure"
+- Annexures may not contain taxpayer details - extract what's available
+- If this is an Annexure, also extract what notice type it's attached to (e.g., "Annexure-C to DRC-01A")
+
 REQUIRED FIELDS:
 - DIN (Document Identification Number): 15 character alphanumeric
 - Notice Number/Reference: The notice/intimation reference number (separate from DIN)
 - GSTIN: 15 character format (2 digits + 5 letters + 4 digits + 1 letter + 1 alphanumeric + Z + 1 alphanumeric)
 - Notice Type: Type of notice (ASMT-10, ASMT-11, ASMT-12, DRC-01, DRC-01A, DRC-03, DRC-07, etc.)
-- Issue Date: When the notice was issued (DD/MM/YYYY format)
-- Due Date: Response deadline (DD/MM/YYYY format)
-- Tax Period: Period covered by the notice
+- Issue Date: When the notice was issued (extract as DD/MM/YYYY or DD.MM.YYYY format)
+- Due Date: Response deadline (DD/MM/YYYY or DD.MM.YYYY format)
+- Tax Period: Period covered by the notice (e.g., "F.Y. 2021-22", "April 2021 - March 2022", "04/2024")
+
+IMPORTANT GSTIN RULES:
+- The TAXPAYER's GSTIN appears in the notice header or "To:" section
+- Do NOT use supplier GSTINs from discrepancy tables
+- Supplier GSTINs are listed in tables showing ITC details - these are NOT the taxpayer
+- If taxpayer GSTIN is not visible (e.g., in Annexure), return empty string (not a supplier GSTIN)
 
 TAXPAYER DETAILS:
-- Taxpayer Name: The legal name of the taxpayer/business from the notice header
+- Taxpayer Name: The legal name of the taxpayer/business from the notice header (NOT supplier names from tables)
 - Trade Name: Business trade name if different from legal name
 
 NOTICE CONTENT:
 - Subject: The full subject line of the notice (this becomes the Notice Title)
-- Legal Section: GST Act section invoked (e.g., "Section 73(1)", "Section 74", "Section 61")
-- Office: Issuing GST office/authority name
-- Amount: Total tax/ITC demand amount (extract as numeric, remove commas)
+- Legal Section: GST Act section invoked (e.g., "Section 73(1)", "Section 74", "Section 61", "Section 16")
+- Office: Issuing GST office/authority name (look for "CGST", "SGST", "Commissionerate", "Range", "Division")
+
+AMOUNT EXTRACTION:
+- Extract amounts as numeric values without commas
+- Handle Indian lakh format: "97,06,154" = 9706154
+- Handle "/-" suffix: "₹97,06,154/-" = 9706154
+- Handle "lakhs": "97.06 lakhs" = 9706000
+- Look for "Total Tax", "Demand", "ITC mismatch", "Difference" amounts
+
+TAX PERIOD:
+- Extract as "F.Y. 2021-22" or "April 2021 - March 2022"
+- For scrutiny notices, look for "F.Y." followed by year range
+- For monthly returns, look for "MM/YYYY" format
 
 DISCREPANCY DETAILS (if present):
 - Extract any tabular discrepancy data with columns: Particulars, Claimed/As per GSTR-3B, As per Dept/GSTR-2A, Difference
+- Parse amounts correctly from Indian format
 
 Return the data as JSON with this structure:
 {
   "fields": {
+    "documentType": { "value": "main_notice" or "annexure", "confidence": 90 },
+    "documentTypeLabel": { "value": "DRC-01A" or "Annexure-C to DRC-01A", "confidence": 85 },
     "din": { "value": "...", "confidence": 95 },
     "noticeNo": { "value": "...", "confidence": 90 },
     "gstin": { "value": "...", "confidence": 95 },
     "noticeType": { "value": "ASMT-10", "confidence": 95 },
     "issueDate": { "value": "DD/MM/YYYY", "confidence": 85 },
     "dueDate": { "value": "DD/MM/YYYY", "confidence": 90 },
-    "period": { "value": "...", "confidence": 85 },
+    "period": { "value": "F.Y. 2021-22", "confidence": 85 },
     "taxpayerName": { "value": "...", "confidence": 90 },
     "tradeName": { "value": "...", "confidence": 85 },
     "subject": { "value": "...", "confidence": 85 },
     "legalSection": { "value": "Section 73(1)", "confidence": 80 },
-    "office": { "value": "...", "confidence": 80 },
-    "amount": { "value": "245000", "confidence": 85 },
+    "office": { "value": "CGST Range-II, Division-III, Jalandhar", "confidence": 80 },
+    "amount": { "value": "9706154", "confidence": 85 },
     "discrepancies": { 
       "value": [
         { "particulars": "Input Tax Credit (IGST)", "claimed": 475000, "asPerDept": 230000, "difference": 245000 }
@@ -207,18 +247,13 @@ Return the data as JSON with this structure:
               content: [
                 {
                   type: 'text',
-                  text: 'Extract all information from this GST notice with confidence scores:'
+                  text: 'Extract all information from this GST notice with confidence scores. This may be a multi-page document - analyze all pages provided:'
                 },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:image/png;base64,${base64Image}`
-                  }
-                }
+                ...imageContent
               ]
             }
           ],
-          max_tokens: 2000,
+          max_tokens: 3000,
           temperature: 0.1
         }),
       });
@@ -391,12 +426,15 @@ Return the data as JSON with this structure:
           noticeType: aiResult.fieldConfidence.noticeType?.value || '',
           noticeNo: aiResult.fieldConfidence.noticeNo?.value || '',
           issueDate: aiResult.fieldConfidence.issueDate?.value || '',
-          // NEW: Extended fields
+          // Extended fields
           taxpayerName: aiResult.fieldConfidence.taxpayerName?.value || '',
           tradeName: aiResult.fieldConfidence.tradeName?.value || '',
           subject: aiResult.fieldConfidence.subject?.value || '',
           legalSection: aiResult.fieldConfidence.legalSection?.value || '',
           discrepancies: Array.isArray(aiResult.fieldConfidence.discrepancies?.value) ? aiResult.fieldConfidence.discrepancies.value : [],
+          // Document type detection
+          documentType: (aiResult.fieldConfidence.documentType?.value as 'main_notice' | 'annexure') || 'main_notice',
+          documentTypeLabel: aiResult.fieldConfidence.documentTypeLabel?.value || '',
           rawText: aiResult.text,
           fieldConfidence: aiResult.fieldConfidence
         };

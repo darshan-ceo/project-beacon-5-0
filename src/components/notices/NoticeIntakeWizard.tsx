@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, Upload, FileText, User, FolderOpen, Calendar, AlertCircle, Loader2, Key, Eye, EyeOff, Settings, ExternalLink } from 'lucide-react';
+import { CheckCircle, Upload, FileText, User, FolderOpen, Calendar, AlertCircle, Loader2, Key, Eye, EyeOff, Settings, ExternalLink, AlertTriangle, FileWarning } from 'lucide-react';
 import { noticeExtractionService } from '@/services/noticeExtractionService';
 import { clientsService } from '@/services/clientsService';
 import { casesService } from '@/services/casesService';
@@ -226,13 +226,16 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
           notice_type: (result.data.noticeType || 'ASMT-10').toUpperCase(),
           issue_date: result.data.issueDate || '',
           issuing_authority_office: result.data.office,
-          // NEW: Notice title from subject
+          // Notice title from subject
           notice_title: result.data.subject || '',
-          // NEW: Legal section
+          // Legal section
           section_invoked: (result.data.legalSection || '').toUpperCase(),
+          // Document type detection
+          document_type: result.data.documentType || 'main_notice',
+          document_type_label: result.data.documentTypeLabel || '',
           taxpayer: {
             gstin: result.data.gstin,
-            // NEW: Use extracted taxpayer name
+            // Use extracted taxpayer name
             name: result.data.taxpayerName || '',
             tradeName: result.data.tradeName || '',
             pan: result.data.gstin ? result.data.gstin.substring(2, 12) : '',
@@ -251,7 +254,7 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
             // Use normalizeAmount helper to handle "2,45,000" → 245000
             total_amount_proposed: normalizeAmount(result.data.amount)
           },
-          // NEW: Discrepancy details array
+          // Discrepancy details array
           discrepancies: result.data.discrepancies || []
         };
         
@@ -921,6 +924,20 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
                 Complete missing or low-confidence information before proceeding
               </p>
             </div>
+            
+            {/* Annexure Detection Warning */}
+            {extractedData?.document_type === 'annexure' && (
+              <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 dark:border-yellow-800">
+                <FileWarning className="h-4 w-4 text-yellow-600" />
+                <AlertDescription>
+                  <strong className="text-yellow-800 dark:text-yellow-400">Annexure Document Detected</strong>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-500 mt-1">
+                    This appears to be <strong>{extractedData.document_type_label || 'an Annexure'}</strong>, not the main notice.
+                    Taxpayer details (GSTIN, Name) may not be present. For complete extraction, please upload the main notice document (Form GST DRC-01, ASMT-10, etc.).
+                  </p>
+                </AlertDescription>
+              </Alert>
+            )}
             
             {resolverOutput && (
               <DataGapsResolver
