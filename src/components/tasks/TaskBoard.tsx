@@ -75,7 +75,33 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
   const canDeleteTasks = hasPermission('tasks', 'delete');
 
   const getTasksByStatus = (status: string) => {
-    return tasks.filter(task => task.status === status);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    const isOverdue = (task: Task) => {
+      if (!task.dueDate) return false;
+      const terminalStatuses = ['Completed', 'Cancelled'];
+      if (terminalStatuses.includes(task.status)) return false;
+      try {
+        const dueDate = new Date(task.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate < now;
+      } catch {
+        return false;
+      }
+    };
+    
+    if (status === 'Overdue') {
+      // Calculate overdue based on due date, not status
+      return tasks.filter(isOverdue);
+    }
+    
+    // For non-Overdue statuses, exclude tasks that would appear in Overdue column
+    return tasks.filter(task => {
+      // Don't show overdue tasks in their original status columns
+      if (isOverdue(task)) return false;
+      return task.status === status;
+    });
   };
 
   const getStatusColor = (status: string) => {
