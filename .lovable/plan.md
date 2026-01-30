@@ -1,262 +1,183 @@
 
-# Fix: Legal Forum Address Persistence - Complete Root Cause Analysis and Solution
+# Complete Removal of Address Fields from Legal Forum
 
-## Problem Summary
+## Overview
 
-Both the existing **Address** field and the new **Residence Address** field lose data after save. Database investigation revealed:
+Permanently remove both the **Address** field and **Residence Address** field from the Legal Forum (Courts) module. This includes:
+- Removing from the UI form
+- Dropping database columns
+- Cleaning up all related code references
+- Hiding address display from the /courts list page
 
-| Field | Database Value | Expected | Issue |
-|-------|---------------|----------|-------|
-| `address` (TEXT) | Has JSON data correctly | JSON string | Working for CREATE |
-| `address_jsonb` (JSONB) | Empty/incomplete structure | Full address | Wrong source data |
-| `residence_address` (JSONB) | `nil` | Full address | **Silently dropped** |
+---
 
-## Root Cause Analysis
+## Database Migration
 
-### Root Cause 1: `residence_address` Missing from SupabaseAdapter Whitelist
+Drop the address-related columns from the `courts` table:
 
-**File:** `src/data/adapters/SupabaseAdapter.ts` line 2036
+```sql
+-- Drop address columns from courts table
+ALTER TABLE courts DROP COLUMN IF EXISTS address;
+ALTER TABLE courts DROP COLUMN IF EXISTS address_jsonb;
+ALTER TABLE courts DROP COLUMN IF EXISTS residence_address;
 
-```typescript
-const validCourtFields = ['id', 'tenant_id', 'name', 'code', 'type', 'level', 'city', 'state', 'jurisdiction', 'address', 'address_jsonb', 'created_by', 'created_at', 'updated_at', 'established_year', 'bench_location', 'tax_jurisdiction', 'officer_designation', 'phone', 'email', 'status'];
+-- Add comment documenting removal
+COMMENT ON TABLE courts IS 'Legal authorities/forums table. Address columns removed 2026-01-30 due to persistent data integrity issues.';
 ```
 
-**Problem:** `residence_address` is NOT in this whitelist, so it gets deleted during normalization and never reaches the database.
+**Columns being dropped:**
+| Column | Type | Purpose |
+|--------|------|---------|
+| `address` | TEXT | Legacy free-text address |
+| `address_jsonb` | JSONB | Structured address (attempted fix) |
+| `residence_address` | JSONB | Independent residence address |
 
-### Root Cause 2: Missing Stringification for `address` and `residence_address`
-
-The normalization for courts only stringifies `address_jsonb`:
-
-```typescript
-if (normalized.address_jsonb && typeof normalized.address_jsonb === 'object') {
-  normalized.address_jsonb = JSON.stringify(normalized.address_jsonb);
-}
-```
-
-Missing for both `address` and `residence_address` JSONB fields.
-
-### Root Cause 3: Wrong Data Source in courtsService
-
-In `courtsService.ts` update method (line 127-141):
-
-```typescript
-const rawAddress = (updates as any).addressJsonb || (updates as any).address_jsonb || {};
-const unifiedAddress: UnifiedAddress = normalizeAddress({
-  ...rawAddress,
-  line1: rawAddress.line1 || (typeof updates.address === 'string' ? updates.address : '') || '',
-  // ...
-});
-```
-
-**Problem:** This checks `updates.addressJsonb` first (empty), then tries to extract `line1` only if `updates.address` is a string. But the form sends `updates.address` as an **object**, so `line1` becomes empty string!
-
-## Solution
-
-### Fix 1: Add `residence_address` to SupabaseAdapter Whitelist
-
-**File:** `src/data/adapters/SupabaseAdapter.ts`
-
-Update line 2036 to include `residence_address`:
-
-```typescript
-const validCourtFields = [
-  'id', 'tenant_id', 'name', 'code', 'type', 'level', 'city', 'state', 
-  'jurisdiction', 'address', 'address_jsonb', 'residence_address',
-  'created_by', 'created_at', 'updated_at', 'established_year', 
-  'bench_location', 'tax_jurisdiction', 'officer_designation', 
-  'phone', 'email', 'status'
-];
-```
-
-### Fix 2: Add Stringification for All JSONB Address Fields
-
-**File:** `src/data/adapters/SupabaseAdapter.ts`
-
-In the `case 'courts':` section, add stringification for all JSONB fields:
-
-```typescript
-case 'courts':
-  // ... existing field mappings ...
-  
-  // Stringify JSONB fields before sending to Supabase
-  if (normalized.address_jsonb && typeof normalized.address_jsonb === 'object') {
-    normalized.address_jsonb = JSON.stringify(normalized.address_jsonb);
-  }
-  if (normalized.residence_address && typeof normalized.residence_address === 'object') {
-    normalized.residence_address = JSON.stringify(normalized.residence_address);
-  }
-  // Also stringify 'address' if it's an object (for TEXT column compatibility)
-  if (normalized.address && typeof normalized.address === 'object') {
-    normalized.address = JSON.stringify(normalized.address);
-  }
-  
-  // Updated whitelist with residence_address
-  const validCourtFields = [..., 'residence_address'];
-```
-
-### Fix 3: Correct Data Source in courtsService
-
-**File:** `src/services/courtsService.ts`
-
-In the `update` method, extract address data correctly from the object:
-
-```typescript
-// Build unified address for JSONB storage if address-related fields are updated
-let addressJsonb: string | undefined;
-if (updates.address || updates.city || (updates as any).state) {
-  // The form sends address as EnhancedAddressData object, NOT addressJsonb
-  const addressData = typeof updates.address === 'object' ? updates.address : {};
-  
-  const unifiedAddress: UnifiedAddress = normalizeAddress({
-    ...addressData,
-    // Ensure cityName/stateName are populated from form's city field too
-    cityName: (addressData as any).cityName || updates.city || '',
-    stateName: (addressData as any).stateName || (updates as any).state || '',
-    source: 'edited'
-  });
-  addressJsonb = serializeAddress(unifiedAddress);
-}
-```
-
-Apply the same fix to the `create` method.
-
-### Fix 4: Ensure residenceAddress is Properly Stringified in courtsService
-
-Both `create` and `update` methods already have:
-```typescript
-residence_address: (normalizedData as any).residenceAddress 
-  ? JSON.stringify((normalizedData as any).residenceAddress) 
-  : null,
-```
-
-This is correct, but the SupabaseAdapter strips it before it reaches the database due to the whitelist issue.
+---
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `src/data/adapters/SupabaseAdapter.ts` | Add `residence_address` to whitelist, add stringification for `address` and `residence_address` |
-| `src/services/courtsService.ts` | Fix address data extraction in create/update methods |
+### 1. CourtModal.tsx - Remove Address Sections from Form
 
-## Detailed Code Changes
+**Remove from state initialization (lines 55, 78-88, 101):**
+- Delete `address: EnhancedAddressData` from formData type
+- Delete `residenceAddress: PartialAddress` from formData type
+- Remove default values for both
 
-### 1. SupabaseAdapter.ts - Courts Normalization (lines 2010-2040)
+**Remove hydration logic (lines 164-186, 198, 211):**
+- Delete address parsing code
+- Delete `address: parsedAddress` assignment
+- Delete `residenceAddress: courtData.residenceAddress` assignment
 
-```typescript
-case 'courts':
-  // Map camelCase fields to snake_case
-  if (normalized.establishedYear && !normalized.established_year) normalized.established_year = normalized.establishedYear;
-  if (normalized.createdAt && !normalized.created_at) normalized.created_at = normalized.createdAt;
-  if (normalized.updatedAt && !normalized.updated_at) normalized.updated_at = normalized.updatedAt;
-  if (normalized.createdBy && !normalized.created_by) normalized.created_by = normalized.createdBy;
-  if (normalized.benchLocation && !normalized.bench_location) normalized.bench_location = normalized.benchLocation;
-  if (normalized.taxJurisdiction && !normalized.tax_jurisdiction) normalized.tax_jurisdiction = normalized.taxJurisdiction;
-  if (normalized.officerDesignation && !normalized.officer_designation) normalized.officer_designation = normalized.officerDesignation;
-  // Map residenceAddress -> residence_address
-  if (normalized.residenceAddress !== undefined && normalized.residence_address === undefined) {
-    normalized.residence_address = normalized.residenceAddress;
-  }
-  
-  // Delete camelCase/UI-only fields
-  delete normalized.activeCases;
-  delete normalized.establishedYear;
-  delete normalized.createdAt;
-  delete normalized.updatedAt;
-  delete normalized.createdBy;
-  delete normalized.benchLocation;
-  delete normalized.taxJurisdiction;
-  delete normalized.officerDesignation;
-  delete normalized.residenceAddress; // Delete after mapping
-  
-  // Stringify JSONB fields before sending to Supabase
-  if (normalized.address_jsonb && typeof normalized.address_jsonb === 'object') {
-    normalized.address_jsonb = JSON.stringify(normalized.address_jsonb);
-  }
-  if (normalized.residence_address && typeof normalized.residence_address === 'object') {
-    normalized.residence_address = JSON.stringify(normalized.residence_address);
-  }
-  // Also stringify 'address' if it's an object (TEXT column stores JSON string)
-  if (normalized.address && typeof normalized.address === 'object') {
-    normalized.address = JSON.stringify(normalized.address);
-  }
-  
-  // Whitelist with residence_address added
-  const validCourtFields = [
-    'id', 'tenant_id', 'name', 'code', 'type', 'level', 'city', 'state', 
-    'jurisdiction', 'address', 'address_jsonb', 'residence_address',
-    'created_by', 'created_at', 'updated_at', 'established_year', 
-    'bench_location', 'tax_jurisdiction', 'officer_designation', 
-    'phone', 'email', 'status'
-  ];
-  Object.keys(normalized).forEach(key => {
-    if (!validCourtFields.includes(key)) delete normalized[key];
-  });
-  break;
-```
+**Remove Address section UI (lines 777-807):**
+- Delete entire Card for "Address"
 
-### 2. courtsService.ts - Fix Create Method (lines 61-72)
+**Remove Residence Address section UI (lines 809-831):**
+- Delete entire Card for "Residence Address"
 
-```typescript
-// Build unified address for JSONB storage
-// Extract from the address object passed by the form (EnhancedAddressData)
-const addressData = typeof normalizedData.address === 'object' ? normalizedData.address : {};
-const unifiedAddress: UnifiedAddress = normalizeAddress({
-  line1: (addressData as any).line1 || '',
-  line2: (addressData as any).line2 || '',
-  pincode: (addressData as any).pincode || '',
-  locality: (addressData as any).locality || '',
-  district: (addressData as any).district || '',
-  cityId: (addressData as any).cityId || '',
-  cityName: (addressData as any).cityName || normalizedData.city || '',
-  stateId: (addressData as any).stateId || '',
-  stateName: (addressData as any).stateName || (normalizedData as any).state || '',
-  countryId: (addressData as any).countryId || 'IN',
-  source: 'manual'
-});
-```
+**Remove from submit handler (lines 322, 336, 362, 375):**
+- Delete `address: formData.address` from courtToCreate
+- Delete `residenceAddress: formData.residenceAddress` from courtToCreate
+- Delete same from updates object
 
-### 3. courtsService.ts - Fix Update Method (lines 127-141)
+**Remove unused imports:**
+- `UnifiedAddressForm` (if only used here)
+- `UnifiedAddress, PartialAddress` from types/address
+- `AddressView`
+- `EnhancedAddressData, addressMasterService`
+- `Home` icon
 
-```typescript
-// Build unified address for JSONB storage if address-related fields are updated
-let addressJsonb: string | undefined;
-if (updates.address || updates.city || (updates as any).state) {
-  // Extract from the address object passed by the form (EnhancedAddressData)
-  const addressData = typeof updates.address === 'object' ? updates.address : {};
-  const unifiedAddress: UnifiedAddress = normalizeAddress({
-    line1: (addressData as any).line1 || '',
-    line2: (addressData as any).line2 || '',
-    pincode: (addressData as any).pincode || '',
-    locality: (addressData as any).locality || '',
-    district: (addressData as any).district || '',
-    cityId: (addressData as any).cityId || '',
-    cityName: (addressData as any).cityName || updates.city || '',
-    stateId: (addressData as any).stateId || '',
-    stateName: (addressData as any).stateName || (updates as any).state || '',
-    countryId: (addressData as any).countryId || 'IN',
-    source: 'edited'
-  });
-  addressJsonb = serializeAddress(unifiedAddress);
-}
-```
+### 2. CourtMasters.tsx - Hide Address Display
 
-## Why This Will Work
+**Remove address from search filtering (lines 54-65):**
+- Remove `addressText` construction
+- Remove address from `matchesSearch` condition
 
-1. **Whitelist Fix**: `residence_address` will no longer be stripped during normalization
-2. **Stringification Fix**: Both `address` and `residence_address` will be properly converted to JSON strings before database insert/update
-3. **Data Source Fix**: Address fields will be extracted from the actual form object, not from empty `addressJsonb`
+**Remove address from city migration helper (line 95):**
+- Remove `extractCityFromAddress` usage
 
-## Testing Checklist
+**Remove Address line display (lines 271-278):**
+- Delete the `MapPin` + address span in Legal Forum Details column
 
-1. Create new Legal Forum with Residence Address filled
-2. Save and verify `residence_address` is not `nil` in database
-3. Reopen form and verify Residence Address is populated
-4. Edit and save - verify data persists
-5. Test existing Address field with same flow
-6. Verify both addresses can be saved independently
+**Remove Pincode column (lines 337-404):**
+- Delete entire TableCell for pincode + mapping dropdown
 
-## Risk Assessment
+**Update table header (line 230):**
+- Remove "Pincode" column header
 
-- **Low Risk**: Changes are additive (adding to whitelist, adding stringification)
-- **No Breaking Changes**: Existing data patterns are preserved
-- **Follows Established Pattern**: Same approach used for judges table (which works)
+**Remove unused imports:**
+- `Map, Globe, Navigation` icons (only used for mapping)
+- `MAPPING_SERVICES` from utils/mappingServices
+- `extractCityFromAddress` from utils/cityExtractor
+
+### 3. courtsService.ts - Remove Address Handling
+
+**Create method (lines 61-98):**
+- Remove `addressData` extraction and `unifiedAddress` construction
+- Remove `address` and `address_jsonb` from storage.create()
+- Remove `residence_address` from storage.create()
+
+**Update method (lines 134-176):**
+- Remove `addressJsonb` variable and address construction
+- Remove `address` and `address_jsonb` from storage.update()
+- Remove `residence_address` from storage.update()
+
+**List method (lines 260-287):**
+- Remove `parsedAddress` and `parsedResidenceAddress` parsing
+- Remove `address`, `addressJsonb`, `residenceAddress` from return object
+
+**GetById method (lines 304-329):**
+- Same removals as list method
+
+**Remove unused imports:**
+- `UnifiedAddress, EMPTY_ADDRESS` from types/address
+- `normalizeAddress, serializeAddress, parseDbAddress` from utils/addressUtils
+
+### 4. AppStateContext.tsx - Remove from Court Interface
+
+**Court interface (lines 276, 284, 294):**
+- Remove `address: string | any;`
+- Remove `addressId?: string;`
+- Remove `residenceAddress?: any;`
+
+### 5. SupabaseAdapter.ts - Remove Address Normalization
+
+**Courts case (lines 2010-2058):**
+- Remove `residenceAddress` → `residence_address` mapping
+- Remove `delete normalized.residenceAddress`
+- Remove stringification for `address_jsonb`, `residence_address`, `address`
+- Remove `address`, `address_jsonb`, `residence_address` from `validCourtFields` whitelist
+
+---
+
+## Cleanup Summary
+
+| Location | What to Remove |
+|----------|----------------|
+| Database | `address`, `address_jsonb`, `residence_address` columns |
+| CourtModal.tsx | Address + Residence Address sections (UI + state + handlers) |
+| CourtMasters.tsx | Address display, Pincode column, Map links |
+| courtsService.ts | All address persistence/retrieval logic |
+| AppStateContext.tsx | `address`, `addressId`, `residenceAddress` from Court interface |
+| SupabaseAdapter.ts | Address normalization for courts |
+
+---
+
+## Impact Assessment
+
+### Data Loss
+- All existing address data for Legal Forums will be permanently deleted
+- This includes ~100+ records based on earlier database queries
+- **Recommendation**: Take a database backup before running migration
+
+### UI Changes
+- Legal Forum form will have 2 fewer sections (cleaner form)
+- /courts list will not show Address line or Pincode column
+- Mapping links (Google Maps, OpenStreetMap) will be removed
+
+### Code Reduction
+- ~150 lines removed from CourtModal.tsx
+- ~70 lines removed from CourtMasters.tsx
+- ~50 lines removed from courtsService.ts
+- Total: ~270+ lines of problematic code eliminated
+
+---
+
+## Testing Checklist After Implementation
+
+1. Create new Legal Forum → Verify no Address sections appear
+2. Edit existing Legal Forum → Verify no Address sections appear
+3. View Legal Forum → Confirm no address-related errors
+4. /courts list → Verify no Address column, no Pincode column
+5. Save Legal Forum → Verify successful save without address data
+6. Check database → Verify address columns are gone
+
+---
+
+## Future: Adding Fresh Address Field
+
+Once this cleanup is complete and verified stable, a new clean address field can be added following these principles:
+
+1. Use only JSONB column (no legacy TEXT)
+2. Use `module="contact"` which is proven stable
+3. Implement with simple state management (no complex hydration)
+4. Add thorough unit tests before deployment
