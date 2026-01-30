@@ -290,6 +290,8 @@ interface Court {
   // NEW: CGST/SGST Officer Designation fields
   taxJurisdiction?: 'CGST' | 'SGST'; // Tax jurisdiction (Central or State)
   officerDesignation?: string; // Officer rank (e.g., DEPUTY_COMMISSIONER, JOINT_COMMISSIONER)
+  // NEW: Independent Residence Address (clean JSONB implementation)
+  residenceAddress?: any; // UnifiedAddress JSONB - independent from legacy address field
 }
 
 interface Judge {
