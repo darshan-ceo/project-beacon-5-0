@@ -15,13 +15,15 @@ import {
   CheckCircle,
   AlertTriangle,
   Edit,
-  Scale
+  Scale,
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { exportCaseTimelineReport } from '@/utils/reportExporter';
 
 interface Case {
   id: string;
@@ -59,6 +61,7 @@ interface CaseTimelineProps {
 export const CaseTimeline: React.FC<CaseTimelineProps> = ({ selectedCase }) => {
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Fetch timeline entries when case changes
   useEffect(() => {
@@ -262,27 +265,94 @@ export const CaseTimeline: React.FC<CaseTimelineProps> = ({ selectedCase }) => {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => {
-                      toast({
-                        title: "Export Timeline",
-                        description: "Timeline data exported successfully",
-                      });
+                    disabled={isExporting || timelineEvents.length === 0}
+                    onClick={async () => {
+                      if (timelineEvents.length === 0) {
+                        toast({
+                          title: "No Timeline Data",
+                          description: "There are no timeline events to export.",
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+                      
+                      setIsExporting(true);
+                      try {
+                        await exportCaseTimelineReport(
+                          timelineEvents, 
+                          'xlsx', 
+                          selectedCase?.caseNumber
+                        );
+                        toast({
+                          title: "Export Successful",
+                          description: `Timeline exported as Excel with ${timelineEvents.length} events.`,
+                        });
+                      } catch (error) {
+                        console.error('Timeline export error:', error);
+                        toast({
+                          title: "Export Failed",
+                          description: "Failed to export timeline. Please try again.",
+                          variant: "destructive"
+                        });
+                      } finally {
+                        setIsExporting(false);
+                      }
                     }}
                   >
-                    <Download className="mr-2 h-4 w-4" />
+                    {isExporting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-2 h-4 w-4" />
+                    )}
                     Export Timeline
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => {
+                    disabled={isExporting || timelineEvents.length === 0}
+                    onClick={async () => {
+                      if (timelineEvents.length === 0) {
+                        toast({
+                          title: "No Timeline Data",
+                          description: "There are no timeline events to generate a report from.",
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+                      
+                      setIsExporting(true);
                       toast({
-                        title: "Generate Report",
-                        description: "Case timeline report generated",
+                        title: "Generating PDF...",
+                        description: "Please wait while we prepare your report.",
                       });
+                      
+                      try {
+                        await exportCaseTimelineReport(
+                          timelineEvents, 
+                          'pdf', 
+                          selectedCase?.caseNumber
+                        );
+                        toast({
+                          title: "Report Generated",
+                          description: "PDF report downloaded successfully.",
+                        });
+                      } catch (error) {
+                        console.error('Report generation error:', error);
+                        toast({
+                          title: "Generation Failed",
+                          description: "Failed to generate report. Please try again.",
+                          variant: "destructive"
+                        });
+                      } finally {
+                        setIsExporting(false);
+                      }
                     }}
                   >
-                    <FileText className="mr-2 h-4 w-4" />
+                    {isExporting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileText className="mr-2 h-4 w-4" />
+                    )}
                     Generate Report
                   </Button>
                 </div>

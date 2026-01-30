@@ -157,3 +157,27 @@ export const STATUTORY_DEADLINE_COLUMNS: ReportColumn[] = [
   { key: 'owner', header: 'Owner', type: 'string', get: (row) => row.owner || row.caseOwner || '' },
   { key: 'extensionCount', header: 'Extensions', type: 'number', get: (row) => row.extensionCount || row.extension_count || 0 },
 ];
+
+export const CASE_TIMELINE_COLUMNS: ReportColumn[] = [
+  { key: 'date', header: 'Date', type: 'date', format: 'dd-MM-yyyy', 
+    get: (row) => row.timestamp || row.createdAt || row.date || '' },
+  { key: 'time', header: 'Time', type: 'string', 
+    get: (row) => {
+      const ts = row.timestamp || row.createdAt;
+      if (!ts) return '';
+      return new Date(ts).toLocaleTimeString('en-IN', { 
+        hour: '2-digit', minute: '2-digit' 
+      });
+    }
+  },
+  { key: 'type', header: 'Event Type', type: 'string', 
+    get: (row) => row.type?.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) || '' },
+  { key: 'title', header: 'Title', type: 'string', 
+    get: (row) => row.title || '' },
+  { key: 'description', header: 'Description', type: 'string', 
+    get: (row) => row.description || '' },
+  { key: 'user', header: 'Actor', type: 'string', 
+    get: (row) => row.user?.name || row.createdByName || row.createdBy || '' },
+  { key: 'stage', header: 'Stage', type: 'string', 
+    get: (row) => row.metadata?.stage || '' },
+];
