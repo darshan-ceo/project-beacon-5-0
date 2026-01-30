@@ -256,9 +256,11 @@ class HierarchyService {
     // CRITICAL FIX: Check both camelCase and snake_case, then normalize
     const dataScope = this.getEmployeeDataScope(employee);
     
-    // Admin/Partner override - they always get 'All Cases' access
-    const isPartnerOrAdmin = role === 'Partner' || role === 'Admin';
-    const effectiveScope = isPartnerOrAdmin ? 'All Cases' : dataScope;
+    // CRITICAL FIX: Respect data_scope for ALL roles including Partner
+    // Only Admin role gets unconditional 'All Cases' access
+    // Partners now respect their configured data_scope setting from Employee Master
+    const isAdmin = role === 'Admin';
+    const effectiveScope = isAdmin ? 'All Cases' : dataScope;
     
     console.log('[HierarchyService] Calculating visibility for:', {
       employee: employee.full_name,
