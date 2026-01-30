@@ -665,14 +665,6 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
       case 1:
         return (
           <div className="space-y-6">
-            <div className="text-center">
-              <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">Upload Notice Document</h3>
-              <p className="text-sm text-muted-foreground">
-                Select or drag and drop your ASMT-10 notice PDF
-              </p>
-            </div>
-
             {/* API Key Configuration */}
             <Card className={apiKeyInfo.hasKeys ? "border-green-500/50" : "border-yellow-500/50"}>
               <CardHeader>
