@@ -91,23 +91,42 @@ export const normalizeClientPayload = (payload: any): any => {
 /**
  * Normalize case payload before persistence
  */
+// Legal form code prefixes that should stay UPPERCASE in titles
+const LEGAL_FORM_PREFIXES = ['ASMT-', 'DRC-', 'GSTR-', 'GST-', 'APPEAL-', 'ITC-', 'RFD-', 'PMT-'];
+
 export const normalizeCasePayload = (payload: any): any => {
   const normalized = { ...payload };
 
-  // Title Case fields
-  if (normalized.title) normalized.title = toTitleCase(normalized.title);
+  // Check if title starts with a legal form code - if so, skip title-casing
+  const startsWithLegalCode = normalized.title && LEGAL_FORM_PREFIXES.some(
+    prefix => normalized.title.toUpperCase().startsWith(prefix)
+  );
+
+  // Title Case fields (ONLY if not a legal form code title)
+  if (normalized.title && !startsWithLegalCode) {
+    normalized.title = toTitleCase(normalized.title);
+  }
   if (normalized.stateBenchCity) normalized.stateBenchCity = toTitleCase(normalized.stateBenchCity);
   if (normalized.state_bench_city) normalized.state_bench_city = toTitleCase(normalized.state_bench_city);
   if (normalized.stateBenchState) normalized.stateBenchState = toTitleCase(normalized.stateBenchState);
   if (normalized.state_bench_state) normalized.state_bench_state = toTitleCase(normalized.state_bench_state);
 
-  // Uppercase fields
+  // Uppercase fields - Legal identifiers and form codes
   if (normalized.caseNumber) normalized.caseNumber = toUpperCase(normalized.caseNumber);
   if (normalized.case_number) normalized.case_number = toUpperCase(normalized.case_number);
   if (normalized.noticeNo) normalized.noticeNo = toUpperCase(normalized.noticeNo);
   if (normalized.notice_no) normalized.notice_no = toUpperCase(normalized.notice_no);
   if (normalized.officeFileNo) normalized.officeFileNo = toUpperCase(normalized.officeFileNo);
   if (normalized.office_file_no) normalized.office_file_no = toUpperCase(normalized.office_file_no);
+  
+  // NEW: Form type, section invoked, and DIN should be uppercase
+  if (normalized.formType) normalized.formType = toUpperCase(normalized.formType);
+  if (normalized.form_type) normalized.form_type = toUpperCase(normalized.form_type);
+  if (normalized.sectionInvoked) normalized.sectionInvoked = toUpperCase(normalized.sectionInvoked);
+  if (normalized.section_invoked) normalized.section_invoked = toUpperCase(normalized.section_invoked);
+  if (normalized.din) normalized.din = toUpperCase(normalized.din);
+  if (normalized.noticeType) normalized.noticeType = toUpperCase(normalized.noticeType);
+  if (normalized.notice_type) normalized.notice_type = toUpperCase(normalized.notice_type);
 
   return normalized;
 };

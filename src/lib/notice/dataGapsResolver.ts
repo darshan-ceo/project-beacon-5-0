@@ -34,6 +34,7 @@ const CRITICAL_PATHS = [
 
 const FIELD_DEFINITIONS: Record<string, { label: string; type: DataGap['type']; enumOptions?: string[] }> = {
   '/taxpayer/gstin': { label: 'GSTIN', type: 'text' },
+  '/taxpayer/name': { label: 'Taxpayer Name', type: 'text' },
   '/issue_date': { label: 'Issue Date', type: 'date' },
   '/notice_no': { label: 'Notice Number', type: 'text' },
   '/din': { label: 'DIN', type: 'text' },
@@ -46,7 +47,12 @@ const FIELD_DEFINITIONS: Record<string, { label: string; type: DataGap['type']; 
   },
   '/discrepancy_summary/total_amount_proposed': { label: 'Total Amount Proposed', type: 'number' },
   '/notice_title': { label: 'Notice Title', type: 'text' },
-  '/legal/section': { label: 'Legal Section', type: 'text' },
+  '/section_invoked': { label: 'Legal Section', type: 'text' },
+  '/notice_type': { 
+    label: 'Notice Type', 
+    type: 'enum',
+    enumOptions: ['ASMT-10', 'ASMT-11', 'ASMT-12', 'DRC-01', 'DRC-01A', 'DRC-03', 'DRC-07', 'Other']
+  },
   '/issuing_authority_office': { label: 'Issuing Authority Office', type: 'text' }
 };
 

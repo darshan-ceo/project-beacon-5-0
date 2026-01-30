@@ -98,29 +98,35 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
     if (currentStep === 5 && !caseData && selectedClient && resolverOutput?.normalized) {
       console.debug('[Wizard] Auto-filling case data on Step 5');
       const normalized = resolverOutput.normalized;
+      // Preserve uppercase for legal form codes in title
+      const formType = (normalized.notice_type || normalized.form_type || 'ASMT-10').toUpperCase();
+      const noticeNo = (normalized.notice_no || normalized.din || '').toUpperCase();
       const prefilled = {
-        title: `${normalized.form_type || 'ASMT-10'} - ${normalized.notice_no || normalized.din}`,
+        title: `${formType} - ${noticeNo}`,
         description: `Notice received for ${normalized.periods?.[0]?.period_label || 'assessment period'}`,
         client_id: selectedClient.id,
         case_type: 'Assessment',
         status: 'Active',
         priority: 'Medium',
-        tags: ['ASMT-10', 'Notice'],
-        // Phase 1: GST metadata auto-fill
-        notice_no: normalized.notice_no || normalized.din,
-        form_type: normalized.notice_type || 'ASMT-10',
-        section_invoked: normalized.section_invoked || '',
+        tags: [formType, 'Notice'],
+        // Phase 1: GST metadata auto-fill (all uppercase for legal identifiers)
+        notice_no: noticeNo,
+        form_type: formType,
+        section_invoked: (normalized.section_invoked || '').toUpperCase(),
         financial_year: normalized.financial_year || '',
         tax_period: normalized.periods?.[0]?.period_label || '',
         notice_details: {
-          notice_type: 'ASMT-10',
-          notice_no: normalized.notice_no,
-          din: normalized.din,
+          notice_type: formType,
+          notice_no: noticeNo,
+          din: (normalized.din || '').toUpperCase(),
           issue_date: normalized.issue_date,
           due_date: normalized.action?.response_due_date,
           period: normalized.periods?.[0]?.period_label,
           amount: normalized.discrepancy_summary?.total_amount_proposed,
-          office: normalized.issuing_authority_office
+          office: normalized.issuing_authority_office,
+          // NEW: Include notice title and section
+          notice_title: normalized.notice_title || '',
+          section_invoked: (normalized.section_invoked || '').toUpperCase()
         }
       };
       setCaseData(prefilled);
@@ -202,16 +208,33 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
       }
       
       if (result.success && result.data) {
+        // Helper to normalize currency amounts (e.g., "2,45,000" → 245000)
+        const normalizeAmount = (amt: any): number => {
+          if (typeof amt === 'number') return amt;
+          if (typeof amt === 'string') {
+            const cleaned = amt.replace(/[₹,\s]/g, '');
+            const parsed = parseFloat(cleaned);
+            return isNaN(parsed) ? 0 : parsed;
+          }
+          return 0;
+        };
+
         // Map extracted data to validator schema format
         const mappedExtraction = {
           din: result.data.din,
           notice_no: result.data.noticeNo || result.data.din,
-          notice_type: result.data.noticeType || 'ASMT-10',
+          notice_type: (result.data.noticeType || 'ASMT-10').toUpperCase(),
           issue_date: result.data.issueDate || '',
           issuing_authority_office: result.data.office,
+          // NEW: Notice title from subject
+          notice_title: result.data.subject || '',
+          // NEW: Legal section
+          section_invoked: (result.data.legalSection || '').toUpperCase(),
           taxpayer: {
             gstin: result.data.gstin,
-            name: '',
+            // NEW: Use extracted taxpayer name
+            name: result.data.taxpayerName || '',
+            tradeName: result.data.tradeName || '',
             pan: result.data.gstin ? result.data.gstin.substring(2, 12) : '',
             address: ''
           },
@@ -222,11 +245,14 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
           }] : [],
           action: {
             response_due_date: result.data.dueDate,
-            response_mode: ''
+            response_mode: 'GST Portal' // Default suggestion
           },
           discrepancy_summary: {
-            total_amount_proposed: result.data.amount || ''
-          }
+            // Use normalizeAmount helper to handle "2,45,000" → 245000
+            total_amount_proposed: normalizeAmount(result.data.amount)
+          },
+          // NEW: Discrepancy details array
+          discrepancies: result.data.discrepancies || []
         };
         
         // Build confidence map (0-1 scale for resolver)
@@ -389,8 +415,10 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
       } else {
         // Create new client from extracted data and persist via clientsService
         const normalized = resolverOutput.normalized;
+        // Use extracted taxpayer name, falling back to trade name, then default
+        const clientName = normalized.taxpayer?.name || normalized.taxpayer?.tradeName || 'New Client';
         const newClientData = {
-          name: normalized.taxpayer?.name || 'New Client',
+          name: clientName,
           gstin: gstin,
           pan: normalized.taxpayer?.pan,
           email: '',
@@ -1038,7 +1066,9 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>Notice Intake Wizard - ASMT-10</DialogTitle>
+          <DialogTitle>
+            Notice Intake Wizard - {extractedData?.notice_type?.toUpperCase() || 'GST Notice'}
+          </DialogTitle>
         </DialogHeader>
         
         <DialogBody>
