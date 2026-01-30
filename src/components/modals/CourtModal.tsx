@@ -12,17 +12,11 @@ import { toast } from '@/hooks/use-toast';
 import { AdaptiveFormShell } from '@/components/ui/adaptive-form-shell';
 import { FormStickyFooter } from '@/components/ui/form-sticky-footer';
 import { Court, useAppState } from '@/contexts/AppStateContext';
-import { UnifiedAddressForm } from '@/components/ui/UnifiedAddressForm';
-import { UnifiedAddress, PartialAddress } from '@/types/address';
-import { AddressView } from '@/components/ui/AddressView';
-import { EnhancedAddressData, addressMasterService } from '@/services/addressMasterService';
-import { featureFlagService } from '@/services/featureFlagService';
-import { MapPin, Phone, Mail, Building2, Scale, Globe, Loader2, Home } from 'lucide-react';
+import { MapPin, Phone, Mail, Building2, Scale, Globe, Loader2 } from 'lucide-react';
 import { FieldTooltip } from '@/components/ui/field-tooltip';
 import { AUTHORITY_LEVEL_OPTIONS, AUTHORITY_LEVEL_METADATA, AuthorityLevel } from '@/types/authority-level';
 import { clientsService } from '@/services/clientsService';
 import { autoCapitalizeFirst } from '@/utils/textFormatters';
-import { extractCityFromAddress } from '@/utils/cityExtractor';
 import { authorityHierarchyService } from '@/services/authorityHierarchyService';
 import { 
   TaxJurisdiction, 
@@ -52,7 +46,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     authorityLevel?: AuthorityLevel;
     matterTypes?: string[];
     jurisdiction: string;
-    address: EnhancedAddressData;
     digitalFiling: boolean;
     digitalFilingPortal?: string;
     digitalFilingPortalUrl?: string;
@@ -61,31 +54,16 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     phone?: string;
     email?: string;
     benchLocation?: string;
-    addressId?: string;
     city?: string;
     status: 'Active' | 'Inactive';
-    // NEW: CGST/SGST fields
     taxJurisdiction?: TaxJurisdiction;
     officerDesignation?: OfficerDesignation;
-    // NEW: Independent Residence Address (clean implementation)
-    residenceAddress: PartialAddress;
   }>({
     name: '',
     type: 'District Court',
     authorityLevel: undefined,
     matterTypes: [],
     jurisdiction: '',
-    address: {
-      line1: '',
-      line2: '',
-      locality: '',
-      district: '',
-      cityId: '',
-      stateId: '',
-      pincode: '',
-      countryId: 'IN',
-      source: 'manual'
-    } as EnhancedAddressData,
     digitalFiling: false,
     digitalFilingPortal: '',
     digitalFilingPortalUrl: '',
@@ -97,105 +75,21 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
     city: '',
     status: 'Active',
     taxJurisdiction: undefined,
-    officerDesignation: undefined,
-    residenceAddress: {} // Empty initial state for new residence address
+    officerDesignation: undefined
   });
-  const [isAddressMasterEnabled, setIsAddressMasterEnabled] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // State name to code mapping for imported data
-  const STATE_NAME_TO_CODE: Record<string, string> = {
-    'andaman and nicobar islands': 'AN', 'andaman and nicobar': 'AN', 'andaman': 'AN',
-    'andhra pradesh': 'AP', 'arunachal pradesh': 'AR', 'assam': 'AS', 'bihar': 'BR',
-    'chhattisgarh': 'CG', 'chandigarh': 'CH', 'dadra and nagar haveli': 'DH',
-    'daman and diu': 'DH', 'delhi': 'DL', 'goa': 'GA', 'gujarat': 'GJ',
-    'haryana': 'HR', 'himachal pradesh': 'HP', 'jammu and kashmir': 'JK', 'jammu': 'JK',
-    'jharkhand': 'JH', 'karnataka': 'KA', 'kerala': 'KL', 'ladakh': 'LA',
-    'lakshadweep': 'LD', 'madhya pradesh': 'MP', 'maharashtra': 'MH', 'manipur': 'MN',
-    'meghalaya': 'ML', 'mizoram': 'MZ', 'nagaland': 'NL', 'odisha': 'OR', 'orissa': 'OR',
-    'punjab': 'PB', 'puducherry': 'PY', 'pondicherry': 'PY', 'rajasthan': 'RJ',
-    'sikkim': 'SK', 'tamil nadu': 'TN', 'tripura': 'TR', 'telangana': 'TS',
-    'uttarakhand': 'UK', 'uttar pradesh': 'UP', 'west bengal': 'WB'
-  };
-
-  // Convert state name or code to standard state code
-  const normalizeStateId = (stateValue: string): string => {
-    if (!stateValue) return '';
-    const normalized = stateValue.toLowerCase().trim();
-    // If it's already a 2-letter code and in our mapping values, return uppercase
-    if (normalized.length === 2 && Object.values(STATE_NAME_TO_CODE).includes(normalized.toUpperCase())) {
-      return normalized.toUpperCase();
-    }
-    // Otherwise, look up by name
-    return STATE_NAME_TO_CODE[normalized] || stateValue;
-  };
-
-  // Parse address string to extract pincode, state, city for imported data
-  const parseCourtAddress = (addressStr: string, court: any): EnhancedAddressData => {
-    // Extract 6-digit pincode using regex
-    const pincodeMatch = addressStr.match(/\b\d{6}\b/);
-    const pincode = pincodeMatch ? pincodeMatch[0] : '';
-    
-    // Use court-level fields if available (from database columns)
-    const rawState = (court as any)?.state || '';
-    const stateId = normalizeStateId(rawState);
-    
-    return {
-      line1: addressStr,
-      line2: '',
-      locality: '',
-      district: '',
-      cityId: '',
-      stateId: stateId,
-      pincode: pincode,
-      countryId: 'IN',
-      source: 'manual'
-    } as EnhancedAddressData;
-  };
-
   useEffect(() => {
-    setIsAddressMasterEnabled(featureFlagService.isEnabled('address_master_v1'));
-    
     if (courtData && (mode === 'edit' || mode === 'view')) {
-      // Parse address - handle string (imported), JSON string, and object formats
-      let parsedAddress: EnhancedAddressData;
-      if (typeof courtData.address === 'string') {
-        // Try to parse as JSON first (new format stored as text)
-        if (courtData.address.trim().startsWith('{')) {
-          try {
-            const parsed = JSON.parse(courtData.address);
-            if (parsed && typeof parsed === 'object' && 'line1' in parsed) {
-              parsedAddress = parsed as EnhancedAddressData;
-            } else {
-              parsedAddress = parseCourtAddress(courtData.address, courtData);
-            }
-          } catch {
-            parsedAddress = parseCourtAddress(courtData.address, courtData);
-          }
-        } else {
-          parsedAddress = parseCourtAddress(courtData.address, courtData);
-        }
-      } else {
-        parsedAddress = (courtData.address as EnhancedAddressData) || {
-          line1: '', line2: '', locality: '', district: '', 
-          cityId: '', stateId: '', pincode: '', countryId: 'IN', source: 'manual'
-        };
-      }
-      
-      // Extract city from address string if not in court record
-      const cityValue = courtData.city || 
-        (typeof courtData.address === 'string' ? extractCityFromAddress(courtData.address) : '') || '';
-      
       setFormData({
         name: courtData.name,
         type: courtData.type,
         authorityLevel: courtData.authorityLevel,
         matterTypes: courtData.matterTypes || [],
         jurisdiction: courtData.jurisdiction,
-        address: parsedAddress,
         digitalFiling: courtData.digitalFiling,
         digitalFilingPortal: courtData.digitalFilingPortal || '',
         digitalFilingPortalUrl: courtData.digitalFilingPortalUrl || '',
@@ -204,11 +98,10 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         phone: courtData.phone || '',
         email: courtData.email || '',
         benchLocation: courtData.benchLocation || '',
-        city: cityValue,
+        city: courtData.city || '',
         status: courtData.status || 'Active',
         taxJurisdiction: courtData.taxJurisdiction as TaxJurisdiction | undefined,
-        officerDesignation: courtData.officerDesignation as OfficerDesignation | undefined,
-        residenceAddress: courtData.residenceAddress || {} // Hydrate residence address
+        officerDesignation: courtData.officerDesignation as OfficerDesignation | undefined
       });
     } else if (mode === 'create') {
       setFormData({
@@ -216,16 +109,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         type: 'District Court',
         authorityLevel: undefined,
         jurisdiction: '',
-        address: {
-          line1: '',
-          line2: '',
-          locality: '',
-          district: '',
-          cityId: '',
-          stateId: '',
-          countryId: 'IN',
-          source: 'manual'
-        } as EnhancedAddressData,
         digitalFiling: false,
         digitalFilingPortal: '',
         digitalFilingPortalUrl: '',
@@ -237,8 +120,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
         city: '',
         status: 'Active',
         taxJurisdiction: undefined,
-        officerDesignation: undefined,
-        residenceAddress: {} // Empty for create mode
+        officerDesignation: undefined
       });
     }
   }, [courtData, mode]);
@@ -246,7 +128,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Validate required fields
     if (!formData.name?.trim()) {
       newErrors.name = 'Authority name is required';
     }
@@ -257,14 +138,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
 
     if (!formData.city?.trim()) {
       newErrors.city = 'City is required';
-    }
-
-    // Validate pincode format if address is EnhancedAddressData
-    if (typeof formData.address === 'object' && formData.address.pincode) {
-      const pincodeValidation = clientsService.validatePincode(formData.address.pincode);
-      if (!pincodeValidation.isValid) {
-        newErrors.pincode = pincodeValidation.errors[0];
-      }
     }
 
     setErrors(newErrors);
@@ -283,7 +156,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form before submission
     if (!validateForm()) {
       toast({
         title: "Validation Error",
@@ -298,28 +170,12 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
       const { courtsService } = await import('@/services/courtsService');
 
       if (mode === 'create') {
-        let addressId: string | undefined;
-        
-        // Save address if address master is enabled
-        if (isAddressMasterEnabled) {
-          try {
-            const addressResponse = await addressMasterService.createAddress(formData.address);
-            
-            if (addressResponse.success && addressResponse.data) {
-              addressId = addressResponse.data.id;
-            }
-          } catch (error) {
-            console.error('Failed to save address:', error);
-          }
-        }
-
         const courtToCreate = {
           name: formData.name,
           type: formData.type,
           authorityLevel: formData.authorityLevel,
           matterTypes: formData.matterTypes,
           jurisdiction: formData.jurisdiction,
-          address: formData.address,
           digitalFiling: formData.digitalFiling,
           digitalFilingPortal: formData.digitalFilingPortal,
           digitalFilingPortalUrl: formData.digitalFilingPortalUrl,
@@ -328,30 +184,14 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
           phone: formData.phone,
           email: formData.email,
           benchLocation: formData.benchLocation,
-          addressId: addressId,
           city: formData.city,
           status: formData.status,
           taxJurisdiction: formData.taxJurisdiction,
-          officerDesignation: formData.officerDesignation,
-          residenceAddress: formData.residenceAddress // NEW: Include residence address
+          officerDesignation: formData.officerDesignation
         };
 
-        const created = await courtsService.create(courtToCreate, dispatch);
-
-        // Link address if saved
-        if (addressId && created.id) {
-          await addressMasterService.linkAddress('court', created.id, addressId, true);
-        }
+        await courtsService.create(courtToCreate, dispatch);
       } else if (mode === 'edit' && courtData) {
-        // Handle address updates
-        if (isAddressMasterEnabled && courtData.addressId) {
-          try {
-            await addressMasterService.updateAddress(courtData.addressId, formData.address);
-          } catch (error) {
-            console.error('Failed to update address:', error);
-          }
-        }
-
         const updates = {
           ...courtData,
           name: formData.name,
@@ -359,7 +199,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
           authorityLevel: formData.authorityLevel,
           matterTypes: formData.matterTypes,
           jurisdiction: formData.jurisdiction,
-          address: formData.address,
           digitalFiling: formData.digitalFiling,
           digitalFilingPortal: formData.digitalFilingPortal,
           digitalFilingPortalUrl: formData.digitalFilingPortalUrl,
@@ -371,8 +210,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
           city: formData.city,
           status: formData.status,
           taxJurisdiction: formData.taxJurisdiction,
-          officerDesignation: formData.officerDesignation,
-          residenceAddress: formData.residenceAddress // NEW: Include residence address
+          officerDesignation: formData.officerDesignation
         };
 
         await courtsService.update(courtData.id, updates, dispatch);
@@ -396,7 +234,6 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
 
   const handleDelete = async () => {
     if (courtData) {
-      // RBAC permission check
       if (!canDeleteCourts) {
         toast({
           title: 'Permission Denied',
@@ -463,7 +300,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
               <CardContent className="space-y-4 p-6">
             <div>
               <div className="flex items-center gap-1">
-                <Label htmlFor="name">Legal Forum Name <span className="text-destructive">*</span></Label>
+                <Label htmlFor="name">Authority Name <span className="text-destructive">*</span></Label>
                 <FieldTooltip formId="create-court" fieldId="name" />
               </div>
               <Input
@@ -471,207 +308,56 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 onBlur={(e) => setFormData(prev => ({ ...prev, name: autoCapitalizeFirst(e.target.value) }))}
-                placeholder="Example: Commissioner (Appeals), CGST Zone - Ahmedabad"
                 disabled={mode === 'view'}
+                placeholder="Enter name (auto-capitalizes)"
                 required
                 className={errors.name ? 'border-destructive' : ''}
               />
               {errors.name && (
                 <p className="text-xs text-destructive mt-1">{errors.name}</p>
               )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Enter the official name of the legal authority or forum
-              </p>
             </div>
 
-            {/* Tax Jurisdiction and Officer Designation - New CGST/SGST fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <div className="flex items-center gap-1">
-                  <Label htmlFor="taxJurisdiction">Tax Jurisdiction <span className="text-destructive">*</span></Label>
-                  <FieldTooltip formId="create-court" fieldId="taxJurisdiction" />
+                  <Label htmlFor="authorityLevel">Authority Level</Label>
+                  <FieldTooltip formId="create-court" fieldId="authorityLevel" />
                 </div>
                 <Select
-                  value={formData.taxJurisdiction || ''}
-                  onValueChange={(value) => setFormData(prev => ({ 
-                    ...prev, 
-                    taxJurisdiction: value as TaxJurisdiction || undefined,
-                    officerDesignation: undefined // Reset officer when jurisdiction changes
-                  }))}
+                  value={formData.authorityLevel || ''}
+                  onValueChange={(value) => {
+                    const newLevel = value as AuthorityLevel;
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      authorityLevel: newLevel,
+                      matterTypes: [] // Reset matter types when authority level changes
+                    }));
+                  }}
                   disabled={mode === 'view'}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select CGST or SGST" />
+                    <SelectValue placeholder="Select authority level" />
                   </SelectTrigger>
                   <SelectContent>
-                    {TAX_JURISDICTION_OPTIONS.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        <div className="flex flex-col py-1">
-                          <span className="font-medium">{option.label}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {option.description}
-                          </span>
+                    {AUTHORITY_LEVEL_OPTIONS.map(level => (
+                      <SelectItem key={level.value} value={level.value}>
+                        <div className="flex items-center gap-2">
+                          <span>{level.label}</span>
                         </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Central or State GST authority
-                </p>
               </div>
 
-              {/* Only render officer select after jurisdiction is determined or show stored value */}
-              {(formData.taxJurisdiction || formData.officerDesignation) && (
-                <div>
-                  <div className="flex items-center gap-1">
-                    <Label htmlFor="officerDesignation">Officer Designation <span className="text-destructive">*</span></Label>
-                    <FieldTooltip formId="create-court" fieldId="officerDesignation" />
-                  </div>
-                  <Select
-                    value={formData.officerDesignation || ''}
-                    onValueChange={(value) => setFormData(prev => ({ 
-                      ...prev, 
-                      officerDesignation: value as OfficerDesignation || undefined
-                    }))}
-                    disabled={mode === 'view' || !formData.taxJurisdiction}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={formData.taxJurisdiction ? "Select officer designation" : "Select tax jurisdiction first"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getOfficersByJurisdiction(formData.taxJurisdiction).map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          <span className="font-medium">{option.label}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formData.taxJurisdiction ? `${formData.taxJurisdiction} officer hierarchy` : 'Officer rank in GST hierarchy'}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Legacy Authority Level - For case lifecycle tracking (hidden/optional) */}
-            <div>
-              <div className="flex items-center gap-1">
-                <Label htmlFor="authorityLevel">Authority Level (Case Lifecycle)</Label>
-                <FieldTooltip formId="create-court" fieldId="authorityLevel" />
-              </div>
-              <Select
-                value={formData.authorityLevel || ''}
-                onValueChange={(value) => setFormData(prev => ({ 
-                  ...prev, 
-                  authorityLevel: value as AuthorityLevel || undefined,
-                  matterTypes: [] // Reset matter types when authority level changes
-                }))}
-                disabled={mode === 'view'}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select authority level (optional)" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[400px]">
-                  {AUTHORITY_LEVEL_OPTIONS.filter(opt => opt.value !== 'all').map(option => {
-                    const metadata = AUTHORITY_LEVEL_METADATA[option.value as any];
-                    
-                    return (
-                      <SelectItem key={option.value} value={option.value}>
-                        <div className="flex flex-col py-1">
-                          <span className="font-medium">{option.label}</span>
-                          {metadata && (
-                            <span className="text-xs text-muted-foreground">
-                              {metadata.hint}
-                            </span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Used for case lifecycle tracking (Assessment → Appeal → Tribunal flow)
-              </p>
-            </div>
-
-            {/* Matter Types - Conditional based on authority level */}
-            {formData.authorityLevel && 
-             authorityHierarchyService.allowsMatterTypes(formData.authorityLevel) && (
               <div>
                 <div className="flex items-center gap-1">
-                  <Label>Applicable Matter Types</Label>
-                  <FieldTooltip formId="create-court" fieldId="matterTypes" />
-                </div>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Select which matter types this forum handles
-                </p>
-                <div className="space-y-2 max-h-[200px] overflow-y-auto border rounded-lg p-3">
-                  {authorityHierarchyService
-                    .getMatterTypesByLevel(formData.authorityLevel)
-                    .map(matterType => (
-                      <div key={matterType.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`matter-${matterType.id}`}
-                          checked={formData.matterTypes?.includes(matterType.id)}
-                          onCheckedChange={(checked) => {
-                            setFormData(prev => ({
-                              ...prev,
-                              matterTypes: checked
-                                ? [...(prev.matterTypes || []), matterType.id]
-                                : prev.matterTypes?.filter(id => id !== matterType.id) || []
-                            }));
-                          }}
-                          disabled={mode === 'view'}
-                        />
-                        <Label 
-                          htmlFor={`matter-${matterType.id}`}
-                          className="text-sm font-normal cursor-pointer"
-                        >
-                          {matterType.name}
-                          {matterType.description && (
-                            <span className="text-xs text-muted-foreground ml-1">
-                              - {matterType.description}
-                            </span>
-                          )}
-                        </Label>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="jurisdiction">Jurisdiction <span className="text-destructive">*</span></Label>
-                  <FieldTooltip formId="create-court" fieldId="jurisdiction" />
-                </div>
-                <Input
-                  id="jurisdiction"
-                  value={formData.jurisdiction}
-                  onChange={(e) => setFormData(prev => ({ ...prev, jurisdiction: e.target.value }))}
-                  onBlur={(e) => setFormData(prev => ({ ...prev, jurisdiction: autoCapitalizeFirst(e.target.value) }))}
-                  placeholder="Example: Ahmedabad South Division, Gujarat State, All India"
-                  disabled={mode === 'view'}
-                  required
-                  className={errors.jurisdiction ? 'border-destructive' : ''}
-                />
-                {errors.jurisdiction && (
-                  <p className="text-xs text-destructive mt-1">{errors.jurisdiction}</p>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  Geographic area or taxpayer category this authority covers
-                </p>
-              </div>
-              <div>
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="type">Legacy Type</Label>
+                  <Label htmlFor="type">Type</Label>
                   <FieldTooltip formId="create-court" fieldId="type" />
                 </div>
-                <Select 
-                  value={formData.type} 
+                <Select
+                  value={formData.type}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as any }))}
                   disabled={mode === 'view'}
                 >
@@ -686,67 +372,232 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                     <SelectItem value="Commission">Commission</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+            
+            {/* Matter Types Selection - Show only when authority level is selected */}
+            {formData.authorityLevel && (
+              <div>
+                <div className="flex items-center gap-1 mb-2">
+                  <Label>Matter Types Handled</Label>
+                  <FieldTooltip formId="create-court" fieldId="matterTypes" />
+                </div>
+                <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                  {(() => {
+                    const matterTypes = authorityHierarchyService.getMatterTypesByLevel(formData.authorityLevel);
+                    if (matterTypes.length === 0) {
+                      return (
+                        <p className="text-sm text-muted-foreground italic">
+                          No matter types configured for this authority level
+                        </p>
+                      );
+                    }
+                    return matterTypes.map(mt => (
+                      <div key={mt.id} className="flex items-start gap-2">
+                        <Checkbox
+                          id={`mt-${mt.id}`}
+                          checked={formData.matterTypes?.includes(mt.id) || false}
+                          onCheckedChange={(checked) => {
+                            setFormData(prev => ({
+                              ...prev,
+                              matterTypes: checked 
+                                ? [...(prev.matterTypes || []), mt.id]
+                                : (prev.matterTypes || []).filter(id => id !== mt.id)
+                            }));
+                          }}
+                          disabled={mode === 'view'}
+                        />
+                        <div className="flex-1">
+                          <label 
+                            htmlFor={`mt-${mt.id}`} 
+                            className="text-sm font-medium cursor-pointer"
+                          >
+                            {mt.name}
+                          </label>
+                          {mt.description && (
+                            <p className="text-xs text-muted-foreground">{mt.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
-            </CardContent>
-            </Card>
+            )}
 
-            {/* Section 2: Contact Information */}
-            <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
-              <CardHeader className="border-b border-border p-6 pb-4">
-                <CardTitle className="flex items-center gap-2">
-                  <Phone className="h-4 w-4" />
-                  Contact Information
-                </CardTitle>
-              </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="jurisdiction">Jurisdiction <span className="text-destructive">*</span></Label>
+                <FieldTooltip formId="create-court" fieldId="jurisdiction" />
+              </div>
+              <Input
+                id="jurisdiction"
+                value={formData.jurisdiction}
+                onChange={(e) => setFormData(prev => ({ ...prev, jurisdiction: e.target.value }))}
+                disabled={mode === 'view'}
+                placeholder="Enter jurisdiction"
+                required
+                className={errors.jurisdiction ? 'border-destructive' : ''}
+              />
+              {errors.jurisdiction && (
+                <p className="text-xs text-destructive mt-1">{errors.jurisdiction}</p>
+              )}
+            </div>
+            </CardContent>
+          </Card>
+
+          {/* Section 2: Location & Contact */}
+          <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
+            <CardHeader className="border-b border-border p-6 pb-4">
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Location & Contact
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-6">
+              {/* CGST/SGST Tax Jurisdiction */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="taxJurisdiction">Tax Jurisdiction</Label>
+                    <FieldTooltip formId="create-court" fieldId="taxJurisdiction" />
+                  </div>
+                  <Select
+                    value={formData.taxJurisdiction || ''}
+                    onValueChange={(value) => {
+                      const newJurisdiction = value as TaxJurisdiction;
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        taxJurisdiction: newJurisdiction,
+                        // Reset officer designation when jurisdiction changes
+                        officerDesignation: undefined
+                      }));
+                    }}
                     disabled={mode === 'view'}
-                    placeholder="+91-79-12345678"
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select tax jurisdiction" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TAX_JURISDICTION_OPTIONS.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Include STD code (e.g., +91-79 for Ahmedabad)
+                    Central (CGST) or State (SGST) jurisdiction
                   </p>
                 </div>
+
                 <div>
-                  <Label htmlFor="email">Email Address</Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="officerDesignation">Officer Designation</Label>
+                    <FieldTooltip formId="create-court" fieldId="officerDesignation" />
+                  </div>
+                  <Select
+                    value={formData.officerDesignation || ''}
+                    onValueChange={(value) => {
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        officerDesignation: value as OfficerDesignation
+                      }));
+                    }}
+                    disabled={mode === 'view' || !formData.taxJurisdiction}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={formData.taxJurisdiction ? "Select officer designation" : "Select tax jurisdiction first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData.taxJurisdiction && getOfficersByJurisdiction(formData.taxJurisdiction).map(officer => (
+                        <SelectItem key={officer.value} value={officer.value}>
+                          {officer.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formData.officerDesignation 
+                      ? getOfficerLabel(formData.officerDesignation)
+                      : 'Rank of the adjudicating officer'
+                    }
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="benchLocation">Bench / Location</Label>
+                  <FieldTooltip formId="create-court" fieldId="benchLocation" />
+                </div>
+                <Input
+                  id="benchLocation"
+                  value={formData.benchLocation || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, benchLocation: e.target.value }))}
+                  onBlur={(e) => setFormData(prev => ({ ...prev, benchLocation: autoCapitalizeFirst(e.target.value) }))}
+                  disabled={mode === 'view'}
+                  placeholder="E.g., Delhi Bench, Lucknow Bench"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Regional bench or sub-location (for distributed tribunals)
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="phone">Phone</Label>
+                    <FieldTooltip formId="create-court" fieldId="phone" />
+                  </div>
+                  <Input
+                    id="phone"
+                    value={formData.phone || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    disabled={mode === 'view'}
+                    placeholder="e.g., 011-23456789"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="email">Email</Label>
+                    <FieldTooltip formId="create-court" fieldId="email" />
+                  </div>
                   <Input
                     id="email"
                     type="email"
-                    value={formData.email}
+                    value={formData.email || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                     disabled={mode === 'view'}
-                    placeholder="authority@gov.in"
+                    placeholder="e.g., court@gov.in"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Official email address for correspondence
-                  </p>
-                </div>
-                <div>
-                  <div className="flex items-center gap-1">
-                    <Label htmlFor="benchLocation">Bench Location</Label>
-                    <FieldTooltip formId="create-court" fieldId="benchLocation" />
-                  </div>
-                  <Input
-                    id="benchLocation"
-                    value={formData.benchLocation}
-                    onChange={(e) => setFormData(prev => ({ ...prev, benchLocation: e.target.value }))}
-                    onBlur={(e) => setFormData(prev => ({ ...prev, benchLocation: autoCapitalizeFirst(e.target.value) }))}
-                    disabled={mode === 'view'}
-                    placeholder="Example: Ahmedabad, New Delhi"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Physical location where hearings are conducted
-                  </p>
                 </div>
               </div>
-              
+
+              {/* Working Days */}
+              <div>
+                <div className="flex items-center gap-1 mb-2">
+                  <Label>Working Days</Label>
+                  <FieldTooltip formId="create-court" fieldId="workingDays" />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {workingDayOptions.map((day) => (
+                    <div key={day} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={day}
+                        checked={formData.workingDays.includes(day)}
+                        onCheckedChange={(checked) => handleWorkingDayChange(day, checked as boolean)}
+                        disabled={mode === 'view'}
+                      />
+                      <label htmlFor={day} className="text-sm font-medium leading-none cursor-pointer">
+                        {day.slice(0, 3)}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <div className="flex items-center gap-1">
@@ -759,7 +610,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                     onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
                     onBlur={(e) => setFormData(prev => ({ ...prev, city: autoCapitalizeFirst(e.target.value) }))}
                     disabled={mode === 'view'}
-                    placeholder="City will be auto-extracted from address"
+                    placeholder="Enter city name"
                     required
                     className={errors.city ? 'border-destructive' : ''}
                   />
@@ -774,63 +625,7 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
             </CardContent>
           </Card>
 
-            {/* Section 3: Address - Using SimpleAddressForm to eliminate race conditions */}
-            <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
-              <CardHeader className="border-b border-border p-6 pb-4">
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Address
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 p-6">
-              {mode === 'view' && isAddressMasterEnabled ? (
-                <AddressView 
-                  address={formData.address}
-                  showSource={true}
-                  showActions={false}
-                />
-              ) : (
-                <UnifiedAddressForm
-                  value={formData.address || {}}
-                  onChange={(address: UnifiedAddress) => {
-                    setFormData(prev => ({
-                      ...prev,
-                      address: address as unknown as EnhancedAddressData,
-                      city: address.cityName || prev.city || ''
-                    }));
-                  }}
-                  module="court"
-                  mode={mode}
-                />
-              )}
-              </CardContent>
-            </Card>
-
-            {/* Section: Residence Address - Independent Clean Implementation */}
-            <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
-              <CardHeader className="border-b border-border p-6 pb-4">
-                <CardTitle className="flex items-center gap-2">
-                  <Home className="h-4 w-4" />
-                  Residence Address
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 p-6">
-                <UnifiedAddressForm
-                  value={formData.residenceAddress || {}}
-                  onChange={(address: UnifiedAddress) => {
-                    setFormData(prev => ({
-                      ...prev,
-                      residenceAddress: address
-                    }));
-                  }}
-                  module="contact" // Use contact module config (proven stable)
-                  mode={mode}
-                  required={false}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Section 4: Court-Specific Details */}
+            {/* Section 3: Court-Specific Details */}
             <Card className="rounded-beacon-lg border bg-card shadow-beacon-md">
               <CardHeader className="border-b border-border p-6 pb-4">
                 <CardTitle className="flex items-center gap-2">
@@ -898,72 +693,43 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
                   <h4 className="text-sm font-semibold">Digital Filing Portal Details</h4>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="digitalFilingPortal">Portal Name</Label>
-                    <Input
-                      id="digitalFilingPortal"
-                      value={formData.digitalFilingPortal}
-                      onChange={(e) => setFormData(prev => ({ ...prev, digitalFilingPortal: e.target.value }))}
-                      disabled={mode === 'view'}
-                      placeholder="e.g., ACES, GST Portal, e-Filing"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Name of the digital filing system
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="digitalFilingPortalUrl">Portal URL</Label>
-                    <Input
-                      id="digitalFilingPortalUrl"
-                      type="url"
-                      value={formData.digitalFilingPortalUrl}
-                      onChange={(e) => setFormData(prev => ({ ...prev, digitalFilingPortalUrl: e.target.value }))}
-                      disabled={mode === 'view'}
-                      placeholder="https://example.gov.in/portal"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Direct link to the filing portal
-                    </p>
-                  </div>
+                <div>
+                  <Label htmlFor="digitalFilingPortal">Portal Name</Label>
+                  <Input
+                    id="digitalFilingPortal"
+                    value={formData.digitalFilingPortal || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, digitalFilingPortal: e.target.value }))}
+                    disabled={mode === 'view'}
+                    placeholder="e.g., ACES, GST Portal, ITAT Portal"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="digitalFilingPortalUrl">Portal URL</Label>
+                  <Input
+                    id="digitalFilingPortalUrl"
+                    value={formData.digitalFilingPortalUrl || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, digitalFilingPortalUrl: e.target.value }))}
+                    disabled={mode === 'view'}
+                    placeholder="e.g., https://itat.gov.in/filing"
+                  />
                 </div>
                 
                 <div>
                   <Label htmlFor="digitalFilingInstructions">Filing Instructions</Label>
                   <Textarea
                     id="digitalFilingInstructions"
-                    value={formData.digitalFilingInstructions}
+                    value={formData.digitalFilingInstructions || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, digitalFilingInstructions: e.target.value }))}
                     disabled={mode === 'view'}
-                    placeholder="Step-by-step instructions for digital filing, required documents, login credentials, etc."
-                    rows={3}
+                    placeholder="Special instructions for digital filing..."
+                    className="min-h-[80px]"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Brief guide for filing documents electronically
-                  </p>
                 </div>
               </div>
             )}
-
-            <div>
-              <Label>Working Days</Label>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {workingDayOptions.map(day => (
-                  <div key={day} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={day}
-                      checked={formData.workingDays.includes(day)}
-                      onCheckedChange={(checked) => handleWorkingDayChange(day, checked as boolean)}
-                      disabled={mode === 'view'}
-                    />
-                    <Label htmlFor={day} className="text-sm">{day}</Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
         </form>
       </AdaptiveFormShell>
 
@@ -971,16 +737,27 @@ export const CourtModal: React.FC<CourtModalProps> = ({ isOpen, onClose, court: 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Legal Forum?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the court
-              and remove all associated data.
+              This action cannot be undone. This will permanently delete the legal forum
+              "{courtData?.name}" and remove it from the system.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>
-              Delete
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

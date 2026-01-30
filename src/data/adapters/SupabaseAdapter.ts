@@ -2016,10 +2016,6 @@ export class SupabaseAdapter implements StoragePort {
           if (normalized.benchLocation && !normalized.bench_location) normalized.bench_location = normalized.benchLocation;
           if (normalized.taxJurisdiction && !normalized.tax_jurisdiction) normalized.tax_jurisdiction = normalized.taxJurisdiction;
           if (normalized.officerDesignation && !normalized.officer_designation) normalized.officer_designation = normalized.officerDesignation;
-          // Map residenceAddress -> residence_address (CRITICAL: before delete)
-          if (normalized.residenceAddress !== undefined && normalized.residence_address === undefined) {
-            normalized.residence_address = normalized.residenceAddress;
-          }
           
           // Delete camelCase/UI-only fields
           delete normalized.activeCases;
@@ -2030,25 +2026,17 @@ export class SupabaseAdapter implements StoragePort {
           delete normalized.benchLocation;
           delete normalized.taxJurisdiction;
           delete normalized.officerDesignation;
-          delete normalized.residenceAddress; // Delete after mapping to snake_case
+          // Address fields removed from database
+          delete normalized.address;
+          delete normalized.address_jsonb;
+          delete normalized.addressJsonb;
+          delete normalized.residenceAddress;
+          delete normalized.residence_address;
           
-          // Stringify ALL JSONB/JSON address fields before sending to Supabase
-          if (normalized.address_jsonb && typeof normalized.address_jsonb === 'object') {
-            normalized.address_jsonb = JSON.stringify(normalized.address_jsonb);
-          }
-          if (normalized.residence_address && typeof normalized.residence_address === 'object') {
-            normalized.residence_address = JSON.stringify(normalized.residence_address);
-          }
-          // Also stringify 'address' if it's an object (TEXT column stores JSON string)
-          if (normalized.address && typeof normalized.address === 'object') {
-            normalized.address = JSON.stringify(normalized.address);
-          }
-          
-          // Whitelist with residence_address added
+          // Whitelist - address columns removed
           const validCourtFields = [
             'id', 'tenant_id', 'name', 'code', 'type', 'level', 'city', 'state', 
-            'jurisdiction', 'address', 'address_jsonb', 'residence_address',
-            'created_by', 'created_at', 'updated_at', 'established_year', 
+            'jurisdiction', 'created_by', 'created_at', 'updated_at', 'established_year', 
             'bench_location', 'tax_jurisdiction', 'officer_designation', 
             'phone', 'email', 'status'
           ];

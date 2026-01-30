@@ -72,7 +72,7 @@ export function useImportRefresh() {
               name: court.name,
               type: court.type || '',
               jurisdiction: court.jurisdiction || '',
-              address: court.address || '',
+              address: '', // Address fields removed from DB
               phone: court.phone || '',
               email: court.email || '',
               benchLocation: court.bench_location || '',

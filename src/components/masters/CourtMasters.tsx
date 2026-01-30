@@ -3,35 +3,19 @@ import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Building2, MapPin, Phone, Mail, Search, Filter, Plus, Edit, Eye, Users, Upload, Download, Scale, Map, Globe, Navigation } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Building2, MapPin, Phone, Mail, Plus, Edit, Eye, Upload, Download } from 'lucide-react';
 import { CourtModal } from '@/components/modals/CourtModal';
 import { ImportWizard } from '@/components/importExport/ImportWizard';
 import { ExportWizard } from '@/components/importExport/ExportWizard';
 import { Court, useAppState, getActiveCourtCases } from '@/contexts/AppStateContext';
-import { courtsService } from '@/services/courtsService';
 import { useRBAC } from '@/hooks/useAdvancedRBAC';
 import { featureFlagService } from '@/services/featureFlagService';
 import { LegalAuthoritiesDashboard } from './LegalAuthoritiesDashboard';
-import { AUTHORITY_LEVEL_OPTIONS, AUTHORITY_LEVEL_METADATA } from '@/types/authority-level';
-import { MAPPING_SERVICES } from '@/utils/mappingServices';
+import { AUTHORITY_LEVEL_METADATA } from '@/types/authority-level';
 import { UnifiedCourtSearch } from '@/components/masters/UnifiedCourtSearch';
 import { GlossaryTooltip } from '@/components/help/GlossaryTooltip';
-import { extractCityFromAddress } from '@/utils/cityExtractor';
 import { authorityHierarchyService } from '@/services/authorityHierarchyService';
 import { useImportRefresh } from '@/hooks/useImportRefresh';
 
@@ -52,17 +36,10 @@ export const CourtMasters: React.FC = () => {
 
   // Filter courts based on search and filters
   const filteredCourts = (state.courts || []).filter(court => {
-    // Handle null/undefined and both string and object addresses for search
-    const addressText = !court.address 
-      ? ''
-      : typeof court.address === 'string' 
-        ? court.address 
-        : `${court.address.line1 || ''} ${court.address.line2 || ''} ${court.address.locality || ''} ${court.address.district || ''}`.trim();
-    
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch = (court.name || '').toLowerCase().includes(searchLower) ||
                          (court.jurisdiction || '').toLowerCase().includes(searchLower) ||
-                         addressText.toLowerCase().includes(searchLower);
+                         (court.city || '').toLowerCase().includes(searchLower);
     
     const matchesType = !activeFilters.type || activeFilters.type === 'all' || court.type === activeFilters.type;
     const matchesAuthorityLevel = !activeFilters.authorityLevel || activeFilters.authorityLevel === 'all' || court.authorityLevel === activeFilters.authorityLevel;
@@ -88,30 +65,6 @@ export const CourtMasters: React.FC = () => {
 
   const uniqueJurisdictions = [...new Set((state.courts || []).map(court => court.jurisdiction).filter(Boolean))];
 
-  const migrateCityData = () => {
-    let updated = 0;
-    const updatedCourts = state.courts.map(court => {
-      if (!court.city || court.city === 'N/A' || court.city === '') {
-        const extractedCity = extractCityFromAddress(court.address);
-        updated++;
-        return { ...court, city: extractedCity };
-      }
-      return court;
-    });
-    
-    // Update courts one by one
-    updatedCourts.forEach(court => {
-      if (court.id) {
-        dispatch({ type: 'UPDATE_COURT', payload: court });
-      }
-    });
-    
-    toast({
-      title: "City Data Updated",
-      description: `Successfully extracted city information for ${updated} legal authorities.`
-    });
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -125,16 +78,6 @@ export const CourtMasters: React.FC = () => {
           <p className="text-muted-foreground mt-2">Manage legal authorities with jurisdiction hierarchy and contact information</p>
         </div>
           <div className="flex flex-wrap gap-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="gap-2"
-              onClick={migrateCityData}
-            >
-              <MapPin className="h-4 w-4" />
-              <span className="hidden sm:inline">Fix City Data</span>
-              <span className="sm:hidden">Fix Cities</span>
-            </Button>
             {featureFlagService.isEnabled('data_io_v1') && hasPermission('io.import.court', 'write') && (
               <Button 
                 variant="outline" 
@@ -227,7 +170,6 @@ export const CourtMasters: React.FC = () => {
                   <TableHead>Legal Forum Details</TableHead>
                   <TableHead>City</TableHead>
                   <TableHead>Contact Information</TableHead>
-                  <TableHead>Pincode</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Active Cases</TableHead>
                   <TableHead>Actions</TableHead>
@@ -236,7 +178,7 @@ export const CourtMasters: React.FC = () => {
               <TableBody>
                 {filteredCourts.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12">
+                    <TableCell colSpan={6} className="text-center py-12">
                       <div className="flex flex-col items-center gap-2">
                         <Building2 className="h-12 w-12 text-muted-foreground opacity-50" />
                         <p className="text-muted-foreground">
@@ -267,15 +209,6 @@ export const CourtMasters: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <Building2 className="h-4 w-4 text-primary opacity-70" />
                           <span className="font-medium text-sm">{court.name}</span>
-                        </div>
-                        <div className="text-xs text-muted-foreground flex items-start gap-1">
-                          <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                          <span className="line-clamp-1">
-                            {typeof court.address === 'string' 
-                              ? court.address 
-                              : `${court.address.line1}${court.address.line2 ? ', ' + court.address.line2 : ''}`
-                            }
-                          </span>
                         </div>
                         {court.authorityLevel && (
                           <div className="space-y-1">
@@ -333,74 +266,6 @@ export const CourtMasters: React.FC = () => {
                            {court.benchLocation || 'N/A'}
                          </div>
                        </div>
-                     </TableCell>
-                      <TableCell>
-                        {(() => {
-                          // Extract pincode from address - handle both object and string formats
-                          let pincode: string | null = null;
-                          if (typeof court.address === 'object' && court.address?.pincode) {
-                            pincode = court.address.pincode;
-                          } else if (typeof court.address === 'string') {
-                            // Extract 6-digit pincode from address string
-                            const match = court.address.match(/\b\d{6}\b/);
-                            pincode = match ? match[0] : null;
-                          }
-                          
-                          if (pincode) {
-                            return (
-                              <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4 text-blue-600 opacity-80" aria-hidden="true" />
-                                
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <button
-                                      className="text-blue-600 hover:underline font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1"
-                                      aria-label={`Open mapping service for PIN ${pincode}`}
-                                    >
-                                      {pincode}
-                                    </button>
-                                  </DropdownMenuTrigger>
-                                  
-                                  <DropdownMenuContent 
-                                    align="start" 
-                                    className="w-56 bg-popover dark:bg-popover border shadow-lg z-50"
-                                  >
-                                    <DropdownMenuLabel className="text-xs text-muted-foreground">
-                                      Choose Mapping Service
-                                    </DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    
-                                     {MAPPING_SERVICES.map((service) => {
-                                       const IconComponent = service.icon === 'Map' ? Map : service.icon === 'Globe' ? Globe : service.icon === 'MapPin' ? MapPin : Navigation;
-                                       const addressForService = typeof court.address === 'string' 
-                                         ? { line1: court.address, pincode } 
-                                         : court.address;
-                                       return (
-                                         <DropdownMenuItem key={service.id} asChild>
-                                           <a
-                                             href={service.urlTemplate(addressForService)}
-                                             target="_blank"
-                                             rel="noopener noreferrer"
-                                             className="flex items-start gap-3 cursor-pointer"
-                                           >
-                                             <IconComponent className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                             <div className="flex flex-col">
-                                               <span className="font-medium">{service.name}</span>
-                                               <span className="text-xs text-muted-foreground">
-                                                 {service.description}
-                                               </span>
-                                             </div>
-                                           </a>
-                                         </DropdownMenuItem>
-                                       );
-                                     })}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            );
-                          }
-                          return <span className="text-muted-foreground text-sm">N/A</span>;
-                        })()}
                      </TableCell>
                      <TableCell>
                        <Badge 

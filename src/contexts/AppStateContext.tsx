@@ -273,7 +273,7 @@ interface Court {
   authorityLevel?: 'ASSESSMENT' | 'ADJUDICATION' | 'FIRST_APPEAL' | 'REVISIONAL' | 'TRIBUNAL' | 'PRINCIPAL_BENCH' | 'HIGH_COURT' | 'SUPREME_COURT';
   matterTypes?: string[]; // IDs of applicable matter types for this court/forum
   jurisdiction: string;
-  address: string | any;
+  address: string; // Kept for backward compatibility but no longer persisted
   activeCases: number;
   avgHearingTime: string;
   digitalFiling: boolean;
@@ -281,17 +281,14 @@ interface Court {
   digitalFilingPortalUrl?: string; // URL to the digital filing portal
   digitalFilingInstructions?: string; // Instructions for digital filing
   workingDays: string[];
-  addressId?: string;
   phone?: string;
   email?: string;
   benchLocation?: string;
   city: string; // Mandatory for data quality - Phase 2
   status: 'Active' | 'Inactive';
-  // NEW: CGST/SGST Officer Designation fields
+  // CGST/SGST Officer Designation fields
   taxJurisdiction?: 'CGST' | 'SGST'; // Tax jurisdiction (Central or State)
   officerDesignation?: string; // Officer rank (e.g., DEPUTY_COMMISSIONER, JOINT_COMMISSIONER)
-  // NEW: Independent Residence Address (clean JSONB implementation)
-  residenceAddress?: any; // UnifiedAddress JSONB - independent from legacy address field
 }
 
 interface Judge {
