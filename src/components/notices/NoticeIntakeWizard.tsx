@@ -164,6 +164,15 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
       return;
     }
 
+    // Clear all previous extraction state when new file is uploaded
+    setExtractedData(null);
+    setResolverOutput(null);
+    setUserOverrides({});
+    setSelectedClient(null);
+    setCaseData(null);
+    setCreatedCase(null);
+    
+    // Set new file
     setUploadedFile(file);
     toast({
       title: "File uploaded successfully",
