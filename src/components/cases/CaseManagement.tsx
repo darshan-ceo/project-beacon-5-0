@@ -12,6 +12,7 @@ import {
   AlertTriangle, 
   CheckCircle, 
   Calendar,
+  ChevronRight,
   Users,
   FileText,
   ArrowRight,
@@ -62,6 +63,7 @@ import { Case, useAppState } from '@/contexts/AppStateContext';
 import { formTemplatesService } from '@/services/formTemplatesService';
 import { FormRenderModal } from '@/components/documents/FormRenderModal';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { InlineHelp } from '@/components/help/InlineHelp';
 import { PageHelp } from '@/components/help/PageHelp';
 import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
@@ -127,8 +129,35 @@ export const CaseManagement: React.FC = () => {
     isOpen: false,
     caseData: null
   });
-  
-  // Calculate real-time metrics from state data
+
+  // Track which cases have their Quick Actions expanded (session persistence)
+  const [expandedQuickActions, setExpandedQuickActions] = useState<Set<string>>(() => {
+    try {
+      const stored = sessionStorage.getItem('quickActions-expanded');
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  // Toggle handler with session persistence
+  const toggleQuickActions = (caseId: string) => {
+    setExpandedQuickActions(prev => {
+      const updated = new Set(prev);
+      if (updated.has(caseId)) {
+        updated.delete(caseId);
+      } else {
+        updated.add(caseId);
+      }
+      try {
+        sessionStorage.setItem('quickActions-expanded', JSON.stringify([...updated]));
+      } catch {
+        // Ignore storage errors
+      }
+      return updated;
+    });
+  };
+
   const metrics = useMemo(() => {
     const activeCases = state.cases.filter(c => c.status === 'Active');
     // Count all non-active cases as completed (Closed, Completed, etc.)
@@ -1307,39 +1336,68 @@ export const CaseManagement: React.FC = () => {
                           </div>
                         )}
 
-                        {/* Quick Actions for Form Templates */}
-                        <div className="pt-2 border-t border-border">
-                          <div className="flex items-center gap-2 mb-2">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium text-muted-foreground">Quick Actions:</span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {formTemplatesService.getFormsByStage(caseItem.currentStage, caseItem.matterType).map(formCode => (
-                              <Button
-                                key={formCode}
-                                variant="outline"
-                                size="sm"
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  const template = await formTemplatesService.loadFormTemplate(formCode);
-                                  if (template) {
-                                    setFormTemplateModal({
-                                      isOpen: true,
-                                      template,
-                                      caseId: caseItem.id
-                                    });
-                                  }
-                                }}
-                                className="text-xs"
+                        {/* Quick Actions for Form Templates - Progressive Disclosure */}
+                        {(() => {
+                          const quickActionForms = formTemplatesService.getFormsByStage(caseItem.currentStage, caseItem.matterType);
+                          const isExpanded = expandedQuickActions.has(caseItem.id);
+                          
+                          return (
+                            <div className="pt-2 border-t border-border">
+                              <Collapsible
+                                open={isExpanded}
+                                onOpenChange={() => toggleQuickActions(caseItem.id)}
                               >
-                                Generate {formCode.replace('_', '-')}
-                              </Button>
-                            ))}
-                            {formTemplatesService.getFormsByStage(caseItem.currentStage, caseItem.matterType).length === 0 && (
-                              <span className="text-xs text-muted-foreground">No forms available for {caseItem.currentStage} stage</span>
-                            )}
-                          </div>
-                        </div>
+                                <CollapsibleTrigger asChild>
+                                  <button
+                                    className="flex items-center gap-2 w-full text-left py-1 hover:bg-muted/50 rounded transition-colors group"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <ChevronRight 
+                                      className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                                        isExpanded ? 'rotate-90' : ''
+                                      }`} 
+                                    />
+                                    <FileText className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-sm font-medium text-muted-foreground">
+                                      Quick Actions ({quickActionForms.length})
+                                    </span>
+                                  </button>
+                                </CollapsibleTrigger>
+                                
+                                <CollapsibleContent className="pt-2">
+                                  <div className="flex flex-wrap gap-2">
+                                    {quickActionForms.map(formCode => (
+                                      <Button
+                                        key={formCode}
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          const template = await formTemplatesService.loadFormTemplate(formCode);
+                                          if (template) {
+                                            setFormTemplateModal({
+                                              isOpen: true,
+                                              template,
+                                              caseId: caseItem.id
+                                            });
+                                          }
+                                        }}
+                                        className="text-xs"
+                                      >
+                                        Generate {formCode.replace('_', '-')}
+                                      </Button>
+                                    ))}
+                                    {quickActionForms.length === 0 && (
+                                      <span className="text-xs text-muted-foreground">
+                                        No forms available for {caseItem.currentStage} stage
+                                      </span>
+                                    )}
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>
+                            </div>
+                          );
+                        })()}
 
                         <div className="flex items-center justify-between pt-2 border-t border-border">
                           <div className="flex items-center space-x-4 text-xs text-muted-foreground">
