@@ -70,8 +70,9 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   
-  // RBAC permission flags
-  const canEditTasks = hasPermission('tasks', 'write');
+  // RBAC permission flags - granular actions
+  const canCreateTasks = hasPermission('tasks', 'create');  // For add follow-up
+  const canEditTasks = hasPermission('tasks', 'update');    // For edit task (granular check)
   const canDeleteTasks = hasPermission('tasks', 'delete');
 
   const getTasksByStatus = (status: string) => {
@@ -143,7 +144,8 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
   };
 
   const handleStatusChange = (taskId: string, newStatus: string) => {
-    if (!canEditTasks) {
+    // Status change requires update permission (granular check)
+    if (!hasPermission('tasks', 'update')) {
       toast({
         title: 'Permission Denied',
         description: "You don't have permission to update tasks.",
@@ -215,7 +217,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
                   <Eye className="mr-2 h-4 w-4" />
                   View Details
                 </DropdownMenuItem>
-                {canEditTasks && (
+                {canCreateTasks && (
                   <DropdownMenuItem onClick={(e) => {
                     e.stopPropagation();
                     navigate(`/tasks/${task.id}?mode=followup`);

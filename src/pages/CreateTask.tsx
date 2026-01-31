@@ -59,8 +59,8 @@ export const CreateTask: React.FC = () => {
   const { hasPermission } = useAdvancedRBAC();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Check if user has permission to create tasks
-  const canCreateTasks = hasPermission('tasks', 'write');
+  // Check if user has permission to create tasks (granular check)
+  const canCreateTasks = hasPermission('tasks', 'create');  // Use granular 'create' instead of 'write'
 
   // Read case context from URL params
   const caseId = searchParams.get('caseId') || '';

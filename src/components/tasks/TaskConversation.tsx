@@ -56,9 +56,9 @@ export const TaskConversation: React.FC = () => {
   const isFollowUpMode = mode === 'followup';
   const isEditMode = mode === 'edit';
   
-  // RBAC permission checks
+  // RBAC permission checks - granular actions
   const canDeleteTasks = hasPermission('tasks', 'delete');
-  const canEditTasks = hasPermission('tasks', 'write');
+  const canEditTasks = hasPermission('tasks', 'update');  // Use granular 'update' instead of 'write'
   
   // Use task from state if available, otherwise use fetched task
   const stateTask = state.tasks.find((t) => t.id === taskId);

@@ -110,9 +110,10 @@ export const TaskManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState('board');
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
   
-  // RBAC permission checks - base module
+  // RBAC permission checks - base module (granular actions)
   const canDeleteTasks = hasPermission('tasks', 'delete');
-  const canCreateTasks = hasPermission('tasks', 'write');
+  const canCreateTasks = hasPermission('tasks', 'create');  // Use granular 'create' instead of 'write'
+  const canEditTasks = hasPermission('tasks', 'update');    // For edit operations
   
   // RBAC permission checks - sub-module tabs (granular access)
   // Templates: Manager+ can access (read permission)
