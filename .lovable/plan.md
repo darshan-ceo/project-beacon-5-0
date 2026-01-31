@@ -1,113 +1,226 @@
 
-# Fix: Client Creation Permission Denied for Staff Role
+# Fix Tooltip and Hover State Readability Issues
 
-## Problem Summary
+## Problem Analysis
 
-Users with the **Staff** role are getting "Permission denied - insufficient privileges" when trying to create clients. This is caused by a missing `staff` role in the clients INSERT RLS policy.
+Based on the screenshots and code review, users are experiencing **poor readability** when hovering over interactive elements on the Case List cards:
+
+### Issue 1: Schedule Button Hover State
+- **File**: `src/components/cases/CaseManagement.tsx` (line 1351-1364)
+- **Cause**: The "Schedule" button uses `variant="ghost"` with `text-muted-foreground` class
+- **Problem**: Ghost variant hover changes background to dark accent (`--accent: 243 75% 43%` - Indigo) but the `text-muted-foreground` class isn't overridden, causing low contrast
+
+### Issue 2: Tax Demand Badge Tooltip
+- **File**: `src/components/cases/CaseManagement.tsx` (line 1255-1265)
+- **Observation**: Tooltip shows "Tax Demand: ₹84,80,478" - this is working but the presentation could be enhanced with better formatting
+
+### Issue 3: Priority/Timeline Micro-Pill Tooltips
+- **File**: `src/components/cases/CaseManagement.tsx` (lines 1269-1290)
+- **Current**: Plain text like "Medium Priority" or "Timeline: Green"
+- **Opportunity**: Enhance with better visual indicators and consistent styling
 
 ---
 
-## Root Cause Analysis
+## Solution Overview
 
-### Current INSERT Policy on `clients` Table
-```sql
-WITH CHECK (
-  (tenant_id = get_user_tenant_id()) AND 
-  (has_role(auth.uid(), 'admin') OR 
-   has_role(auth.uid(), 'partner') OR 
-   has_role(auth.uid(), 'manager') OR 
-   has_role(auth.uid(), 'ca') OR 
-   has_role(auth.uid(), 'advocate'))
-)
+### Technical Approach
+
+1. **Fix Schedule Button Hover Contrast** - Ensure text remains readable by using a consistent hover pattern that doesn't rely on conflicting color classes
+
+2. **Standardize Tooltip Presentation** - Add consistent styling and formatting across all micro-pill tooltips with proper visual hierarchy
+
+3. **Improve Button Hover States** - Use explicit color classes that work well with the ghost variant
+
+---
+
+## Detailed Changes
+
+### File: `src/components/cases/CaseManagement.tsx`
+
+#### Change 1: Fix Schedule Button Hover State (Lines 1351-1364)
+
+**Current Code:**
+```tsx
+<Button 
+  variant="ghost" 
+  size="sm" 
+  className="h-5 px-1.5 text-xs text-muted-foreground hover:text-primary" 
+  onClick={...}
+>
+  <Calendar className="h-3 w-3 mr-1" />
+  Schedule
+</Button>
 ```
 
-**Notice**: The `staff` role is **missing** from this list.
+**Updated Code:**
+```tsx
+<Button 
+  variant="ghost" 
+  size="sm" 
+  className="h-5 px-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground" 
+  onClick={...}
+>
+  <Calendar className="h-3 w-3 mr-1" />
+  Schedule
+</Button>
+```
 
-### Affected Users (7 active employees)
-| Employee | Employee Role | RBAC Role | Can Create Clients |
-|----------|---------------|-----------|-------------------|
-| Akshar | Staff | staff | NO |
-| Devyanshi | Staff | staff | NO |
-| Kamini Hajipara | Staff | staff | NO |
-| Karan | Staff | staff | NO |
-| Mahesh | Staff | staff | NO |
-| Mansi Joshi | Staff | staff | NO |
-| Yaksh Shah | Staff | staff | NO |
-
-### Why This Happened
-The clients INSERT policy was created without the `staff` role. The `client_contacts` INSERT policy correctly includes `staff`, but the `clients` table was missed.
+**Why**: Changing to `hover:bg-muted hover:text-foreground` provides a light gray background on hover with dark text, ensuring high contrast and readability.
 
 ---
 
-## Solution
+#### Change 2: Enhance Tax Demand Tooltip (Lines 1255-1265)
 
-Update the clients INSERT RLS policy to include the `staff` role.
+**Current Code:**
+```tsx
+<TooltipContent>Tax Demand: ₹{caseItem.taxDemand.toLocaleString('en-IN')}</TooltipContent>
+```
 
-### Database Migration
+**Updated Code:**
+```tsx
+<TooltipContent>
+  <span className="font-medium">Tax Demand</span>
+  <br />
+  <span className="text-base font-semibold">₹{caseItem.taxDemand.toLocaleString('en-IN')}</span>
+</TooltipContent>
+```
 
-```sql
--- Fix: Add 'staff' role to clients INSERT policy
-DROP POLICY IF EXISTS "Authorized users can create clients" ON public.clients;
+**Why**: Two-line format with label and prominent value improves readability.
 
-CREATE POLICY "Authorized users can create clients"
-ON public.clients FOR INSERT
-TO authenticated
-WITH CHECK (
-  (tenant_id = get_user_tenant_id()) AND 
-  (has_role(auth.uid(), 'admin'::app_role) OR 
-   has_role(auth.uid(), 'partner'::app_role) OR 
-   has_role(auth.uid(), 'manager'::app_role) OR 
-   has_role(auth.uid(), 'ca'::app_role) OR 
-   has_role(auth.uid(), 'advocate'::app_role) OR
-   has_role(auth.uid(), 'staff'::app_role))  -- ADDED: staff role
-);
+---
+
+#### Change 3: Enhance Priority Micro-Pill Tooltip (Lines 1269-1278)
+
+**Current Code:**
+```tsx
+<TooltipContent>{caseItem.priority} Priority</TooltipContent>
+```
+
+**Updated Code:**
+```tsx
+<TooltipContent>
+  <div className="flex items-center gap-2">
+    <span className={`w-2 h-2 rounded-full ${
+      caseItem.priority === 'High' ? 'bg-destructive' : 
+      caseItem.priority === 'Medium' ? 'bg-warning' : 'bg-muted-foreground'
+    }`} />
+    <span>{caseItem.priority} Priority</span>
+  </div>
+</TooltipContent>
+```
+
+**Why**: Color-coded dot in tooltip reinforces the meaning and improves accessibility.
+
+---
+
+#### Change 4: Enhance Timeline Micro-Pill Tooltip (Lines 1281-1290)
+
+**Current Code:**
+```tsx
+<TooltipContent>Timeline: {caseItem.timelineBreachStatus || 'Green'}</TooltipContent>
+```
+
+**Updated Code:**
+```tsx
+<TooltipContent>
+  <div className="flex items-center gap-2">
+    <span className={`w-2 h-2 rounded-full ${
+      caseItem.timelineBreachStatus === 'Red' ? 'bg-destructive' : 
+      caseItem.timelineBreachStatus === 'Amber' ? 'bg-warning' : 'bg-success'
+    }`} />
+    <span>Timeline: {caseItem.timelineBreachStatus || 'Green'}</span>
+  </div>
+</TooltipContent>
+```
+
+**Why**: Color-coded dot matches the emoji indicator and provides clearer context.
+
+---
+
+#### Change 5: Add Tooltip to Hearing Links (Lines 1328-1349)
+
+Wrap the hearing date display in a tooltip to provide additional context:
+
+```tsx
+<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span 
+        className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors"
+        onClick={(e) => { ... }}
+      >
+        <Calendar className="h-3 w-3" />
+        <span>{caseItem.nextHearing.date}</span>
+        {/* ... time and urgency badge ... */}
+      </span>
+    </TooltipTrigger>
+    <TooltipContent>
+      <span className="font-medium">Next Hearing</span>
+      <br />
+      <span>{caseItem.nextHearing.date} {caseItem.nextHearing.time && `at ${caseItem.nextHearing.time}`}</span>
+      <br />
+      <span className="text-xs text-muted-foreground">Click to view hearing details</span>
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>
 ```
 
 ---
 
-## Verification Query
+#### Change 6: Fix Documents Link Hover Consistency (Lines 1313-1323)
 
-After applying the fix, run this query to verify all roles can now create clients:
+Ensure consistent hover behavior matching the Schedule button fix:
 
-```sql
-SELECT ur.role, COUNT(*) as user_count,
-       CASE WHEN ur.role IN ('admin', 'partner', 'manager', 'ca', 'advocate', 'staff') 
-            THEN '✅ CAN create clients' 
-            ELSE '❌ CANNOT create clients' 
-       END as permission_status
-FROM user_roles ur
-GROUP BY ur.role
-ORDER BY ur.role;
+```tsx
+<span 
+  className="flex items-center gap-1 cursor-pointer hover:text-foreground transition-colors"
+  onClick={(e) => { ... }}
+>
+  <FileText className="h-3 w-3" />
+  <span>{state.documents?.filter(doc => doc.caseId === caseItem.id).length || 0} files</span>
+</span>
 ```
 
 ---
 
-## Impact Assessment
+## Visual Comparison
 
-| Aspect | Details |
-|--------|---------|
-| Users Affected | 7+ Staff employees immediately unblocked |
-| Risk Level | Low - Only adds permission, doesn't remove any |
-| Rollback | Simple - remove `staff` from policy if needed |
-| Testing | Ask any Staff user to try creating a client |
-
----
-
-## Alternative: Keep Staff Restricted
-
-If Staff users should NOT create clients by design, then:
-1. No database change needed
-2. Inform user that Staff role intentionally cannot create clients
-3. Suggest upgrading affected users to a higher role (CA, Advocate, Manager)
-
-**Recommendation**: Based on the user's message "I have already given them the required rights," adding `staff` to the policy appears to be the intended behavior.
+| Element | Before Hover | After Hover (Fixed) |
+|---------|-------------|---------------------|
+| Schedule Button | Dark blue bg, muted text (unreadable) | Light gray bg, dark text (readable) |
+| Documents Link | Primary blue text | Foreground color (consistent) |
+| Tax Demand Badge | Plain tooltip | Structured two-line tooltip |
+| Priority Pill | Text only | Text with color indicator |
+| Timeline Pill | Text only | Text with color indicator |
 
 ---
 
-## Files Changed
+## Files to Modify
 
-| File | Change |
-|------|--------|
-| Database Migration | Add `staff` role to clients INSERT policy |
+| File | Changes |
+|------|---------|
+| `src/components/cases/CaseManagement.tsx` | Update hover states, enhance tooltip content (6 changes in lines 1250-1365) |
 
-No application code changes required - the fix is purely in the database RLS policy.
+---
+
+## Testing Checklist
+
+1. Hover over "Schedule" button - text should remain readable with light gray background
+2. Hover over Tax Demand badge (₹1.2L) - tooltip shows formatted two-line content
+3. Hover over Priority micro-pill - tooltip shows colored dot with label
+4. Hover over Timeline micro-pill - tooltip shows colored dot with status
+5. Hover over Documents count - text remains readable
+6. Hover over Next Hearing date - tooltip shows full details
+7. All tooltips appear with proper z-index above other elements
+8. Keyboard focus triggers tooltips correctly
+9. Tooltips dismiss when moving away
+10. Mobile: Touch interactions work correctly
+
+---
+
+## Accessibility Improvements
+
+- All hover states maintain WCAG 2.1 AA contrast ratio (4.5:1 minimum)
+- Color indicators in tooltips are paired with text labels
+- Interactive elements have visible focus states
+- Tooltips provide additional context for icon-only indicators
