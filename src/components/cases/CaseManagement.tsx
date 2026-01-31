@@ -1592,6 +1592,7 @@ export const CaseManagement: React.FC = () => {
           <CaseLifecycleFlow 
             selectedCase={selectedCase} 
             onCaseUpdated={handleCaseUpdated}
+            onNavigateToOverview={() => setActiveTab('overview')}
           />
         </TabsContent>
 

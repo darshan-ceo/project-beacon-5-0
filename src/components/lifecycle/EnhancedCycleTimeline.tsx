@@ -177,6 +177,8 @@ export const EnhancedCycleTimeline: React.FC<EnhancedCycleTimelineProps> = ({
             {instances.length} instance{instances.length !== 1 ? 's' : ''}
           </Badge>
         </div>
+        {/* Spacer to match filter row height in StageTransitionHistory */}
+        <div className="h-9 mt-3" />
       </CardHeader>
       <CardContent className="flex-1 overflow-hidden min-h-0">
         <ScrollArea className="h-full">

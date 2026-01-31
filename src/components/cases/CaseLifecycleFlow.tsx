@@ -18,12 +18,14 @@ import { casesService } from '@/services/casesService';
 import { dmsService } from '@/services/dmsService';
 import { formTemplatesService } from '@/services/formTemplatesService';
 import { normalizeStage } from '@/utils/stageUtils';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   CheckCircle,
   Clock,
   AlertTriangle,
   FileText,
   ArrowRight,
+  ArrowLeft,
   Upload,
   Calendar,
   Users,
@@ -31,13 +33,15 @@ import {
   Gavel,
   Building,
   Flag,
-  BookOpen
+  BookOpen,
+  ChevronDown
 } from 'lucide-react';
 import { HelpButton } from '@/components/ui/help-button';
 
 interface CaseLifecycleFlowProps {
   selectedCase?: Case | null;
   onCaseUpdated?: (updatedCase: Case) => void;
+  onNavigateToOverview?: () => void;
 }
 
 const lifecycleStages = [
@@ -91,7 +95,7 @@ const lifecycleStages = [
   }
 ];
 
-export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCase, onCaseUpdated }) => {
+export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCase, onCaseUpdated, onNavigateToOverview }) => {
   const { toast } = useToast();
   const { state, dispatch } = useAppState();
   const [showStageModal, setShowStageModal] = useState(false);
@@ -100,6 +104,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   const [selectedFormCode, setSelectedFormCode] = useState<string>('');
   const [formTemplate, setFormTemplate] = useState<any>(null);
   const [isAdvancing, setIsAdvancing] = useState(false);
+  const [isStageDetailsOpen, setIsStageDetailsOpen] = useState(false);
 
   // Listen for reopen stage dialog events
   useEffect(() => {
@@ -237,10 +242,25 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
       >
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <Scale className="mr-2 h-5 w-5 text-primary" />
-              Case Lifecycle Workflow
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {onNavigateToOverview && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={onNavigateToOverview}
+                    className="h-8 px-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-1" />
+                    All Cases
+                  </Button>
+                )}
+                <CardTitle className="flex items-center">
+                  <Scale className="mr-2 h-5 w-5 text-primary" />
+                  Case Lifecycle Workflow
+                </CardTitle>
+              </div>
+            </div>
             <CardDescription>
               {selectedCase ? 
                 `Track progress for ${selectedCase.caseNumber} - ${selectedCase.title}` :
@@ -369,21 +389,30 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         })}
       </motion.div>
 
-      {/* Stage Details */}
+      {/* Stage Details - Collapsible */}
       {selectedCase && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.3 }}
         >
-          <Card>
-            <CardHeader>
-              <CardTitle>Current Stage: {selectedCase.currentStage}</CardTitle>
-              <CardDescription>
-                Detailed information and required actions for the current stage
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <Collapsible open={isStageDetailsOpen} onOpenChange={setIsStageDetailsOpen}>
+            <Card>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Current Stage: {selectedCase.currentStage}</CardTitle>
+                      <CardDescription>
+                        Detailed information and required actions for the current stage
+                      </CardDescription>
+                    </div>
+                    <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${isStageDetailsOpen ? 'rotate-180' : ''}`} />
+                  </div>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <h4 className="font-semibold mb-2">Required Forms</h4>
@@ -473,8 +502,10 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                   )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
         </motion.div>
       )}
 
@@ -484,7 +515,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.4 }}
-          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+          className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch min-h-[400px]"
         >
           {/* Stage History & Cycles - Left Column */}
           <EnhancedCycleTimeline 
