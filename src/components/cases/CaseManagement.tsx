@@ -37,7 +37,7 @@ import { useAdvancedRBAC, usePermission } from '@/hooks/useAdvancedRBAC';
 import { casesService } from '@/services/casesService';
 import { getNextStage, validateStagePrerequisites, generateStageDefaults, normalizeStage } from '@/utils/stageUtils';
 import { getTimelineBreaches } from '@/services/slaService';
-import { differenceInDays, startOfDay, addDays } from 'date-fns';
+import { differenceInDays, startOfDay, addDays, formatDistanceToNow } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -488,6 +488,44 @@ export const CaseManagement: React.FC = () => {
       case 'Medium': return 'bg-warning text-warning-foreground';
       case 'Low': return 'bg-success text-success-foreground';
       default: return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  // Micro-pill colors for priority (compact)
+  const getPriorityMicroColor = (priority: string): string => {
+    switch (priority) {
+      case 'High': return 'bg-destructive text-destructive-foreground';
+      case 'Medium': return 'bg-warning text-warning-foreground';
+      case 'Low': return 'bg-muted text-muted-foreground';
+      default: return 'bg-secondary text-secondary-foreground';
+    }
+  };
+
+  // Micro-pill colors for timeline (compact)
+  const getTimelineMicroColor = (status: string | undefined): string => {
+    switch (status) {
+      case 'Red': return 'bg-destructive/20';
+      case 'Amber': return 'bg-warning/20';
+      default: return 'bg-success/20';
+    }
+  };
+
+  // Get stage index for progress fraction display
+  const getStageIndex = (stage: string): number => {
+    const stages = ['Assessment', 'Adjudication', 'First Appeal', 'Tribunal', 'High Court', 'Supreme Court'];
+    return stages.indexOf(stage) + 1;
+  };
+
+  // Format relative time with tooltip data
+  const formatRelativeTime = (dateString: string): { relative: string; full: string } => {
+    try {
+      const date = new Date(dateString);
+      return {
+        relative: formatDistanceToNow(date, { addSuffix: true }),
+        full: dateString
+      };
+    } catch {
+      return { relative: dateString, full: dateString };
     }
   };
 
@@ -1186,186 +1224,193 @@ export const CaseManagement: React.FC = () => {
                     }`}
                     onClick={() => handleCaseSelect(caseItem)}
                   >
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 space-y-4">
-                          <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
+                    <CardContent className="p-4">
+                      {/* Row 1: Title Line with Micro-Pills */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
                             {isSelected && (
-                              <div className="flex-shrink-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                              <div className="flex-shrink-0 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
                                 <Check className="h-3 w-3 text-primary-foreground" />
                               </div>
                             )}
-                            <div>
-                              <h3 className="text-lg font-semibold text-foreground">{caseItem.title}</h3>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <span>{caseItem.caseNumber}</span>
-                                {caseItem.caseType && (
-                                  <>
-                                    <span>•</span>
-                                    <Badge variant="outline" className="text-xs">{caseItem.caseType}</Badge>
-                                  </>
-                                )}
-                                <span>•</span>
-                                <span>{state.clients.find(c => c.id === caseItem.clientId)?.name || 'Unknown Client'}</span>
-                              </div>
-                            </div>
+                            <h3 className="text-base font-semibold text-foreground truncate">{caseItem.title}</h3>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <Badge variant="secondary" className={getPriorityColor(caseItem.priority)}>
-                              {caseItem.priority} Priority
-                            </Badge>
-                            <Badge variant="secondary" className={getTimelineBreachColor(caseItem.timelineBreachStatus || caseItem.slaStatus || 'Green')}>
-                              Timeline {caseItem.timelineBreachStatus || caseItem.slaStatus || 'Green'}
-                            </Badge>
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                            <span>{caseItem.caseNumber}</span>
+                            {caseItem.caseType && (
+                              <>
+                                <span>•</span>
+                                <span>{caseItem.caseType}</span>
+                              </>
+                            )}
+                            <span>•</span>
+                            <span className="truncate">{state.clients.find(c => c.id === caseItem.clientId)?.name || 'Unknown Client'}</span>
                           </div>
                         </div>
-
-                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                          <div>
-                            <p className="text-xs text-muted-foreground">Current Stage</p>
-                            <p className="font-medium">{caseItem.currentStage}</p>
-                            <Progress value={getStageProgress(caseItem.currentStage)} className="mt-1 h-2" />
-                          </div>
+                        
+                        {/* Right-aligned KPIs as Micro-Pills */}
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {/* Tax Demand KPI Badge */}
+                          {caseItem.taxDemand && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="text-xs h-5 px-1.5 font-semibold text-destructive border-destructive/40">
+                                    ₹{(caseItem.taxDemand / 100000).toFixed(1)}L
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>Tax Demand: ₹{caseItem.taxDemand.toLocaleString('en-IN')}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                           
-                          <div>
-                            <p className="text-xs text-muted-foreground">Assigned To</p>
-                            <div className="flex items-center">
-                              <Users className="mr-1 h-3 w-3" />
-                              <span className="text-sm">{caseItem.assignedToName}</span>
-                            </div>
-                          </div>
+                          {/* Priority Micro-Pill */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="secondary" className={`h-5 w-5 p-0 flex items-center justify-center text-[10px] ${getPriorityMicroColor(caseItem.priority)}`}>
+                                  {caseItem.priority === 'High' ? '!' : caseItem.priority === 'Medium' ? '•' : '-'}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>{caseItem.priority} Priority</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                           
-                           <div>
-                             <p className="text-xs text-muted-foreground">Documents</p>
-                             <div className="flex items-center cursor-pointer hover:text-primary" onClick={() => {
-                               setSelectedCase(caseItem);
-                               setActiveTab('documents');
-                             }}>
-                               <FileText className="mr-1 h-3 w-3" />
-                               <span className="text-sm">
-                                 {state.documents?.filter(doc => doc.caseId === caseItem.id).length || 0} files
-                               </span>
-                             </div>
-                           </div>
-                           
-                              <div>
-                                <p className="text-xs text-muted-foreground mb-1">Next Hearing</p>
-                                {caseItem.nextHearing ? (
-                                  <div className="space-y-2">
-                                    <div className="cursor-pointer hover:text-primary" onClick={() => {
-                                      window.location.href = `/hearings?caseId=${caseItem.id}&hearingDate=${caseItem.nextHearing?.date}&courtId=${caseItem.nextHearing?.courtId}`;
-                                    }}>
-                                      <div className="flex items-center gap-2">
-                                        <p className="text-sm font-medium">{caseItem.nextHearing.date}</p>
-                                        {(() => {
-                                          const urgency = getHearingUrgency(caseItem.nextHearing.hoursUntil);
-                                          if (urgency === 'critical') {
-                                            return (
-                                              <Badge variant="destructive" className="text-xs px-1.5 py-0 h-5 animate-pulse">
-                                                <Bell className="h-3 w-3 mr-1" />
-                                                {'<24h'}
-                                              </Badge>
-                                            );
-                                          }
-                                          if (urgency === 'warning') {
-                                            return (
-                                              <Badge className="text-xs px-1.5 py-0 h-5 bg-warning text-warning-foreground">
-                                                <AlertCircle className="h-3 w-3 mr-1" />
-                                                {'<48h'}
-                                              </Badge>
-                                            );
-                                          }
-                                          return null;
-                                        })()}
-                                      </div>
-                                      <p className="text-xs text-muted-foreground">{state.courts.find(c => c.id === caseItem.nextHearing?.courtId)?.name || 'Unknown Legal Forum'}</p>
-                                      {caseItem.nextHearing.time && (
-                                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                          <Clock className="h-3 w-3" />
-                                          {caseItem.nextHearing.time}
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedCase(caseItem);
-                                      setActiveTab('hearings');
-                                    }}
-                                    className="text-xs h-7 mt-1"
-                                  >
-                                    <Calendar className="h-3 w-3 mr-1" />
-                                    Schedule
-                                  </Button>
-                                )}
-                              </div>
-                         </div>
+                          {/* Timeline Micro-Pill */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="secondary" className={`h-5 w-5 p-0 flex items-center justify-center text-[10px] ${getTimelineMicroColor(caseItem.timelineBreachStatus)}`}>
+                                  {caseItem.timelineBreachStatus === 'Red' ? '🔴' : caseItem.timelineBreachStatus === 'Amber' ? '🟡' : '🟢'}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>Timeline: {caseItem.timelineBreachStatus || 'Green'}</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </div>
 
-                        {/* Additional Case Details */}
-                         {(caseItem.taxDemand || caseItem.period || caseItem.authority || caseItem.matterType) && (
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3 pt-3 border-t border-border">
-                            {caseItem.matterType && caseItem.currentStage === 'Assessment' && (
-                              <div>
-                                <p className="text-xs text-muted-foreground">Matter Type</p>
-                                <p className="text-sm font-medium">{caseItem.matterType}</p>
-                              </div>
-                            )}
-                            {caseItem.taxDemand && (
-                              <div>
-                                <p className="text-xs text-muted-foreground">Tax Demand</p>
-                                <p className="text-sm font-semibold text-destructive">₹{caseItem.taxDemand.toLocaleString('en-IN')}</p>
-                              </div>
-                            )}
-                            {caseItem.period && (
-                              <div>
-                                <p className="text-xs text-muted-foreground">Period</p>
-                                <p className="text-sm">{caseItem.period}</p>
-                              </div>
-                            )}
-                            {caseItem.authority && (
-                              <div>
-                                <p className="text-xs text-muted-foreground">Authority</p>
-                                <p className="text-sm">{caseItem.authority}</p>
-                              </div>
-                            )}
-                          </div>
+                      {/* Row 2: Unified Stage Progress Line */}
+                      <div className="flex items-center gap-2 mt-2">
+                        <Scale className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                        <span className="text-sm font-medium min-w-[90px]">{caseItem.currentStage}</span>
+                        <Progress value={getStageProgress(caseItem.currentStage)} className="h-1.5 flex-1" />
+                        <span className="text-xs text-muted-foreground">{getStageIndex(caseItem.currentStage)}/6</span>
+                      </div>
+
+                      {/* Row 3: Consolidated Meta Row */}
+                      <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-2 text-sm text-muted-foreground">
+                        {/* Assigned To */}
+                        <span className="flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          <span>{caseItem.assignedToName || 'Unassigned'}</span>
+                        </span>
+                        
+                        <span className="text-muted-foreground/50">•</span>
+                        
+                        {/* Documents */}
+                        <span 
+                          className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors"
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            setSelectedCase(caseItem); 
+                            setActiveTab('documents'); 
+                          }}
+                        >
+                          <FileText className="h-3 w-3" />
+                          <span>{state.documents?.filter(doc => doc.caseId === caseItem.id).length || 0} files</span>
+                        </span>
+                        
+                        <span className="text-muted-foreground/50">•</span>
+                        
+                        {/* Next Hearing - Compact */}
+                        {caseItem.nextHearing ? (
+                          <span 
+                            className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors"
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              window.location.href = `/hearings?caseId=${caseItem.id}&hearingDate=${caseItem.nextHearing?.date}&courtId=${caseItem.nextHearing?.courtId}`;
+                            }}
+                          >
+                            <Calendar className="h-3 w-3" />
+                            <span>{caseItem.nextHearing.date}</span>
+                            {caseItem.nextHearing.time && <span className="text-xs">@{caseItem.nextHearing.time}</span>}
+                            {(() => {
+                              const urgency = getHearingUrgency(caseItem.nextHearing.hoursUntil);
+                              if (urgency === 'critical') {
+                                return <Badge variant="destructive" className="h-4 px-1 text-[10px] animate-pulse ml-1">!</Badge>;
+                              }
+                              if (urgency === 'warning') {
+                                return <Badge className="h-4 px-1 text-[10px] bg-warning text-warning-foreground ml-1">!!</Badge>;
+                              }
+                              return null;
+                            })()}
+                          </span>
+                        ) : (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-5 px-1.5 text-xs text-muted-foreground hover:text-primary" 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setSelectedCase(caseItem); 
+                              setActiveTab('hearings'); 
+                            }}
+                          >
+                            <Calendar className="h-3 w-3 mr-1" />
+                            Schedule
+                          </Button>
                         )}
+                      </div>
 
-                        {/* Quick Actions for Form Templates - Progressive Disclosure */}
-                        {(() => {
-                          const quickActionForms = formTemplatesService.getFormsByStage(caseItem.currentStage, caseItem.matterType);
-                          const isExpanded = expandedQuickActions.has(caseItem.id);
-                          
-                          return (
-                            <div className="pt-2 border-t border-border">
+                      {/* Row 4: Additional Details - Compact Conditional */}
+                      {(caseItem.matterType || caseItem.period || caseItem.authority) && (
+                        <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1.5 text-xs text-muted-foreground">
+                          {caseItem.matterType && caseItem.currentStage === 'Assessment' && (
+                            <span>Matter: <span className="font-medium text-foreground">{caseItem.matterType}</span></span>
+                          )}
+                          {caseItem.period && (
+                            <span>Period: <span className="font-medium text-foreground">{caseItem.period}</span></span>
+                          )}
+                          {caseItem.authority && (
+                            <span>Authority: <span className="font-medium text-foreground">{caseItem.authority}</span></span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Row 5: Quick Actions + Timestamps + Actions */}
+                      <div className="flex items-center justify-between pt-2 mt-2 border-t border-border">
+                        {/* Quick Actions - Collapsed by Default */}
+                        <div className="flex-1 min-w-0">
+                          {(() => {
+                            const quickActionForms = formTemplatesService.getFormsByStage(caseItem.currentStage, caseItem.matterType);
+                            const isQAExpanded = expandedQuickActions.has(caseItem.id);
+                            
+                            return (
                               <Collapsible
-                                open={isExpanded}
+                                open={isQAExpanded}
                                 onOpenChange={() => toggleQuickActions(caseItem.id)}
                               >
                                 <CollapsibleTrigger asChild>
                                   <button
-                                    className="flex items-center gap-2 w-full text-left py-1 hover:bg-muted/50 rounded transition-colors group"
+                                    className="flex items-center gap-1.5 text-left py-0.5 hover:bg-muted/50 rounded transition-colors"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <ChevronRight 
-                                      className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
-                                        isExpanded ? 'rotate-90' : ''
+                                      className={`h-3 w-3 text-muted-foreground transition-transform duration-200 ${
+                                        isQAExpanded ? 'rotate-90' : ''
                                       }`} 
                                     />
-                                    <FileText className="h-4 w-4 text-muted-foreground" />
-                                    <span className="text-sm font-medium text-muted-foreground">
+                                    <FileText className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-xs text-muted-foreground">
                                       Quick Actions ({quickActionForms.length})
                                     </span>
                                   </button>
                                 </CollapsibleTrigger>
                                 
-                                <CollapsibleContent className="pt-2">
-                                  <div className="flex flex-wrap gap-2">
+                                <CollapsibleContent className="pt-1.5">
+                                  <div className="flex flex-wrap gap-1.5">
                                     {quickActionForms.map(formCode => (
                                       <Button
                                         key={formCode}
@@ -1382,53 +1427,67 @@ export const CaseManagement: React.FC = () => {
                                             });
                                           }
                                         }}
-                                        className="text-xs"
+                                        className="text-xs h-6 px-2"
                                       >
-                                        Generate {formCode.replace('_', '-')}
+                                        {formCode.replace('_', '-')}
                                       </Button>
                                     ))}
                                     {quickActionForms.length === 0 && (
                                       <span className="text-xs text-muted-foreground">
-                                        No forms available for {caseItem.currentStage} stage
+                                        No forms for {caseItem.currentStage}
                                       </span>
                                     )}
                                   </div>
                                 </CollapsibleContent>
                               </Collapsible>
-                            </div>
-                          );
-                        })()}
+                            );
+                          })()}
+                        </div>
 
-                        <div className="flex items-center justify-between pt-2 border-t border-border">
-                          <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                            <span>Created: {caseItem.createdDate}</span>
-                            <span>•</span>
-                            <span>Updated: {caseItem.lastUpdated}</span>
-                          </div>
-                          <div className="flex items-center space-x-2" data-tour="case-actions">
+                        {/* Relative Timestamps + Action Buttons */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-xs text-muted-foreground cursor-default hidden sm:inline">
+                                  {formatRelativeTime(caseItem.lastUpdated).relative}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Created: {caseItem.createdDate}<br/>
+                                Updated: {caseItem.lastUpdated}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          
+                          {/* Compact Action Buttons */}
+                          <div className="flex items-center" data-tour="case-actions">
                             <Button 
                               variant="ghost" 
-                              size="sm"
+                              size="icon"
+                              className="h-7 w-7"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setCaseModal({ isOpen: true, mode: 'view', case: caseItem });
                               }}
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-3.5 w-3.5" />
                             </Button>
                             <Button 
                               variant="ghost" 
-                              size="sm"
+                              size="icon"
+                              className="h-7 w-7"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setCaseModal({ isOpen: true, mode: 'edit', case: caseItem });
                               }}
                             >
-                              <Edit className="h-4 w-4" />
+                              <Edit className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon"
+                              className="h-7 w-7"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleAdvanceCase(caseItem);
@@ -1442,7 +1501,7 @@ export const CaseManagement: React.FC = () => {
                                   : `Advance to ${getNextStage(caseItem.currentStage)}`
                               }
                             >
-                              <ArrowRight className={`h-4 w-4 ${
+                              <ArrowRight className={`h-3.5 w-3.5 ${
                                 canUserAdvanceStage && getNextStage(caseItem.currentStage)
                                   ? 'text-primary hover:text-primary-hover'
                                   : 'text-muted-foreground'
@@ -1454,10 +1513,11 @@ export const CaseManagement: React.FC = () => {
                               <DropdownMenuTrigger asChild>
                                 <Button 
                                   variant="ghost" 
-                                  size="sm"
+                                  size="icon"
+                                  className="h-7 w-7"
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  <MoreVertical className="h-4 w-4" />
+                                  <MoreVertical className="h-3.5 w-3.5" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
@@ -1483,8 +1543,7 @@ export const CaseManagement: React.FC = () => {
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>
-                         </div>
-                        </div>
+                          </div>
                         </div>
                       </div>
                     </CardContent>
