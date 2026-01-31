@@ -203,7 +203,12 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   // Handler for navigating to create task
   const handleCreateTask = () => {
     if (selectedCase) {
-      navigate(`/tasks?action=create&caseId=${selectedCase.id}&stage=${encodeURIComponent(selectedCase.currentStage)}`);
+      const params = new URLSearchParams({
+        caseId: selectedCase.id,
+        clientId: selectedCase.clientId || '',
+        caseNumber: selectedCase.caseNumber || '',
+      });
+      navigate(`/tasks/new?${params.toString()}`);
     }
   };
 
