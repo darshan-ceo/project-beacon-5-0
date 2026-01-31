@@ -177,7 +177,7 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
 
   // Navigate to create task with case context
   const handleAddTask = () => {
-    if (!hasPermission('tasks', 'write')) {
+    if (!hasPermission('tasks', 'create')) {  // Use granular 'create' instead of 'write'
       toast({
         title: 'Permission Denied',
         description: "You don't have permission to create tasks.",
@@ -201,7 +201,7 @@ export const CaseTasksTab: React.FC<CaseTasksTabProps> = ({ caseData }) => {
 
   // Navigate to edit task
   const handleEditTask = (taskId: string) => {
-    if (!hasPermission('tasks', 'write')) {
+    if (!hasPermission('tasks', 'update')) {  // Use granular 'update' instead of 'write'
       toast({
         title: 'Permission Denied',
         description: "You don't have permission to edit tasks.",

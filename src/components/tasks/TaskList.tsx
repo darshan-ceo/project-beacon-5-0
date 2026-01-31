@@ -97,9 +97,10 @@ export const TaskList: React.FC<TaskListProps> = ({
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [lockFilter, setLockFilter] = useState<'all' | 'locked' | 'unlocked'>('all');
 
-  // RBAC permission checks
+  // RBAC permission checks - granular actions
   const canDeleteTasks = hasPermission('tasks', 'delete');
-  const canEditTasks = hasPermission('tasks', 'write');
+  const canCreateTasks = hasPermission('tasks', 'create');  // For add follow-up
+  const canEditTasks = hasPermission('tasks', 'update');    // For edit task (granular check)
 
   // Filter and sort tasks
   const filteredAndSortedTasks = useMemo(() => {

@@ -16,7 +16,7 @@ export type UserRole = 'Partner' | 'Admin' | 'Manager' | 'Advocate' | 'Staff' | 
 
 export interface Permission {
   module: string;
-  action: 'read' | 'write' | 'delete' | 'admin' | 'manage';
+  action: 'read' | 'write' | 'delete' | 'admin' | 'manage' | 'create' | 'update';
 }
 
 export interface User {

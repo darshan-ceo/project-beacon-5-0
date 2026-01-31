@@ -11,7 +11,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export type AppRole = 'admin' | 'partner' | 'manager' | 'advocate' | 'ca' | 'staff' | 'clerk' | 'client' | 'user';
-export type PermissionAction = 'read' | 'write' | 'delete' | 'admin' | 'manage';
+export type PermissionAction = 'read' | 'write' | 'delete' | 'admin' | 'manage' | 'create' | 'update';
 
 interface CachedPermissions {
   permissions: Set<string>;
@@ -269,8 +269,14 @@ class SupabasePermissionsResolver {
     switch (action) {
       case 'read':
         return ['read'];
+      case 'create':
+        // Granular create check - only checks tasks.create permission
+        return ['create'];
+      case 'update':
+        // Granular update check - only checks tasks.update permission
+        return ['update'];
       case 'write':
-        // write = create OR update
+        // write = create OR update (backward compatibility)
         return ['create', 'update'];
       case 'delete':
         return ['delete'];
