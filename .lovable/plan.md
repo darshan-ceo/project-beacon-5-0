@@ -1,197 +1,266 @@
 
-# Fix Tooltip and Hover State Readability Issues
 
-## Problem Analysis
+# UI/UX Improvements for Case Management Lifecycle Tab
 
-Based on the screenshots and code review, users are experiencing **poor readability** when hovering over interactive elements on the Case List cards:
+## Overview
 
-### Issue 1: Schedule Button Hover State
-- **File**: `src/components/cases/CaseManagement.tsx` (line 1351-1364)
-- **Cause**: The "Schedule" button uses `variant="ghost"` with `text-muted-foreground` class
-- **Problem**: Ghost variant hover changes background to dark accent (`--accent: 243 75% 43%` - Indigo) but the `text-muted-foreground` class isn't overridden, causing low contrast
-
-### Issue 2: Tax Demand Badge Tooltip
-- **File**: `src/components/cases/CaseManagement.tsx` (line 1255-1265)
-- **Observation**: Tooltip shows "Tax Demand: ₹84,80,478" - this is working but the presentation could be enhanced with better formatting
-
-### Issue 3: Priority/Timeline Micro-Pill Tooltips
-- **File**: `src/components/cases/CaseManagement.tsx` (lines 1269-1290)
-- **Current**: Plain text like "Medium Priority" or "Timeline: Green"
-- **Opportunity**: Enhance with better visual indicators and consistent styling
+This plan addresses three UI/UX enhancement requests for the Lifecycle sub-tab in Case Management, all without impacting existing functionality.
 
 ---
 
-## Solution Overview
+## Issue 1: Add "All Cases" Shortcut Button
 
-### Technical Approach
+### Current Problem
+Users on the Lifecycle tab need to click the "Overview" tab to return to the all-cases list, but "Overview" is non-intuitive terminology for new users who may get lost.
 
-1. **Fix Schedule Button Hover Contrast** - Ensure text remains readable by using a consistent hover pattern that doesn't rely on conflicting color classes
+### Solution
+Add a prominent "← All Cases" button in the CaseLifecycleFlow header that navigates users back to the Overview tab (all cases list).
 
-2. **Standardize Tooltip Presentation** - Add consistent styling and formatting across all micro-pill tooltips with proper visual hierarchy
+### Location
+**File**: `src/components/cases/CaseLifecycleFlow.tsx` (Lines 230-275)
 
-3. **Improve Button Hover States** - Use explicit color classes that work well with the ghost variant
+### Changes
+Add a button in the header Card that calls the parent's tab change function:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  [← All Cases]  ⚖ Case Lifecycle Workflow                          │
+│                 Track progress for GST/2025/002 - Kap Infinity...   │
+│  ─────────────────────────────────────────────────────────────────  │
+│  Kap Infinity...                              Timeline Green        │
+│  GST/2025/002                                 Stage 3 of 6          │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Technical Approach**:
+1. Add a new prop `onNavigateToOverview` to `CaseLifecycleFlowProps`
+2. Add a ghost button with ArrowLeft icon and "All Cases" text
+3. Wire it to switch the tab back to 'overview'
 
 ---
 
-## Detailed Changes
+## Issue 2: Collapse "Current Stage" Section by Default
 
-### File: `src/components/cases/CaseManagement.tsx`
+### Current Problem
+The "Current Stage: First Appeal" section occupies too much vertical space, pushing the important Stage History & Transition History sections below the fold.
 
-#### Change 1: Fix Schedule Button Hover State (Lines 1351-1364)
+### Solution
+Wrap the Current Stage section in a `Collapsible` component that is **collapsed by default** but can be expanded by clicking the header.
 
-**Current Code:**
-```tsx
-<Button 
-  variant="ghost" 
-  size="sm" 
-  className="h-5 px-1.5 text-xs text-muted-foreground hover:text-primary" 
-  onClick={...}
->
-  <Calendar className="h-3 w-3 mr-1" />
-  Schedule
-</Button>
+### Location
+**File**: `src/components/cases/CaseLifecycleFlow.tsx` (Lines 372-478)
+
+### Changes
+1. Add state: `const [isStageDetailsOpen, setIsStageDetailsOpen] = useState(false);`
+2. Wrap the Card in `<Collapsible open={isStageDetailsOpen} onOpenChange={setIsStageDetailsOpen}>`
+3. Make the CardHeader clickable as `CollapsibleTrigger`
+4. Add chevron icon that rotates based on open/closed state
+5. Wrap CardContent in `CollapsibleContent`
+
+**Visual Design (Collapsed)**:
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Current Stage: First Appeal                              [▼]      │
+│  Detailed information and required actions for the current stage   │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-**Updated Code:**
-```tsx
-<Button 
-  variant="ghost" 
-  size="sm" 
-  className="h-5 px-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground" 
-  onClick={...}
->
-  <Calendar className="h-3 w-3 mr-1" />
-  Schedule
-</Button>
+**Visual Design (Expanded)**:
 ```
-
-**Why**: Changing to `hover:bg-muted hover:text-foreground` provides a light gray background on hover with dark text, ensuring high contrast and readability.
+┌─────────────────────────────────────────────────────────────────────┐
+│  Current Stage: First Appeal                              [▲]      │
+│  Detailed information and required actions for the current stage   │
+│  ─────────────────────────────────────────────────────────────────  │
+│  Required Forms     │  Timeline Tracking   │  Next Actions         │
+│  • Appeal Form      │  Time Allocated: 1440h│  [Upload Response]   │
+│  • APPEAL_SECOND    │  Time Elapsed: 48h   │  [Schedule Hearing]   │
+│  • APPEAL_CROSS     │  Time Remaining: 24h │  [Advance Stage]      │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-#### Change 2: Enhance Tax Demand Tooltip (Lines 1255-1265)
+## Issue 3: Align Stage History & Transition History Horizontally
 
-**Current Code:**
+### Current Problem
+The Stage History & Cycles section (left) and Stage Transition History section (right) have different row heights because:
+1. Transition History has search/filter UI in the header
+2. Content rows have varying heights
+3. Cards don't stretch to match each other
+
+### Solution
+Synchronize the heights of both sections using CSS Flexbox alignment and ensure content areas use equal fixed heights.
+
+### Location
+**Files**:
+- `src/components/cases/CaseLifecycleFlow.tsx` (Lines 481-498)
+- `src/components/lifecycle/EnhancedCycleTimeline.tsx`
+- `src/components/lifecycle/StageTransitionHistory.tsx`
+
+### Changes
+
+**1. Parent Grid Container** (`CaseLifecycleFlow.tsx`):
+Change from:
 ```tsx
-<TooltipContent>Tax Demand: ₹{caseItem.taxDemand.toLocaleString('en-IN')}</TooltipContent>
+className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+```
+To:
+```tsx
+className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch"
 ```
 
-**Updated Code:**
-```tsx
-<TooltipContent>
-  <span className="font-medium">Tax Demand</span>
-  <br />
-  <span className="text-base font-semibold">₹{caseItem.taxDemand.toLocaleString('en-IN')}</span>
-</TooltipContent>
-```
+**2. EnhancedCycleTimeline** - Add matching header padding:
+- Add placeholder space in the header to match the filter row height in StageTransitionHistory
+- This ensures both cards have the same header height
 
-**Why**: Two-line format with label and prominent value improves readability.
+**3. StageTransitionHistory** - Already has filters, no change needed.
+
+**4. Both Components** - Set consistent height for scroll areas:
+- Both already use `h-full` and `flex flex-col` patterns
+- Ensure the parent motion.div has a fixed minimum height
+
+**Visual After Fix**:
+```
+┌─────────────────────────────────┐  ┌─────────────────────────────────┐
+│ 📅 Stage History & Cycles  [5] │  │ 🕐 Stage Transition History [5] │
+│                                 │  │ [Search...          ] [Filter▼]│
+├─────────────────────────────────┤  ├─────────────────────────────────┤
+│ ┌─────────────────────────────┐ │  │ ←  Forward │ Tribunal → First  │
+│ │ First Appeal     [Active]   │ │  │    Manan Shah  Jan 16, 11:09   │
+│ │ 16 days • Jan 16, 2026      │ │  │    ✓ Validated                 │
+│ │ 0 done • 1 hearing • 6 docs │ │  │                                │
+│ └─────────────────────────────┘ │  ├─────────────────────────────────┤
+│ ┌─────────────────────────────┐ │  │ ←  Remand │ SC → Tribunal      │
+│ │ Tribunal (Cycle 2) [Done]   │ │  │    Manan Shah  Jan 16, 11:03   │
+│ │ 1 day • Jan 16 → Jan 16     │ │  │    ✓ Procedural Error          │
+│ │ 0 done • 1 hearing • 6 docs │ │  │                                │
+│ └─────────────────────────────┘ │  └─────────────────────────────────┘
+└─────────────────────────────────┘
+```
 
 ---
 
-#### Change 3: Enhance Priority Micro-Pill Tooltip (Lines 1269-1278)
+## Technical Implementation Details
 
-**Current Code:**
-```tsx
-<TooltipContent>{caseItem.priority} Priority</TooltipContent>
+### File 1: `src/components/cases/CaseLifecycleFlow.tsx`
+
+#### Change A: Add Navigation Prop and Button (Lines 38-41, 230-250)
+
+**Props Interface Update**:
+```typescript
+interface CaseLifecycleFlowProps {
+  selectedCase?: Case | null;
+  onCaseUpdated?: (updatedCase: Case) => void;
+  onNavigateToOverview?: () => void;  // NEW
+}
 ```
 
-**Updated Code:**
+**Header Card Update** - Add button before title:
 ```tsx
-<TooltipContent>
-  <div className="flex items-center gap-2">
-    <span className={`w-2 h-2 rounded-full ${
-      caseItem.priority === 'High' ? 'bg-destructive' : 
-      caseItem.priority === 'Medium' ? 'bg-warning' : 'bg-muted-foreground'
-    }`} />
-    <span>{caseItem.priority} Priority</span>
+<CardHeader>
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-3">
+      {onNavigateToOverview && (
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={onNavigateToOverview}
+          className="h-8 px-2 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          All Cases
+        </Button>
+      )}
+      <CardTitle className="flex items-center">
+        <Scale className="mr-2 h-5 w-5 text-primary" />
+        Case Lifecycle Workflow
+      </CardTitle>
+    </div>
   </div>
-</TooltipContent>
+  ...
+</CardHeader>
 ```
 
-**Why**: Color-coded dot in tooltip reinforces the meaning and improves accessibility.
+#### Change B: Collapsible Current Stage Section (Lines 372-478)
 
----
-
-#### Change 4: Enhance Timeline Micro-Pill Tooltip (Lines 1281-1290)
-
-**Current Code:**
-```tsx
-<TooltipContent>Timeline: {caseItem.timelineBreachStatus || 'Green'}</TooltipContent>
+**Add State**:
+```typescript
+const [isStageDetailsOpen, setIsStageDetailsOpen] = useState(false);
 ```
 
-**Updated Code:**
+**Wrap Card in Collapsible**:
 ```tsx
-<TooltipContent>
-  <div className="flex items-center gap-2">
-    <span className={`w-2 h-2 rounded-full ${
-      caseItem.timelineBreachStatus === 'Red' ? 'bg-destructive' : 
-      caseItem.timelineBreachStatus === 'Amber' ? 'bg-warning' : 'bg-success'
-    }`} />
-    <span>Timeline: {caseItem.timelineBreachStatus || 'Green'}</span>
-  </div>
-</TooltipContent>
+<Collapsible open={isStageDetailsOpen} onOpenChange={setIsStageDetailsOpen}>
+  <Card>
+    <CollapsibleTrigger asChild>
+      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Current Stage: {selectedCase.currentStage}</CardTitle>
+            <CardDescription>
+              Detailed information and required actions for the current stage
+            </CardDescription>
+          </div>
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${isStageDetailsOpen ? 'rotate-180' : ''}`} />
+        </div>
+      </CardHeader>
+    </CollapsibleTrigger>
+    <CollapsibleContent>
+      <CardContent>
+        {/* Existing 3-column grid content */}
+      </CardContent>
+    </CollapsibleContent>
+  </Card>
+</Collapsible>
 ```
 
-**Why**: Color-coded dot matches the emoji indicator and provides clearer context.
-
----
-
-#### Change 5: Add Tooltip to Hearing Links (Lines 1328-1349)
-
-Wrap the hearing date display in a tooltip to provide additional context:
+#### Change C: Grid Alignment (Lines 487)
 
 ```tsx
-<TooltipProvider>
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <span 
-        className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors"
-        onClick={(e) => { ... }}
-      >
-        <Calendar className="h-3 w-3" />
-        <span>{caseItem.nextHearing.date}</span>
-        {/* ... time and urgency badge ... */}
-      </span>
-    </TooltipTrigger>
-    <TooltipContent>
-      <span className="font-medium">Next Hearing</span>
-      <br />
-      <span>{caseItem.nextHearing.date} {caseItem.nextHearing.time && `at ${caseItem.nextHearing.time}`}</span>
-      <br />
-      <span className="text-xs text-muted-foreground">Click to view hearing details</span>
-    </TooltipContent>
-  </Tooltip>
-</TooltipProvider>
+className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch"
 ```
 
----
-
-#### Change 6: Fix Documents Link Hover Consistency (Lines 1313-1323)
-
-Ensure consistent hover behavior matching the Schedule button fix:
-
+And add minimum height wrapper:
 ```tsx
-<span 
-  className="flex items-center gap-1 cursor-pointer hover:text-foreground transition-colors"
-  onClick={(e) => { ... }}
+<motion.div 
+  ...
+  className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch min-h-[400px]"
 >
-  <FileText className="h-3 w-3" />
-  <span>{state.documents?.filter(doc => doc.caseId === caseItem.id).length || 0} files</span>
-</span>
 ```
 
----
+### File 2: `src/components/lifecycle/EnhancedCycleTimeline.tsx`
 
-## Visual Comparison
+Add matching header padding to align with StageTransitionHistory's filter row:
 
-| Element | Before Hover | After Hover (Fixed) |
-|---------|-------------|---------------------|
-| Schedule Button | Dark blue bg, muted text (unreadable) | Light gray bg, dark text (readable) |
-| Documents Link | Primary blue text | Foreground color (consistent) |
-| Tax Demand Badge | Plain tooltip | Structured two-line tooltip |
-| Priority Pill | Text only | Text with color indicator |
-| Timeline Pill | Text only | Text with color indicator |
+```tsx
+<CardHeader className="pb-3 flex-shrink-0">
+  <div className="flex items-center justify-between">
+    <CardTitle className="text-sm flex items-center gap-2">
+      <Calendar className="h-4 w-4" />
+      Stage History & Cycles
+    </CardTitle>
+    <Badge variant="secondary" className="text-xs">
+      {instances.length} instance{instances.length !== 1 ? 's' : ''}
+    </Badge>
+  </div>
+  {/* Spacer to match filter row height in StageTransitionHistory */}
+  <div className="h-9 mt-3" />  {/* NEW: matches height of search/filter row */}
+</CardHeader>
+```
+
+### File 3: `src/components/cases/CaseManagement.tsx`
+
+Pass the navigation callback to CaseLifecycleFlow:
+
+```tsx
+<TabsContent value="lifecycle" className="mt-6">
+  <CaseLifecycleFlow 
+    selectedCase={selectedCase} 
+    onCaseUpdated={handleCaseUpdated}
+    onNavigateToOverview={() => setActiveTab('overview')}  // NEW
+  />
+</TabsContent>
+```
 
 ---
 
@@ -199,28 +268,46 @@ Ensure consistent hover behavior matching the Schedule button fix:
 
 | File | Changes |
 |------|---------|
-| `src/components/cases/CaseManagement.tsx` | Update hover states, enhance tooltip content (6 changes in lines 1250-1365) |
+| `src/components/cases/CaseLifecycleFlow.tsx` | Add navigation prop, All Cases button, collapsible state, grid alignment |
+| `src/components/lifecycle/EnhancedCycleTimeline.tsx` | Add spacer div to match header height |
+| `src/components/cases/CaseManagement.tsx` | Pass `onNavigateToOverview` callback |
+
+---
+
+## Additional Imports Required
+
+**CaseLifecycleFlow.tsx**:
+```typescript
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown, ArrowLeft } from 'lucide-react';  // Add ArrowLeft to existing imports
+```
 
 ---
 
 ## Testing Checklist
 
-1. Hover over "Schedule" button - text should remain readable with light gray background
-2. Hover over Tax Demand badge (₹1.2L) - tooltip shows formatted two-line content
-3. Hover over Priority micro-pill - tooltip shows colored dot with label
-4. Hover over Timeline micro-pill - tooltip shows colored dot with status
-5. Hover over Documents count - text remains readable
-6. Hover over Next Hearing date - tooltip shows full details
-7. All tooltips appear with proper z-index above other elements
-8. Keyboard focus triggers tooltips correctly
-9. Tooltips dismiss when moving away
-10. Mobile: Touch interactions work correctly
+1. **All Cases Button**:
+   - Click "← All Cases" from Lifecycle tab → should navigate to Overview tab
+   - Button should have proper hover state and be accessible
+   - Button should be visible only when inside Lifecycle tab context
 
----
+2. **Collapsible Current Stage**:
+   - On page load, section should be collapsed by default
+   - Click header to expand → shows full content with forms, timeline, actions
+   - Click again to collapse
+   - Chevron icon rotates correctly (↓ collapsed, ↑ expanded)
+   - All buttons inside (Upload Response, Schedule Hearing, Advance Stage) still work when expanded
 
-## Accessibility Improvements
+3. **Horizontal Alignment**:
+   - Stage History & Transition History cards have same total height
+   - Headers are visually aligned
+   - Content scroll areas start at the same vertical position
+   - Both cards stretch to fill available height
 
-- All hover states maintain WCAG 2.1 AA contrast ratio (4.5:1 minimum)
-- Color indicators in tooltips are paired with text labels
-- Interactive elements have visible focus states
-- Tooltips provide additional context for icon-only indicators
+4. **No Functionality Regression**:
+   - Stage advancement still works
+   - Hearing scheduling still works
+   - Document upload still works
+   - Stage transitions display correctly
+   - All existing interactions preserved
+
