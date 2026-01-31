@@ -1,14 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { StageManagementModal } from '@/components/modals/StageManagementModal';
 import { UnifiedStageDialog } from '@/components/lifecycle/UnifiedStageDialog';
 import { EnhancedCycleTimeline } from '@/components/lifecycle/EnhancedCycleTimeline';
 import { StageTransitionHistory } from '@/components/lifecycle/StageTransitionHistory';
+import { ContextSplitButton } from '@/components/lifecycle/ContextSplitButton';
 import { featureFlagService } from '@/services/featureFlagService';
 import { HearingModal } from '@/components/modals/HearingModal';
 import { FormRenderModal } from '@/components/documents/FormRenderModal';
@@ -19,6 +23,7 @@ import { dmsService } from '@/services/dmsService';
 import { formTemplatesService } from '@/services/formTemplatesService';
 import { normalizeStage } from '@/utils/stageUtils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { format, parseISO, isValid, differenceInDays, isPast } from 'date-fns';
 import {
   CheckCircle,
   Clock,
@@ -34,7 +39,14 @@ import {
   Building,
   Flag,
   BookOpen,
-  ChevronDown
+  ChevronDown,
+  PlusCircle,
+  ListTodo,
+  Info,
+  ExternalLink,
+  ClipboardCheck,
+  AlertCircle,
+  Activity
 } from 'lucide-react';
 import { HelpButton } from '@/components/ui/help-button';
 
@@ -98,6 +110,7 @@ const lifecycleStages = [
 export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCase, onCaseUpdated, onNavigateToOverview }) => {
   const { toast } = useToast();
   const { state, dispatch } = useAppState();
+  const navigate = useNavigate();
   const [showStageModal, setShowStageModal] = useState(false);
   const [showHearingModal, setShowHearingModal] = useState(false);
   const [showFormModal, setShowFormModal] = useState(false);
@@ -105,6 +118,126 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   const [formTemplate, setFormTemplate] = useState<any>(null);
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [isStageDetailsOpen, setIsStageDetailsOpen] = useState(false);
+  const [isContextPanelOpen, setIsContextPanelOpen] = useState(false);
+
+  // Helper function to format dates safely
+  const formatDate = (dateStr?: string | null): string => {
+    if (!dateStr) return '—';
+    try {
+      const date = parseISO(dateStr);
+      return isValid(date) ? format(date, 'dd MMM yyyy') : dateStr;
+    } catch {
+      return dateStr;
+    }
+  };
+
+  // Get current stage instance ID (for context panel)
+  const currentStageInstanceId = useMemo(() => {
+    // This would typically come from stage_instances table
+    // For now, generate a placeholder based on case and stage
+    return selectedCase ? `${selectedCase.id}-${selectedCase.currentStage}` : '';
+  }, [selectedCase?.id, selectedCase?.currentStage]);
+
+  // Calculate stage metrics for Lovable recommendations
+  const stageMetrics = useMemo(() => {
+    if (!selectedCase) return null;
+    
+    // Get tasks for this case
+    const caseTasks = state.tasks?.filter(t => t.caseId === selectedCase.id) || [];
+    const openTasks = caseTasks.filter(t => !['Completed', 'Cancelled'].includes(t.status || ''));
+    const overdueTasks = openTasks.filter(t => t.dueDate && isPast(parseISO(t.dueDate)));
+    
+    // Get recent activity (last 3 updates from tasks/documents)
+    // Use audit_trail.updated_at for tasks
+    const recentTasks = [...caseTasks]
+      .sort((a, b) => new Date(b.audit_trail?.updated_at || b.createdDate || 0).getTime() - new Date(a.audit_trail?.updated_at || a.createdDate || 0).getTime())
+      .slice(0, 2);
+    
+    const caseDocuments = state.documents?.filter(d => d.caseId === selectedCase.id) || [];
+    const recentDocs = [...caseDocuments]
+      .sort((a, b) => new Date(b.createdAt || b.uploadedAt || 0).getTime() - new Date(a.createdAt || a.uploadedAt || 0).getTime())
+      .slice(0, 1);
+    
+    // Upcoming deadlines
+    const upcomingDeadlines: Array<{ label: string; date: string; daysUntil: number }> = [];
+    if (selectedCase.replyDueDate || selectedCase.reply_due_date) {
+      const dueDate = selectedCase.replyDueDate || selectedCase.reply_due_date;
+      const dueDateParsed = parseISO(dueDate!);
+      if (isValid(dueDateParsed)) {
+        const daysUntil = differenceInDays(dueDateParsed, new Date());
+        if (daysUntil <= 7 && daysUntil >= 0) {
+          upcomingDeadlines.push({ label: 'Reply Due', date: dueDate!, daysUntil });
+        } else if (daysUntil < 0) {
+          upcomingDeadlines.push({ label: 'Reply Overdue', date: dueDate!, daysUntil });
+        }
+      }
+    }
+    
+    // Next hearing
+    const caseHearings = state.hearings?.filter(h => h.caseId === selectedCase.id) || [];
+    const nextHearing = caseHearings
+      .filter(h => h.date && new Date(h.date) >= new Date())
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+    
+    if (nextHearing) {
+      const daysUntil = differenceInDays(parseISO(nextHearing.date), new Date());
+      if (daysUntil <= 7) {
+        upcomingDeadlines.push({ label: 'Next Hearing', date: nextHearing.date, daysUntil });
+      }
+    }
+    
+    return {
+      openTasks: openTasks.length,
+      overdueTasks: overdueTasks.length,
+      completedTasks: caseTasks.filter(t => t.status === 'Completed').length,
+      totalTasks: caseTasks.length,
+      recentActivity: [
+        ...recentTasks.map(t => ({ type: 'task' as const, title: t.title, date: t.audit_trail?.updated_at || t.createdDate })),
+        ...recentDocs.map(d => ({ type: 'document' as const, title: d.name, date: d.createdAt || d.uploadedAt }))
+      ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()).slice(0, 3),
+      upcomingDeadlines,
+      documentsCount: caseDocuments.length
+    };
+  }, [selectedCase, state.tasks, state.documents, state.hearings]);
+
+  // Handler for navigating to create task
+  const handleCreateTask = () => {
+    if (selectedCase) {
+      navigate(`/tasks?action=create&caseId=${selectedCase.id}&stage=${encodeURIComponent(selectedCase.currentStage)}`);
+    }
+  };
+
+  // Handler for viewing case tasks
+  const handleViewTasks = () => {
+    if (selectedCase) {
+      navigate(`/tasks?caseId=${selectedCase.id}`);
+    }
+  };
+
+  // Handler for viewing original notice document
+  const handleViewOriginalNotice = () => {
+    if (!selectedCase) return;
+    
+    const noticeDoc = state.documents?.find(
+      doc => doc.caseId === selectedCase.id && 
+      (doc.category === 'Notice' || doc.category === 'Original Notice' || 
+       doc.name?.toLowerCase().includes('notice'))
+    );
+    
+    if (noticeDoc) {
+      // Navigate to documents tab with the notice selected
+      navigate(`/documents?docId=${noticeDoc.id}`);
+    } else {
+      toast({
+        title: "No Notice Document Found",
+        description: "Upload the original notice document in the Documents tab.",
+        variant: "default"
+      });
+    }
+  };
+
+  // Toggle context panel
+  const toggleContextPanel = () => setIsContextPanelOpen(!isContextPanelOpen);
 
   // Listen for reopen stage dialog events
   useEffect(() => {
@@ -389,7 +522,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         })}
       </motion.div>
 
-      {/* Stage Details - Collapsible */}
+      {/* Stage Dashboard - Collapsible */}
       {selectedCase && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -401,107 +534,335 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
               <CollapsibleTrigger asChild>
                 <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Current Stage: {selectedCase.currentStage}</CardTitle>
-                      <CardDescription>
-                        Detailed information and required actions for the current stage
-                      </CardDescription>
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <ClipboardCheck className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          Stage Dashboard: {selectedCase.currentStage}
+                          {stageMetrics && stageMetrics.overdueTasks > 0 && (
+                            <Badge variant="destructive" className="text-xs">
+                              {stageMetrics.overdueTasks} Overdue
+                            </Badge>
+                          )}
+                        </CardTitle>
+                        <CardDescription className="flex items-center gap-2 mt-1">
+                          <span>Forms</span>
+                          <span className="text-muted-foreground/50">•</span>
+                          <span>Timeline</span>
+                          <span className="text-muted-foreground/50">•</span>
+                          <span>Actions</span>
+                          <span className="text-muted-foreground/50">•</span>
+                          <span>Quick Reference</span>
+                        </CardDescription>
+                      </div>
                     </div>
-                    <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${isStageDetailsOpen ? 'rotate-180' : ''}`} />
+                    <div className="flex items-center gap-4">
+                      {/* Quick Stats Preview (visible when collapsed) */}
+                      {!isStageDetailsOpen && stageMetrics && (
+                        <div className="hidden md:flex items-center gap-3 text-xs">
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <ListTodo className="h-3.5 w-3.5" />
+                            <span>{stageMetrics.openTasks} open</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <FileText className="h-3.5 w-3.5" />
+                            <span>{stageMetrics.documentsCount} docs</span>
+                          </div>
+                          {stageMetrics.upcomingDeadlines.length > 0 && (
+                            <Badge variant={stageMetrics.upcomingDeadlines[0].daysUntil < 0 ? "destructive" : "secondary"} className="text-xs">
+                              {stageMetrics.upcomingDeadlines[0].label}: {stageMetrics.upcomingDeadlines[0].daysUntil < 0 
+                                ? `${Math.abs(stageMetrics.upcomingDeadlines[0].daysUntil)}d overdue` 
+                                : `${stageMetrics.upcomingDeadlines[0].daysUntil}d left`}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                      <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${isStageDetailsOpen ? 'rotate-180' : ''}`} />
+                    </div>
                   </div>
                 </CardHeader>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <h4 className="font-semibold mb-2">Required Forms</h4>
-                  <div className="space-y-2">
-                    {formTemplatesService.getFormsByStage(selectedCase.currentStage, selectedCase.matterType).map((formCode) => (
-                      <FormChip
-                        key={formCode}
-                        formCode={formCode}
-                        case={selectedCase}
-                        onFormClick={handleFormClick}
-                        onDownload={handleFormDownload}
-                      />
-                    ))}
-                    {formTemplatesService.getFormsByStage(selectedCase.currentStage, selectedCase.matterType).length === 0 && (
-                      <p className="text-sm text-muted-foreground">No forms required for this stage</p>
-                    )}
+                <CardContent className="space-y-6">
+                  {/* Quick Access Row */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b">
+                    <div className="flex items-center gap-2">
+                      <Info className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Quick Access</span>
+                      <span className="text-xs text-muted-foreground hidden sm:inline">
+                        — Review progress before advancing stage
+                      </span>
+                    </div>
+                    <ContextSplitButton
+                      caseId={selectedCase.id}
+                      stageInstanceId={currentStageInstanceId}
+                      onOpenInline={toggleContextPanel}
+                      isInlineOpen={isContextPanelOpen}
+                    />
                   </div>
-                </div>
-                
-                <div>
-                  <h4 className="font-semibold mb-2">Timeline Tracking</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Time Allocated:</span>
-                      <span>{lifecycleStages[currentStageIndex]?.slaHours}h</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Time Elapsed:</span>
-                      <span className="text-warning">48h</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Time Remaining:</span>
-                      <span className="text-success">24h</span>
-                    </div>
-                    <Progress value={66} className="mt-2" />
-                  </div>
-                </div>
-                
-                <div>
-                  <h4 className="font-semibold mb-2">Next Actions</h4>
-                  {selectedCase?.status === 'Completed' ? (
-                    <p className="text-sm text-muted-foreground">
-                      This case has been completed and is read-only.
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      <HelpButton 
-                        helpId="button-upload-response"
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-start"
-                        onClick={handleUploadResponse}
-                      >
-                        <FileText className="mr-2 h-4 w-4" />
-                        Upload Response
-                      </HelpButton>
-                      <HelpButton 
-                        helpId="button-schedule-hearing"
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-start"
-                        onClick={() => setShowHearingModal(true)}
-                      >
-                        <Clock className="mr-2 h-4 w-4" />
-                        Schedule Hearing
-                      </HelpButton>
-                      <HelpButton 
-                        helpId="button-advance-stage"
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-start"
-                        onClick={() => {
-                          // Use unified dialog if feature enabled, otherwise quick advance
-                          if (featureFlagService.isEnabled('lifecycle_cycles_v1')) {
-                            setShowStageModal(true);
-                          } else {
-                            handleAdvanceStage();
-                          }
-                        }}
-                        disabled={isAdvancing}
-                      >
-                        <ArrowRight className="mr-2 h-4 w-4" />
-                        {featureFlagService.isEnabled('lifecycle_cycles_v1') ? 'Advance Stage' : 
-                         isAdvancing ? 'Advancing...' : 'Advance Stage'}
-                      </HelpButton>
+
+                  {/* Lovable Recommendations: Upcoming Deadlines & Activity */}
+                  {stageMetrics && (stageMetrics.upcomingDeadlines.length > 0 || stageMetrics.recentActivity.length > 0) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Upcoming Deadlines Widget */}
+                      {stageMetrics.upcomingDeadlines.length > 0 && (
+                        <div className="rounded-lg border border-dashed p-3 bg-muted/30">
+                          <div className="flex items-center gap-2 mb-2">
+                            <AlertCircle className="h-4 w-4 text-warning" />
+                            <span className="text-sm font-medium">Upcoming Deadlines</span>
+                          </div>
+                          <div className="space-y-1">
+                            {stageMetrics.upcomingDeadlines.map((deadline, idx) => (
+                              <div key={idx} className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">{deadline.label}</span>
+                                <Badge 
+                                  variant={deadline.daysUntil < 0 ? "destructive" : deadline.daysUntil <= 2 ? "secondary" : "outline"}
+                                  className="text-xs"
+                                >
+                                  {deadline.daysUntil < 0 
+                                    ? `${Math.abs(deadline.daysUntil)} days overdue` 
+                                    : deadline.daysUntil === 0 
+                                      ? 'Today' 
+                                      : `${deadline.daysUntil} days left`}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Recent Activity Widget */}
+                      {stageMetrics.recentActivity.length > 0 && (
+                        <div className="rounded-lg border border-dashed p-3 bg-muted/30">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Activity className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium">Recent Activity</span>
+                          </div>
+                          <div className="space-y-1">
+                            {stageMetrics.recentActivity.map((activity, idx) => (
+                              <div key={idx} className="flex items-center gap-2 text-sm">
+                                {activity.type === 'task' ? (
+                                  <ListTodo className="h-3 w-3 text-muted-foreground" />
+                                ) : (
+                                  <FileText className="h-3 w-3 text-muted-foreground" />
+                                )}
+                                <span className="truncate flex-1 text-muted-foreground">{activity.title}</span>
+                                <span className="text-xs text-muted-foreground/70">
+                                  {activity.date ? formatDate(activity.date) : ''}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-              </div>
+
+                  {/* Task Progress Widget (Lovable Recommendation: Stage Checklist Progress) */}
+                  {stageMetrics && stageMetrics.totalTasks > 0 && (
+                    <div className="rounded-lg border p-3 bg-card">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <ClipboardCheck className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium">Task Progress</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {stageMetrics.completedTasks} of {stageMetrics.totalTasks} completed
+                        </span>
+                      </div>
+                      <Progress 
+                        value={(stageMetrics.completedTasks / stageMetrics.totalTasks) * 100} 
+                        className="h-2" 
+                      />
+                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                        <span className="text-success">{stageMetrics.completedTasks} done</span>
+                        <span>{stageMetrics.openTasks} open</span>
+                        {stageMetrics.overdueTasks > 0 && (
+                          <span className="text-destructive">{stageMetrics.overdueTasks} overdue</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Main 3-Column Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <h4 className="font-semibold mb-2">Required Forms</h4>
+                      <div className="space-y-2">
+                        {formTemplatesService.getFormsByStage(selectedCase.currentStage, selectedCase.matterType).map((formCode) => (
+                          <FormChip
+                            key={formCode}
+                            formCode={formCode}
+                            case={selectedCase}
+                            onFormClick={handleFormClick}
+                            onDownload={handleFormDownload}
+                          />
+                        ))}
+                        {formTemplatesService.getFormsByStage(selectedCase.currentStage, selectedCase.matterType).length === 0 && (
+                          <p className="text-sm text-muted-foreground">No forms required for this stage</p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-semibold mb-2">Timeline Tracking</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Time Allocated:</span>
+                          <span>{lifecycleStages[currentStageIndex]?.slaHours}h</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Time Elapsed:</span>
+                          <span className="text-warning">48h</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Time Remaining:</span>
+                          <span className="text-success">24h</span>
+                        </div>
+                        <Progress value={66} className="mt-2" />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-semibold mb-2">Next Actions</h4>
+                      {selectedCase?.status === 'Completed' ? (
+                        <p className="text-sm text-muted-foreground">
+                          This case has been completed and is read-only.
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          <HelpButton 
+                            helpId="button-upload-response"
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full justify-start"
+                            onClick={handleUploadResponse}
+                          >
+                            <FileText className="mr-2 h-4 w-4" />
+                            Upload Response
+                          </HelpButton>
+                          <HelpButton 
+                            helpId="button-schedule-hearing"
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full justify-start"
+                            onClick={() => setShowHearingModal(true)}
+                          >
+                            <Clock className="mr-2 h-4 w-4" />
+                            Schedule Hearing
+                          </HelpButton>
+                          
+                          {/* NEW: Create Task */}
+                          <HelpButton 
+                            helpId="button-create-task"
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full justify-start"
+                            onClick={handleCreateTask}
+                          >
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Create Task
+                          </HelpButton>
+                          
+                          {/* NEW: View Tasks */}
+                          <HelpButton 
+                            helpId="button-view-tasks"
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full justify-start"
+                            onClick={handleViewTasks}
+                          >
+                            <ListTodo className="mr-2 h-4 w-4" />
+                            View Tasks ({stageMetrics?.openTasks || 0} open)
+                          </HelpButton>
+                          
+                          <Separator className="my-2" />
+                          
+                          <HelpButton 
+                            helpId="button-advance-stage"
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full justify-start"
+                            onClick={() => {
+                              // Use unified dialog if feature enabled, otherwise quick advance
+                              if (featureFlagService.isEnabled('lifecycle_cycles_v1')) {
+                                setShowStageModal(true);
+                              } else {
+                                handleAdvanceStage();
+                              }
+                            }}
+                            disabled={isAdvancing}
+                          >
+                            <ArrowRight className="mr-2 h-4 w-4" />
+                            {featureFlagService.isEnabled('lifecycle_cycles_v1') ? 'Advance Stage' : 
+                             isAdvancing ? 'Advancing...' : 'Advance Stage'}
+                          </HelpButton>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Original Notice Reference Card */}
+                  <Card className="border-dashed">
+                    <CardHeader className="py-3">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-primary" />
+                        Original Notice Reference
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3 text-sm">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Notice Date</Label>
+                          <p className="font-medium">{formatDate(selectedCase.noticeDate || selectedCase.notice_date)}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Reference No.</Label>
+                          <p className="font-medium">{selectedCase.noticeNo || selectedCase.notice_no || '—'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Tax Period</Label>
+                          <p className="font-medium">{selectedCase.financial_year || '—'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Tax Demand</Label>
+                          <p className="font-medium text-destructive">
+                            {selectedCase.taxDemand 
+                              ? `₹${selectedCase.taxDemand.toLocaleString('en-IN')}` 
+                              : '—'}
+                          </p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Reply Due Date</Label>
+                          <p className="font-medium">{formatDate(selectedCase.replyDueDate || selectedCase.reply_due_date)}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Issues Covered</Label>
+                          <p className="font-medium">{selectedCase.issueType || selectedCase.matterType || '—'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Section Invoked</Label>
+                          <p className="font-medium">{selectedCase.section_invoked || '—'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Issuing Authority</Label>
+                          <p className="font-medium truncate" title={selectedCase.authority || selectedCase.jurisdictionalCommissionerate || '—'}>
+                            {selectedCase.authority || selectedCase.jurisdictionalCommissionerate || '—'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Link to view scanned notice document */}
+                      <div className="mt-4 pt-3 border-t">
+                        <Button variant="ghost" size="sm" onClick={handleViewOriginalNotice} className="text-xs h-8">
+                          <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                          View Scanned Notice Copy
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </CardContent>
               </CollapsibleContent>
             </Card>
