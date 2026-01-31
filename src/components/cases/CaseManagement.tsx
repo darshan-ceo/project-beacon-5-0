@@ -1260,7 +1260,11 @@ export const CaseManagement: React.FC = () => {
                                     ₹{(caseItem.taxDemand / 100000).toFixed(1)}L
                                   </Badge>
                                 </TooltipTrigger>
-                                <TooltipContent>Tax Demand: ₹{caseItem.taxDemand.toLocaleString('en-IN')}</TooltipContent>
+                                <TooltipContent>
+                                  <span className="font-medium">Tax Demand</span>
+                                  <br />
+                                  <span className="text-base font-semibold">₹{caseItem.taxDemand.toLocaleString('en-IN')}</span>
+                                </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           )}
@@ -1273,7 +1277,15 @@ export const CaseManagement: React.FC = () => {
                                   {caseItem.priority === 'High' ? '!' : caseItem.priority === 'Medium' ? '•' : '-'}
                                 </Badge>
                               </TooltipTrigger>
-                              <TooltipContent>{caseItem.priority} Priority</TooltipContent>
+                              <TooltipContent>
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-2 h-2 rounded-full ${
+                                    caseItem.priority === 'High' ? 'bg-destructive' : 
+                                    caseItem.priority === 'Medium' ? 'bg-warning' : 'bg-muted-foreground'
+                                  }`} />
+                                  <span>{caseItem.priority} Priority</span>
+                                </div>
+                              </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
                           
@@ -1285,7 +1297,15 @@ export const CaseManagement: React.FC = () => {
                                   {caseItem.timelineBreachStatus === 'Red' ? '🔴' : caseItem.timelineBreachStatus === 'Amber' ? '🟡' : '🟢'}
                                 </Badge>
                               </TooltipTrigger>
-                              <TooltipContent>Timeline: {caseItem.timelineBreachStatus || 'Green'}</TooltipContent>
+                              <TooltipContent>
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-2 h-2 rounded-full ${
+                                    caseItem.timelineBreachStatus === 'Red' ? 'bg-destructive' : 
+                                    caseItem.timelineBreachStatus === 'Amber' ? 'bg-warning' : 'bg-success'
+                                  }`} />
+                                  <span>Timeline: {caseItem.timelineBreachStatus || 'Green'}</span>
+                                </div>
+                              </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
                         </div>
@@ -1311,7 +1331,7 @@ export const CaseManagement: React.FC = () => {
                         
                         {/* Documents */}
                         <span 
-                          className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors"
+                          className="flex items-center gap-1 cursor-pointer hover:text-foreground transition-colors"
                           onClick={(e) => { 
                             e.stopPropagation(); 
                             setSelectedCase(caseItem); 
@@ -1324,34 +1344,47 @@ export const CaseManagement: React.FC = () => {
                         
                         <span className="text-muted-foreground/50">•</span>
                         
-                        {/* Next Hearing - Compact */}
+                        {/* Next Hearing - Compact with Tooltip */}
                         {caseItem.nextHearing ? (
-                          <span 
-                            className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors"
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              window.location.href = `/hearings?caseId=${caseItem.id}&hearingDate=${caseItem.nextHearing?.date}&courtId=${caseItem.nextHearing?.courtId}`;
-                            }}
-                          >
-                            <Calendar className="h-3 w-3" />
-                            <span>{caseItem.nextHearing.date}</span>
-                            {caseItem.nextHearing.time && <span className="text-xs">@{caseItem.nextHearing.time}</span>}
-                            {(() => {
-                              const urgency = getHearingUrgency(caseItem.nextHearing.hoursUntil);
-                              if (urgency === 'critical') {
-                                return <Badge variant="destructive" className="h-4 px-1 text-[10px] animate-pulse ml-1">!</Badge>;
-                              }
-                              if (urgency === 'warning') {
-                                return <Badge className="h-4 px-1 text-[10px] bg-warning text-warning-foreground ml-1">!!</Badge>;
-                              }
-                              return null;
-                            })()}
-                          </span>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span 
+                                  className="flex items-center gap-1 cursor-pointer hover:text-foreground transition-colors"
+                                  onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    window.location.href = `/hearings?caseId=${caseItem.id}&hearingDate=${caseItem.nextHearing?.date}&courtId=${caseItem.nextHearing?.courtId}`;
+                                  }}
+                                >
+                                  <Calendar className="h-3 w-3" />
+                                  <span>{caseItem.nextHearing.date}</span>
+                                  {caseItem.nextHearing.time && <span className="text-xs">@{caseItem.nextHearing.time}</span>}
+                                  {(() => {
+                                    const urgency = getHearingUrgency(caseItem.nextHearing.hoursUntil);
+                                    if (urgency === 'critical') {
+                                      return <Badge variant="destructive" className="h-4 px-1 text-[10px] animate-pulse ml-1">!</Badge>;
+                                    }
+                                    if (urgency === 'warning') {
+                                      return <Badge className="h-4 px-1 text-[10px] bg-warning text-warning-foreground ml-1">!!</Badge>;
+                                    }
+                                    return null;
+                                  })()}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <span className="font-medium">Next Hearing</span>
+                                <br />
+                                <span>{caseItem.nextHearing.date} {caseItem.nextHearing.time && `at ${caseItem.nextHearing.time}`}</span>
+                                <br />
+                                <span className="text-xs text-muted-foreground">Click to view hearing details</span>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         ) : (
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="h-5 px-1.5 text-xs text-muted-foreground hover:text-primary" 
+                            className="h-5 px-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground" 
                             onClick={(e) => { 
                               e.stopPropagation(); 
                               setSelectedCase(caseItem); 
