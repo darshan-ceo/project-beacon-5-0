@@ -62,7 +62,29 @@ export class UnifiedTemplateGenerationService {
   }
 
   /**
+   * Convert snake_case to camelCase
+   */
+  private toCamelCase(str: string): string {
+    return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+  }
+
+  /**
+   * Common field aliases for backward compatibility with older templates
+   */
+  private readonly fieldAliases: Record<string, string> = {
+    'client.display_name': 'client.name',
+    'client.displayName': 'client.name',
+    'case.case_number': 'case.caseNumber',
+    'case.current_stage': 'case.currentStage',
+    'case.notice_type': 'case.noticeType',
+    'case.notice_date': 'case.noticeDate',
+    'case.notice_no': 'case.noticeNo',
+    'case.demand_amount': 'case.demandAmount',
+  };
+
+  /**
    * Resolve a value from a data path (e.g., 'client.name', 'case.caseNumber')
+   * Supports snake_case → camelCase fallback for backward compatibility
    */
   private resolveValue(path: string, data: { case?: Case; client?: Client; [key: string]: any }): string {
     // Handle system variables
@@ -70,18 +92,24 @@ export class UnifiedTemplateGenerationService {
       const systemVar = path.replace('system.', '');
       switch (systemVar) {
         case 'currentDate':
+        case 'current_date':
           return format(new Date(), 'dd-MMM-yyyy');
         case 'currentTime':
+        case 'current_time':
           return format(new Date(), 'HH:mm:ss');
         case 'currentYear':
+        case 'current_year':
           return new Date().getFullYear().toString();
         default:
           return '';
       }
     }
 
+    // Check if there's an alias for this path
+    const aliasedPath = this.fieldAliases[path] || path;
+
     // Handle date formatting in path (e.g., 'case.createdAt:DD-MM-YYYY')
-    const [actualPath, dateFormat] = path.split(':');
+    const [actualPath, dateFormat] = aliasedPath.split(':');
     
     // Split path and traverse object
     const parts = actualPath.split('.');
@@ -89,7 +117,25 @@ export class UnifiedTemplateGenerationService {
     
     for (const part of parts) {
       if (value && typeof value === 'object') {
-        value = value[part];
+        // Try original key first
+        if (part in value) {
+          value = value[part];
+        } 
+        // Try camelCase version if original not found (for snake_case keys)
+        else {
+          const camelCasePart = this.toCamelCase(part);
+          if (camelCasePart in value) {
+            value = value[camelCasePart];
+          } else {
+            // Try snake_case version if original not found (for camelCase keys)
+            const snakeCasePart = part.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+            if (snakeCasePart in value) {
+              value = value[snakeCasePart];
+            } else {
+              return '';
+            }
+          }
+        }
       } else {
         return '';
       }
@@ -105,7 +151,7 @@ export class UnifiedTemplateGenerationService {
       }
     }
     
-    return value ? String(value) : '';
+    return value != null ? String(value) : '';
   }
 
   /**
@@ -378,7 +424,149 @@ export class UnifiedTemplateGenerationService {
   }
 
   /**
+   * Build CSS styles for PDF generation (extracted from branding and output settings)
+   */
+  private buildPdfStyles(template: UnifiedTemplate): string {
+    const { branding, output } = template;
+    return `
+      @import url('https://fonts.googleapis.com/css2?family=${branding.font || 'Inter'}:wght@300;400;500;600;700&display=swap');
+      
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      .pdf-container {
+        font-family: '${branding.font || 'Inter'}', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 14px;
+        line-height: 1.6;
+        color: #1a1a1a;
+        background: white;
+        padding: ${output.margins.top}mm ${output.margins.right}mm ${output.margins.bottom}mm ${output.margins.left}mm;
+      }
+      
+      .document-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid ${branding.primaryColor || '#0B5FFF'};
+      }
+      
+      .document-header img {
+        max-height: 60px;
+        margin-bottom: 10px;
+      }
+      
+      .document-header h1 {
+        font-size: 18px;
+        font-weight: 600;
+        color: ${branding.primaryColor || '#0B5FFF'};
+        margin: 0;
+      }
+      
+      .document-footer {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #ddd;
+        font-size: 11px;
+        color: #666;
+        text-align: center;
+      }
+      
+      .page-number {
+        position: absolute;
+        bottom: 10mm;
+        right: 10mm;
+        font-size: 10px;
+        color: #999;
+      }
+      
+      ${branding.watermark?.enabled ? `
+        .watermark {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%) rotate(-45deg);
+          font-size: 72px;
+          font-weight: bold;
+          color: rgba(11, 95, 255, ${(branding.watermark.opacity || 10) / 100});
+          pointer-events: none;
+          z-index: -1;
+          white-space: nowrap;
+        }
+      ` : ''}
+      
+      h1, h2, h3, h4, h5, h6 {
+        margin-top: 20px;
+        margin-bottom: 10px;
+        color: ${branding.primaryColor || '#0B5FFF'};
+      }
+      
+      h1 { font-size: 24px; }
+      h2 { font-size: 20px; }
+      h3 { font-size: 16px; }
+      
+      p {
+        margin-bottom: 10px;
+      }
+      
+      ul, ol {
+        margin-left: 25px;
+        margin-bottom: 15px;
+      }
+      
+      li {
+        margin-bottom: 5px;
+      }
+      
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+      }
+      
+      th, td {
+        padding: 10px;
+        text-align: left;
+        border: 1px solid #ddd;
+      }
+      
+      th {
+        background-color: ${branding.primaryColor || '#0B5FFF'}15;
+        font-weight: 600;
+        color: ${branding.primaryColor || '#0B5FFF'};
+      }
+      
+      strong {
+        font-weight: 600;
+        color: #1a1a1a;
+      }
+      
+      hr {
+        border: none;
+        border-top: 1px solid #ddd;
+        margin: 20px 0;
+      }
+    `;
+  }
+
+  /**
+   * Get page width in mm based on page size and orientation
+   */
+  private getPageWidthMm(pageSize: string, orientation: string): number {
+    const sizes: Record<string, { width: number; height: number }> = {
+      'a4': { width: 210, height: 297 },
+      'letter': { width: 216, height: 279 },
+      'legal': { width: 216, height: 356 },
+    };
+    const size = sizes[pageSize.toLowerCase()] || sizes.a4;
+    return orientation.toLowerCase() === 'landscape' ? size.height : size.width;
+  }
+
+  /**
    * Generate PDF document using html2pdf.js
+   * Uses a robust DOM structure with explicit sizing to ensure reliable capture
    */
   async generatePDF(
     template: UnifiedTemplate,
@@ -389,6 +577,7 @@ export class UnifiedTemplateGenerationService {
     // Normalize template to ensure all nested properties exist
     const normalizedTemplate = this.normalizeTemplate(template);
     
+    // Process content with variable replacement
     const processedContent = this.replaceVariables(
       normalizedTemplate.richContent, 
       normalizedTemplate, 
@@ -396,18 +585,92 @@ export class UnifiedTemplateGenerationService {
       clientData, 
       additionalData
     );
-    
-    const styledContent = this.applyBranding(processedContent, normalizedTemplate);
-    
-    // Create temporary container with sanitized content
-    const container = document.createElement('div');
-    container.innerHTML = DOMPurify.sanitize(styledContent, {
-      ALLOWED_TAGS: ['p', 'div', 'span', 'b', 'i', 'u', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'table', 'tr', 'td', 'th', 'thead', 'tbody', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'style'],
+
+    // Sanitize only the content HTML (not a full document wrapper)
+    const sanitizedContent = DOMPurify.sanitize(processedContent, {
+      ALLOWED_TAGS: ['p', 'div', 'span', 'b', 'i', 'u', 'br', 'strong', 'em', 'ul', 'ol', 'li', 
+                     'table', 'tr', 'td', 'th', 'thead', 'tbody', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'hr'],
       ALLOWED_ATTR: ['style', 'class', 'colspan', 'rowspan', 'src', 'alt', 'width', 'height']
     });
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
+
+    // Debug logging
+    console.log('[PDF Generator] Template:', normalizedTemplate.templateCode, normalizedTemplate.title);
+    console.log('[PDF Generator] Rich content length:', normalizedTemplate.richContent?.length || 0);
+    console.log('[PDF Generator] Processed content length:', processedContent.length);
+    console.log('[PDF Generator] Processed content preview:', processedContent.slice(0, 200));
+    console.log('[PDF Generator] Sanitized content length:', sanitizedContent.length);
+
+    // Create container with explicit dimensions matching page size
+    const pageWidth = this.getPageWidthMm(normalizedTemplate.output.pageSize, normalizedTemplate.output.orientation);
+    const container = document.createElement('div');
+    container.className = 'pdf-container';
+    container.style.cssText = `
+      position: fixed;
+      left: 0;
+      top: 0;
+      visibility: hidden;
+      width: ${pageWidth}mm;
+      min-height: 297mm;
+      background: white;
+      z-index: -9999;
+    `;
+    
+    // Build the PDF CSS and inject via style element
+    const styleElement = document.createElement('style');
+    styleElement.textContent = this.buildPdfStyles(normalizedTemplate);
+    container.appendChild(styleElement);
+
+    // Build content structure
+    const { branding, output } = normalizedTemplate;
+
+    // Add watermark
+    if (branding.watermark?.enabled) {
+      const watermark = document.createElement('div');
+      watermark.className = 'watermark';
+      watermark.textContent = 'CONFIDENTIAL';
+      container.appendChild(watermark);
+    }
+
+    // Add header
+    if (output.includeHeader && branding.header) {
+      const header = document.createElement('div');
+      header.className = 'document-header';
+      header.innerHTML = DOMPurify.sanitize(`
+        ${branding.logo ? `<img src="${branding.logo}" alt="Logo" />` : ''}
+        <h1>${branding.header}</h1>
+      `);
+      container.appendChild(header);
+    }
+
+    // Add main content
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'document-content';
+    contentDiv.innerHTML = sanitizedContent;
+    container.appendChild(contentDiv);
+
+    // Add footer
+    if (output.includeFooter && branding.footer) {
+      const footer = document.createElement('div');
+      footer.className = 'document-footer';
+      footer.innerHTML = DOMPurify.sanitize(`<p>${branding.footer}</p>`);
+      container.appendChild(footer);
+    }
+
+    // Add page numbers
+    if (output.includePageNumbers) {
+      const pageNum = document.createElement('div');
+      pageNum.className = 'page-number';
+      pageNum.textContent = 'Page 1';
+      container.appendChild(pageNum);
+    }
+
+    // Append to document body
     document.body.appendChild(container);
+    
+    // Force layout calculation
+    const rect = container.getBoundingClientRect();
+    console.log('[PDF Generator] Container dimensions:', { width: rect.width, height: rect.height });
+    console.log('[PDF Generator] Container innerHTML length:', container.innerHTML.length);
     
     try {
       const topMargin = typeof normalizedTemplate.output.margins.top === 'number' 
@@ -434,7 +697,14 @@ export class UnifiedTemplateGenerationService {
         margin: margins,
         filename: 'document.pdf',
         image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true,
+          logging: false,
+          allowTaint: true,
+          width: rect.width,
+          windowWidth: rect.width
+        },
         jsPDF: { 
           unit: 'mm', 
           format: normalizedTemplate.output.pageSize.toLowerCase(), 
