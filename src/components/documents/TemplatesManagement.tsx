@@ -141,7 +141,49 @@ export const TemplatesManagement: React.FC = () => {
   const handleGenerate = (template: FormTemplate | CustomTemplate) => {
     // Check if this is a unified template (has richContent field)
     if ('templateType' in template && template.templateType === 'unified' && 'richContent' in template) {
-      setSelectedUnifiedTemplate(template as unknown as UnifiedTemplate);
+      // Normalize template to ensure all nested properties exist with defaults
+      const rawTemplate = template as unknown as UnifiedTemplate;
+      const defaultBranding = {
+        font: 'Inter',
+        primaryColor: '#0B5FFF',
+        accentColor: '#00C2A8',
+        header: '',
+        footer: '',
+        logo: '',
+        watermark: { enabled: false, opacity: 10 }
+      };
+      const defaultOutput = {
+        format: 'PDF' as const,
+        orientation: 'Portrait' as const,
+        pageSize: 'A4' as const,
+        includeHeader: true,
+        includeFooter: true,
+        includePageNumbers: true,
+        filenamePattern: '{{title}}_{{caseNumber}}',
+        margins: { top: 10, bottom: 10, left: 10, right: 10 }
+      };
+      const normalizedTemplate: UnifiedTemplate = {
+        ...rawTemplate,
+        branding: {
+          ...defaultBranding,
+          ...(rawTemplate.branding || {}),
+          watermark: {
+            ...defaultBranding.watermark,
+            ...(rawTemplate.branding?.watermark || {})
+          }
+        },
+        output: {
+          ...defaultOutput,
+          ...(rawTemplate.output || {}),
+          margins: {
+            ...defaultOutput.margins,
+            ...(rawTemplate.output?.margins || {})
+          }
+        },
+        variableMappings: rawTemplate.variableMappings || {},
+        fields: rawTemplate.fields || []
+      };
+      setSelectedUnifiedTemplate(normalizedTemplate);
       setUnifiedGenerateModalOpen(true);
     } else if ('templateType' in template && template.templateType === 'docx') {
       setSelectedTemplate(template);
