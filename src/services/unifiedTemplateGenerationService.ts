@@ -16,6 +16,10 @@ export class UnifiedTemplateGenerationService {
    * Normalize template to ensure all nested properties exist with defaults
    * Prevents "Cannot read properties of undefined" errors
    */
+  /**
+   * Normalize template to ensure all nested properties exist with defaults
+   * Handles legacy schema detection and conversion for backward compatibility
+   */
   private normalizeTemplate(template: UnifiedTemplate): UnifiedTemplate {
     const defaultBranding = {
       font: 'Inter',
@@ -38,6 +42,35 @@ export class UnifiedTemplateGenerationService {
       margins: { top: 10, bottom: 10, left: 10, right: 10 }
     };
 
+    // Detect legacy output structure (has filename but no format)
+    // Legacy format: { filename: "...", dms_folder_by_stage: true, timeline_event: "..." }
+    // Modern format: { format: "PDF", orientation: "Portrait", pageSize: "A4", margins: {...} }
+    const rawOutput = template.output as any;
+    const hasLegacyOutput = rawOutput && 
+      ('filename' in rawOutput || 'dms_folder_by_stage' in rawOutput || 'timeline_event' in rawOutput) && 
+      !('format' in rawOutput);
+
+    console.log('[Template Normalizer] Legacy output detected:', hasLegacyOutput, rawOutput);
+
+    // Build normalized output - if legacy, start fresh from defaults and only preserve filenamePattern
+    let normalizedOutput;
+    if (hasLegacyOutput) {
+      normalizedOutput = {
+        ...defaultOutput,
+        // Preserve legacy filename pattern if present
+        filenamePattern: rawOutput.filename || defaultOutput.filenamePattern,
+      };
+    } else {
+      normalizedOutput = {
+        ...defaultOutput,
+        ...(template.output || {}),
+        margins: {
+          ...defaultOutput.margins,
+          ...(template.output?.margins || {})
+        }
+      };
+    }
+
     return {
       ...template,
       branding: {
@@ -48,14 +81,7 @@ export class UnifiedTemplateGenerationService {
           ...(template.branding?.watermark || {})
         }
       },
-      output: {
-        ...defaultOutput,
-        ...(template.output || {}),
-        margins: {
-          ...defaultOutput.margins,
-          ...(template.output?.margins || {})
-        }
-      },
+      output: normalizedOutput,
       variableMappings: template.variableMappings || {},
       fields: template.fields || []
     };
