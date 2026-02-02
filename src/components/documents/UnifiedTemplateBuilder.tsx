@@ -556,7 +556,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[1100px] h-[90vh] flex flex-col p-0">
+      <DialogContent className="max-w-[1100px] h-[90vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
@@ -631,7 +631,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
         </DialogHeader>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="flex-1 flex flex-col overflow-hidden">
+        <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="flex-1 flex flex-col overflow-hidden min-h-0">
           <div className="px-6 pt-2">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="design" className="flex items-center gap-2">
@@ -659,7 +659,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           </div>
 
           {/* Tab 1: Design */}
-          <TabsContent value="design" className="flex-1 flex gap-4 px-6 pb-4 overflow-hidden mt-4">
+          <TabsContent value="design" className="flex-1 flex gap-4 px-6 pb-4 overflow-hidden mt-4 min-h-0">
             {/* Left Sidebar - Variables */}
             <div className="w-64 flex flex-col border rounded-lg overflow-hidden">
               <div className="p-3 bg-muted/50 border-b">
@@ -717,7 +717,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
             </div>
 
             {/* Right Panel - Editor */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden min-h-0">
               {/* Editor Toolbar */}
               <div className="border rounded-t-lg bg-muted/50 p-2 flex gap-1 flex-wrap">
                 <Button
@@ -804,7 +804,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
               </div>
 
               {/* Editor Content */}
-              <ScrollArea className="flex-1 border border-t-0 rounded-b-lg min-h-[500px]">
+              <ScrollArea className="flex-1 border border-t-0 rounded-b-lg min-h-0 overflow-auto">
                 {previewMode ? (
                   <div className="bg-background p-8">
                     {renderPreview()}
@@ -834,7 +834,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           </TabsContent>
 
           {/* Tab 2: Fields */}
-          <TabsContent value="fields" className="flex-1 flex gap-4 px-6 pb-4 overflow-hidden mt-4">
+          <TabsContent value="fields" className="flex-1 flex gap-4 px-6 pb-4 overflow-hidden mt-4 min-h-0">
             <div className="w-1/4 flex flex-col border rounded-lg overflow-hidden">
               <div className="p-4 bg-muted/50 border-b">
                 <ThreeLayerHelp helpId="tb2_field_library" showExplanation={false}>
@@ -922,7 +922,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           </TabsContent>
 
           {/* Tab 3: Branding */}
-          <TabsContent value="branding" className="flex-1 px-6 pb-4 overflow-auto mt-4">
+          <TabsContent value="branding" className="flex-1 px-6 pb-4 overflow-auto mt-4 min-h-0">
             <div className="max-w-3xl mx-auto space-y-6">
               <div className="space-y-6 p-6 border rounded-lg">
                 <div className="space-y-2">
@@ -1069,7 +1069,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           </TabsContent>
 
           {/* Tab 4: Output */}
-          <TabsContent value="output" className="flex-1 px-6 pb-4 overflow-auto mt-4">
+          <TabsContent value="output" className="flex-1 px-6 pb-4 overflow-auto mt-4 min-h-0">
             <div className="max-w-3xl mx-auto space-y-6">
               <div className="space-y-6 p-6 border rounded-lg">
                 <div className="grid grid-cols-3 gap-4">
