@@ -13,6 +13,55 @@ import DOMPurify from 'dompurify';
 
 export class UnifiedTemplateGenerationService {
   /**
+   * Normalize template to ensure all nested properties exist with defaults
+   * Prevents "Cannot read properties of undefined" errors
+   */
+  private normalizeTemplate(template: UnifiedTemplate): UnifiedTemplate {
+    const defaultBranding = {
+      font: 'Inter',
+      primaryColor: '#0B5FFF',
+      accentColor: '#00C2A8',
+      header: '',
+      footer: '',
+      logo: '',
+      watermark: { enabled: false, opacity: 10 }
+    };
+
+    const defaultOutput = {
+      format: 'PDF' as const,
+      orientation: 'Portrait' as const,
+      pageSize: 'A4' as const,
+      includeHeader: true,
+      includeFooter: true,
+      includePageNumbers: true,
+      filenamePattern: '{{title}}_{{caseNumber}}',
+      margins: { top: 10, bottom: 10, left: 10, right: 10 }
+    };
+
+    return {
+      ...template,
+      branding: {
+        ...defaultBranding,
+        ...(template.branding || {}),
+        watermark: {
+          ...defaultBranding.watermark,
+          ...(template.branding?.watermark || {})
+        }
+      },
+      output: {
+        ...defaultOutput,
+        ...(template.output || {}),
+        margins: {
+          ...defaultOutput.margins,
+          ...(template.output?.margins || {})
+        }
+      },
+      variableMappings: template.variableMappings || {},
+      fields: template.fields || []
+    };
+  }
+
+  /**
    * Resolve a value from a data path (e.g., 'client.name', 'case.caseNumber')
    */
   private resolveValue(path: string, data: { case?: Case; client?: Client; [key: string]: any }): string {
@@ -300,15 +349,18 @@ export class UnifiedTemplateGenerationService {
     clientData?: Client,
     additionalData?: Record<string, any>
   ): Promise<Blob> {
+    // Normalize template to ensure all nested properties exist
+    const normalizedTemplate = this.normalizeTemplate(template);
+    
     const processedContent = this.replaceVariables(
-      template.richContent, 
-      template, 
+      normalizedTemplate.richContent, 
+      normalizedTemplate, 
       caseData, 
       clientData, 
       additionalData
     );
     
-    const styledContent = this.applyBranding(processedContent, template);
+    const styledContent = this.applyBranding(processedContent, normalizedTemplate);
     
     return new Blob([styledContent], { type: 'text/html' });
   }
@@ -322,15 +374,18 @@ export class UnifiedTemplateGenerationService {
     clientData?: Client,
     additionalData?: Record<string, any>
   ): Promise<Blob> {
+    // Normalize template to ensure all nested properties exist
+    const normalizedTemplate = this.normalizeTemplate(template);
+    
     const processedContent = this.replaceVariables(
-      template.richContent, 
-      template, 
+      normalizedTemplate.richContent, 
+      normalizedTemplate, 
       caseData, 
       clientData, 
       additionalData
     );
     
-    const styledContent = this.applyBranding(processedContent, template);
+    const styledContent = this.applyBranding(processedContent, normalizedTemplate);
     
     // Create temporary container with sanitized content
     const container = document.createElement('div');
@@ -343,18 +398,18 @@ export class UnifiedTemplateGenerationService {
     document.body.appendChild(container);
     
     try {
-      const topMargin = typeof template.output.margins.top === 'number' 
-        ? template.output.margins.top 
-        : parseFloat(template.output.margins.top) || 10;
-      const rightMargin = typeof template.output.margins.right === 'number'
-        ? template.output.margins.right
-        : parseFloat(template.output.margins.right) || 10;
-      const bottomMargin = typeof template.output.margins.bottom === 'number'
-        ? template.output.margins.bottom
-        : parseFloat(template.output.margins.bottom) || 10;
-      const leftMargin = typeof template.output.margins.left === 'number'
-        ? template.output.margins.left
-        : parseFloat(template.output.margins.left) || 10;
+      const topMargin = typeof normalizedTemplate.output.margins.top === 'number' 
+        ? normalizedTemplate.output.margins.top 
+        : parseFloat(normalizedTemplate.output.margins.top as unknown as string) || 10;
+      const rightMargin = typeof normalizedTemplate.output.margins.right === 'number'
+        ? normalizedTemplate.output.margins.right
+        : parseFloat(normalizedTemplate.output.margins.right as unknown as string) || 10;
+      const bottomMargin = typeof normalizedTemplate.output.margins.bottom === 'number'
+        ? normalizedTemplate.output.margins.bottom
+        : parseFloat(normalizedTemplate.output.margins.bottom as unknown as string) || 10;
+      const leftMargin = typeof normalizedTemplate.output.margins.left === 'number'
+        ? normalizedTemplate.output.margins.left
+        : parseFloat(normalizedTemplate.output.margins.left as unknown as string) || 10;
         
       const margins: [number, number, number, number] = [
         topMargin,
@@ -370,8 +425,8 @@ export class UnifiedTemplateGenerationService {
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { 
           unit: 'mm', 
-          format: template.output.pageSize.toLowerCase(), 
-          orientation: template.output.orientation.toLowerCase() as 'portrait' | 'landscape'
+          format: normalizedTemplate.output.pageSize.toLowerCase(), 
+          orientation: normalizedTemplate.output.orientation.toLowerCase() as 'portrait' | 'landscape'
         }
       };
       
@@ -393,10 +448,13 @@ export class UnifiedTemplateGenerationService {
     additionalData?: Record<string, any>
   ): Promise<Blob> {
     try {
+      // Normalize template to ensure all nested properties exist
+      const normalizedTemplate = this.normalizeTemplate(template);
+      
       // Create a simple DOCX template with the HTML content
       const processedContent = this.replaceVariables(
-        template.richContent, 
-        template, 
+        normalizedTemplate.richContent, 
+        normalizedTemplate, 
         caseData, 
         clientData, 
         additionalData
@@ -467,14 +525,17 @@ export class UnifiedTemplateGenerationService {
     clientData?: Client,
     additionalData?: Record<string, any>
   ): Promise<Blob> {
-    switch (template.output.format) {
+    // Normalize template to ensure all nested properties exist
+    const normalizedTemplate = this.normalizeTemplate(template);
+    
+    switch (normalizedTemplate.output.format) {
       case 'PDF':
-        return this.generatePDF(template, caseData, clientData, additionalData);
+        return this.generatePDF(normalizedTemplate, caseData, clientData, additionalData);
       case 'DOCX':
-        return this.generateDOCX(template, caseData, clientData, additionalData);
+        return this.generateDOCX(normalizedTemplate, caseData, clientData, additionalData);
       case 'HTML':
       default:
-        return this.generateHTML(template, caseData, clientData, additionalData);
+        return this.generateHTML(normalizedTemplate, caseData, clientData, additionalData);
     }
   }
 
@@ -500,10 +561,13 @@ export class UnifiedTemplateGenerationService {
     caseData?: Case,
     additionalData?: Record<string, any>
   ): string {
-    let filename = template.output.filenamePattern || '${code}_${now:YYYYMMDD}';
+    // Normalize template to ensure all nested properties exist
+    const normalizedTemplate = this.normalizeTemplate(template);
+    
+    let filename = normalizedTemplate.output.filenamePattern || '${code}_${now:YYYYMMDD}';
     
     // Replace ${code}
-    filename = filename.replace('${code}', template.templateCode);
+    filename = filename.replace('${code}', normalizedTemplate.templateCode || 'document');
     
     // Replace ${case.*}
     if (caseData) {
@@ -518,7 +582,7 @@ export class UnifiedTemplateGenerationService {
     });
     
     // Add extension if not present
-    const extension = template.output.format.toLowerCase();
+    const extension = normalizedTemplate.output.format.toLowerCase();
     if (!filename.endsWith(`.${extension}`)) {
       filename += `.${extension}`;
     }
