@@ -185,17 +185,40 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
   const isEditMode = !!initialTemplate;
   
   const [activeTab, setActiveTab] = useState<'design' | 'fields' | 'branding' | 'output' | 'import'>('design');
+  
+  // Merge initialTemplate with defaults to ensure all nested properties exist
+  const mergeWithDefaults = (template: UnifiedTemplate | null | undefined): UnifiedTemplate => {
+    const defaults = createDefaultTemplate();
+    if (!template) return defaults;
+    return {
+      ...defaults,
+      ...template,
+      branding: {
+        ...defaults.branding,
+        ...(template.branding || {}),
+        watermark: {
+          ...defaults.branding.watermark,
+          ...(template.branding?.watermark || {}),
+        },
+      },
+      output: {
+        ...defaults.output,
+        ...(template.output || {}),
+        margins: {
+          ...defaults.output.margins,
+          ...(template.output?.margins || {}),
+        },
+      },
+    };
+  };
+  
   const [templateData, setTemplateData] = useState<UnifiedTemplate>(
-    initialTemplate || createDefaultTemplate()
+    mergeWithDefaults(initialTemplate)
   );
   
   // Update templateData when initialTemplate changes
   useEffect(() => {
-    if (initialTemplate) {
-      setTemplateData(initialTemplate);
-    } else {
-      setTemplateData(createDefaultTemplate());
-    }
+    setTemplateData(mergeWithDefaults(initialTemplate));
   }, [initialTemplate]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
