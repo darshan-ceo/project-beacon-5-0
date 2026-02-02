@@ -1,199 +1,173 @@
 
-# Fix Plan: Case Edit Data Loss for Notice Date, Reply Due Date, Authority Level, and City
 
-## Problem Statement
+# Full-Screen Template Builder Layout Fix
 
-When editing a case, the following fields that were populated during creation appear blank and lose their data after saving:
-1. **Notice Date** - appears blank in edit mode, value lost after save
-2. **Reply Due Date** - appears blank in edit mode, value lost after save
-3. **Authority Level** - appears blank in edit mode, value lost after save
-4. **City** - appears blank in edit mode, value lost after save
+## Problem Summary
 
-## Root Cause Analysis
+The Custom Template Builder dialog has limited visible space for the "Insert Variables" sidebar, content editor, and Field Library sections. Users must scroll within these panels to see all available variables and content. The request is to make these sections use the full available screen height so all data is visible at once without internal scrolling.
 
-### Issue 1: Authority Level - Select Value Mismatch (Critical)
+## Current Layout Analysis
 
-The Authority Level dropdown shows blank because of a case-sensitivity mismatch:
-
-| Layer | Value Format | Example |
-|-------|-------------|---------|
-| Database `stage_code` | UPPERCASE | `ASSESSMENT` |
-| After `normalizeStage()` | Title Case | `Assessment` |
-| Authority Hierarchy IDs | UPPERCASE | `ASSESSMENT` |
-| Form `currentStage` | Title Case | `Assessment` |
-
-**Problem Flow:**
-1. Database stores: `stage_code = 'ASSESSMENT'`
-2. `normalizeStage()` converts to: `'Assessment'` (title case)
-3. `formData.currentStage` gets: `'Assessment'`
-4. Select dropdown has options with `value={level.id}` = `'ASSESSMENT'`
-5. Select component can't find matching option (`'Assessment' !== 'ASSESSMENT'`)
-6. Dropdown shows blank, and on save, either user picks new value or stale value persists
-
-### Issue 2: Unused `authorityLevel` Field Overwriting Data
-
-The form has an `authorityLevel` field that:
-- Is hydrated from `c.authorityLevel || c.authority_level` - both undefined/null
-- Gets saved with empty string value
-- This field is redundant since `currentStage` holds the same information
-
-In `CaseModal.tsx`:
-- Line 137: `authorityLevel: c.authorityLevel || c.authority_level || ''` - always empty
-- Lines 317, 371: `authorityLevel: formData.authorityLevel` - saves empty string
-
-### Issue 3: Notice Date and Reply Due Date - Field Mapping Gap
-
-The form hydration should work correctly (line 130-131):
-```javascript
-notice_date: c.noticeDate || c.notice_date || '',
-reply_due_date: c.replyDueDate || c.reply_due_date || '',
+The dialog structure:
+```
+DialogContent (h-[95vh] = ~912px on 1080p)
+├── DialogHeader (~140px)
+│   ├── Title row
+│   └── Metadata grid (3 columns with inputs)
+├── Tabs Container (flex-1)
+│   ├── TabsList (~48px)
+│   └── TabsContent (flex-1 → gets ~680px)
+│       ├── Variables Sidebar (w-56, contains ScrollArea)
+│       └── Editor Panel (flex-1)
+└── DialogFooter (~60px with Save/Cancel buttons)
 ```
 
-However, looking at `DataInitializer.tsx`, both camelCase and snake_case variants are mapped (lines 297-301). But the issue may be that when the case object comes from `state.cases` (not directly from Supabase), the frontend-only `Case` interface fields might not be consistently populated.
+**Issues identified:**
+1. Dialog height `h-[95vh]` is good, but the header metadata takes significant space
+2. The sidebar uses `ScrollArea` which clips content unnecessarily
+3. On 1080p screens, the variable list only shows ~8-10 items before requiring scroll
+4. The editor area is similarly compressed
 
-Additionally, the `useEffect` dependency array includes `state.cases.length` which could cause re-renders and unexpected resets if the cases array changes.
+## Solution Approach
 
-### Issue 4: City Field - Potentially Same as Notice Date Issue
+Make the Template Builder dialog truly full-screen and maximize content area visibility:
 
-The `city` field hydration looks correct (line 150):
-```javascript
-city: c.city || '',
-```
+### 1. Increase Dialog to Maximum Viewport Height
+- Change from `h-[95vh]` to `h-[98vh]` for maximum screen utilization
+- This provides an additional ~30px on 1080p screens
 
-And `DataInitializer.tsx` line 285 maps it: `city: c.city || ''`
+### 2. Compact Header Metadata
+- Reduce the metadata grid vertical spacing (gap-3 → gap-2)
+- Make inputs more compact (h-8 → h-7)
+- Reduce header padding (pt-4 pb-3 → pt-3 pb-2)
+- This saves approximately 30-40px
 
-## Technical Solution
+### 3. Optimize Tab Content Areas
 
-### Fix 1: Align Authority Level Select Options with Form Value
+**Design Tab:**
+- Widen the variables sidebar from `w-56` to `w-64` to show more label text
+- Remove `ScrollArea` wrapper from the variables sidebar; let the parent handle overflow only when truly needed
+- Set `overflow-y-auto` on the sidebar container itself so it only scrolls if content exceeds available space
+- Increase editor area to use remaining space
 
-**Option A (Recommended):** Keep the `normalizeStage()` output format and update the Select to use `level.name` as the value:
+**Fields Tab:**
+- Similar treatment: widen Field Library panel from `w-1/4` to `w-1/3`
+- Remove unnecessary ScrollArea nesting
 
-```typescript
-// In CaseForm.tsx - make the Select value match option values
-<Select 
-  value={formData.currentStage} 
-  onValueChange={(value) => setFormData(prev => ({ 
-    ...prev, 
-    currentStage: value,
-    matterType: ''
-  }))}
->
-  <SelectContent>
-    {authorityHierarchyService.getActiveAuthorityLevels().map(level => (
-      <SelectItem key={level.id} value={level.name}>  {/* Use level.name instead of level.id */}
-        {level.name}
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
-```
+**Branding/Output/Import Tabs:**
+- Already use `overflow-auto` on content; keep as-is
 
-**Option B:** Update hydration to skip normalization for `currentStage`:
-
-```typescript
-// In CaseModal.tsx hydration
-currentStage: c.stage_code || c.currentStage || 'ASSESSMENT',
-```
-
-**Recommendation:** Option A is simpler and maintains consistency with how other parts of the app display stages in title case.
-
-### Fix 2: Remove Redundant `authorityLevel` Field
-
-Remove the `authorityLevel` field from:
-1. `CaseFormData` interface
-2. Form hydration in `CaseModal.tsx` (line 137)
-3. Case creation payload (lines 317-318)
-4. Case update payload (lines 371-372)
-
-Since `currentStage` already contains this information and `authorityLevel` is never properly populated.
-
-### Fix 3: Fix Form Hydration for Date Fields
-
-The form uses `notice_date` and `reply_due_date` (snake_case) as form field names, but the `Case` interface and DataInitializer provide both variants. Ensure proper fallback chain:
-
-```typescript
-// In CaseModal.tsx hydration - ensure both formats are checked
-notice_date: c.notice_date || c.noticeDate || '',
-reply_due_date: c.reply_due_date || c.replyDueDate || '',
-```
-
-Also remove `state.cases.length` from useEffect dependency to prevent unwanted re-renders:
-
-```typescript
-}, [caseData, mode, contextClientId]); // Remove state.cases.length
-```
-
-### Fix 4: Ensure City Field Hydration Works Correctly
-
-The city hydration looks correct but ensure consistent access:
-
-```typescript
-city: c.city || '',  // This is already correct
-```
+### 4. Make Footer More Compact
+- Reduce footer padding from `py-4` to `py-3`
+- This saves ~16px
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/cases/CaseForm.tsx` | Update Select to use `level.name` as value instead of `level.id` for consistency |
-| `src/components/modals/CaseModal.tsx` | (1) Remove `authorityLevel` from form data and payloads, (2) Fix useEffect dependencies, (3) Verify date field hydration |
+| `src/components/documents/UnifiedTemplateBuilder.tsx` | (1) Increase dialog height, (2) Compact header, (3) Widen sidebars, (4) Remove unnecessary ScrollArea nesting, (5) Compact footer |
 
-## Detailed Code Changes
+## Detailed Changes
 
-### CaseForm.tsx (Authority Level Select Fix)
+### DialogContent (Line 559)
+```tsx
+// Before
+className="max-w-[1100px] h-[95vh] flex flex-col p-0 overflow-hidden"
 
-Current code at line 453:
-```typescript
-<SelectItem key={level.id} value={level.id}>
-  {level.name}
-</SelectItem>
+// After
+className="max-w-[1200px] h-[98vh] flex flex-col p-0 overflow-hidden"
 ```
 
-Changed to:
-```typescript
-<SelectItem key={level.id} value={level.name}>
-  {level.name}
-</SelectItem>
+### DialogHeader (Line 560)
+```tsx
+// Before
+className="px-6 pt-4 pb-3 border-b shrink-0"
+
+// After
+className="px-6 pt-3 pb-2 border-b shrink-0"
 ```
 
-### CaseModal.tsx Changes
+### Metadata Grid (Line 567)
+```tsx
+// Before
+<div className="grid grid-cols-3 gap-3 mt-3 text-sm">
 
-1. **Remove `authorityLevel` from formData interface and initialization**
-
-2. **Remove from hydration** (line 137) - delete entire line
-
-3. **Remove from create payload** (lines 317-318) - delete `authorityLevel: formData.authorityLevel,`
-
-4. **Remove from update payload** (lines 371-372) - delete `authorityLevel: formData.authorityLevel,`
-
-5. **Fix useEffect dependency** (line 170):
-```typescript
-}, [caseData, mode, contextClientId]); // Remove state.cases.length
+// After
+<div className="grid grid-cols-3 gap-2 mt-2 text-sm">
 ```
+
+### All Input Heights
+```tsx
+// Before: className="h-8 text-sm"
+// After: className="h-7 text-sm"
+```
+
+### Design Tab Variables Sidebar (Lines 662-709)
+```tsx
+// Before
+<div className="w-56 flex flex-col border rounded-lg overflow-hidden min-h-0">
+  ...
+  <ScrollArea className="flex-1 min-h-0">
+    <div className="p-2 space-y-2">
+      {categories.map(...)}
+    </div>
+  </ScrollArea>
+</div>
+
+// After - wider, overflow-y-auto directly on container
+<div className="w-72 flex flex-col border rounded-lg overflow-hidden min-h-0">
+  ...
+  <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-1">
+    {categories.map(...)}
+  </div>
+</div>
+```
+
+### Fields Tab Field Library Panel (Lines 831-876)
+```tsx
+// Before
+<div className="w-1/4 flex flex-col border rounded-lg overflow-hidden min-h-0">
+
+// After - wider panel
+<div className="w-1/3 flex flex-col border rounded-lg overflow-hidden min-h-0">
+```
+
+### DialogFooter (Line 1313)
+```tsx
+// Before
+className="px-6 py-4 border-t flex justify-end gap-3"
+
+// After
+className="px-6 py-3 border-t flex justify-end gap-3"
+```
+
+## Height Calculation After Changes (1080p Screen)
+
+| Component | Before | After | Savings |
+|-----------|--------|-------|---------|
+| Dialog Height | 95vh = 912px | 98vh = 940px | +28px |
+| Header | ~140px | ~110px | +30px |
+| Tab List | 48px | 48px | 0 |
+| Footer | 60px | 52px | +8px |
+| **Content Area** | ~664px | ~730px | **+66px** |
+
+This provides approximately 10% more vertical space for content, making more variables visible without scrolling.
+
+## Expected Outcome
+
+After implementation:
+1. **Design Tab**: The "Insert Variables" sidebar will show 15-18 variable items visible at once (up from ~10)
+2. **Editor Area**: Taller editing space with the same width
+3. **Fields Tab**: Field Library panel shows more items without scrolling
+4. **All Tabs**: Footer buttons remain sticky at bottom
+5. **Scroll Behavior**: Internal scrolling only activates when content truly exceeds available space
 
 ## Testing Checklist
 
-1. **Create a new case** with:
-   - Notice Date: 2026-01-15
-   - Reply Due Date: 2026-02-14
-   - Authority Level: Assessment
-   - City: Ahmedabad
+1. Open Template Builder at 1080p resolution
+2. Verify all variable items in "Insert Variables" sidebar are visible without scrolling (or minimal scrolling)
+3. Verify editor area extends from toolbar to preview toggle row
+4. Switch to Fields tab - verify Field Library shows more items
+5. Verify Save & Publish and Cancel buttons remain visible at all times
+6. Test at different resolutions to confirm responsive behavior
 
-2. **Verify in database** that all fields are stored correctly
-
-3. **Edit the case** - verify all fields display with correct values
-
-4. **Save without changes** - verify no data is lost
-
-5. **Modify one field and save** - verify other fields retain their values
-
-6. **Test Authority Level dropdown**:
-   - Verify currently selected level is shown
-   - Verify changing the level works correctly
-   - Verify the value persists after save
-
-## Risk Assessment
-
-- **Low Risk**: Changes are localized to form handling, no database schema changes
-- **Backward Compatibility**: Existing cases with `stage_code` values will continue to work
-- **Testing Focus**: Pay special attention to the Authority Level dropdown as it involves Select component value matching
