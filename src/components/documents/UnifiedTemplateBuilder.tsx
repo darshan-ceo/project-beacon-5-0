@@ -556,16 +556,16 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[1100px] h-[90vh] flex flex-col p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b">
+      <DialogContent className="max-w-[1100px] h-[95vh] flex flex-col p-0 overflow-hidden">
+        <DialogHeader className="px-6 pt-4 pb-3 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             {isEditMode ? 'Edit Template' : 'Template Builder 2.0'}
           </DialogTitle>
           
-          {/* Header Metadata */}
-          <div className="grid grid-cols-3 gap-4 mt-4 text-sm">
-            <div className="space-y-2">
+          {/* Header Metadata - Compact Grid */}
+          <div className="grid grid-cols-3 gap-3 mt-3 text-sm">
+            <div className="space-y-1">
               <ThreeLayerHelp helpId="tb2_template_code" showExplanation={false} />
               <div className="flex gap-2">
                 <Input
@@ -578,10 +578,9 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
                   <Sparkles className="h-3 w-3" />
                 </Button>
               </div>
-              <p className="text-[12px] text-muted-foreground mt-1">Unique identifier for this template</p>
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-1">
               <ThreeLayerHelp helpId="tb2_template_title" showExplanation={false} />
               <Input
                 value={templateData.title}
@@ -589,11 +588,10 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
                 placeholder="e.g., GST Scrutiny Response"
                 className="h-8 text-sm"
               />
-              <p className="text-[12px] text-muted-foreground mt-1">Descriptive name shown in template lists</p>
             </div>
             
             <div className="grid grid-cols-3 gap-2">
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <ThreeLayerHelp helpId="tb2_stage" showExplanation={false} />
                 <Select value={templateData.stage} onValueChange={(stage) => updateTemplateData({ stage })}>
                   <SelectTrigger className="h-8 text-sm">
@@ -605,12 +603,12 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
                 </Select>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <ThreeLayerHelp helpId="tb2_version" showExplanation={false} />
                 <Input value={templateData.version} readOnly className="h-8 text-sm bg-muted" />
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <ThreeLayerHelp helpId="tb2_visibility" showExplanation={false} />
                 <Select 
                   value={templateData.visibility} 
@@ -659,32 +657,33 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           </div>
 
           {/* Tab 1: Design */}
-          <TabsContent value="design" className="flex-1 flex gap-4 px-6 pb-4 overflow-hidden mt-4 min-h-0">
+          <TabsContent value="design" className="flex-1 flex gap-4 px-6 pb-3 overflow-hidden mt-2 min-h-0">
             {/* Left Sidebar - Variables */}
-            <div className="w-64 flex flex-col border rounded-lg overflow-hidden min-h-0">
-              <div className="p-3 bg-muted/50 border-b shrink-0">
+            <div className="w-56 flex flex-col border rounded-lg overflow-hidden min-h-0">
+              <div className="p-2 bg-muted/50 border-b shrink-0">
                 <ThreeLayerHelp helpId="tb2_variable_list" showExplanation={false}>
                   <h3 className="font-medium text-sm">Insert Variables</h3>
                 </ThreeLayerHelp>
-                <p className="text-xs text-muted-foreground mt-1">Dynamic fields auto-filled from case data</p>
+                <p className="text-xs text-muted-foreground">Click to insert into editor</p>
               </div>
               
               <Input
-                placeholder="Search variables..."
+                placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="m-3 h-8 shrink-0"
+                className="mx-2 my-2 h-7 text-sm shrink-0"
+                style={{ width: 'calc(100% - 16px)' }}
               />
               
               <ScrollArea className="flex-1 min-h-0">
-                <div className="p-3 space-y-3">
+                <div className="p-2 space-y-2">
                   {categories.map(cat => {
                     const categoryFields = filteredFields.filter(f => cat === 'all' || f.category === cat);
                     if (categoryFields.length === 0) return null;
                     
                     return (
                       <div key={cat}>
-                        <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">
+                        <h4 className="text-[10px] font-semibold text-muted-foreground mb-1 uppercase tracking-wide">
                           {cat}
                         </h4>
                         {categoryFields.map(field => {
@@ -694,18 +693,11 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
                               key={field.key}
                               variant="ghost"
                               size="sm"
-                              className="w-full justify-start text-xs h-auto py-2 mb-1"
+                              className="w-full justify-start text-xs h-auto py-1.5 mb-0.5"
                               onClick={() => insertVariable(field)}
                             >
-                              <Icon className="h-3 w-3 mr-2 text-muted-foreground" />
-                              <div className="text-left flex-1">
-                                <div className="font-medium">{field.label}</div>
-                                {field.description && (
-                                  <div className="text-[10px] text-muted-foreground">
-                                    {field.description}
-                                  </div>
-                                )}
-                              </div>
+                              <Icon className="h-3 w-3 mr-2 text-muted-foreground shrink-0" />
+                              <span className="truncate">{field.label}</span>
                             </Button>
                           );
                         })}
@@ -803,55 +795,56 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
                 </Button>
               </div>
 
-              {/* Editor Content */}
+              {/* Editor Content - flex-1 with proper min-h-0 for scrolling */}
               <ScrollArea className="flex-1 border border-t-0 rounded-b-lg min-h-0">
                 {previewMode ? (
-                  <div className="bg-background p-8">
+                  <div className="bg-background p-6">
                     {renderPreview()}
                   </div>
                 ) : (
-                  <div className="min-h-0 h-full">
-                    <EditorContent editor={editor} className="h-full min-h-[300px]" />
+                  <div className="min-h-0 flex flex-col">
+                    <EditorContent editor={editor} className="flex-1" />
                   </div>
                 )}
               </ScrollArea>
 
-              {/* Preview Toggle */}
-              <div className="border-t p-2 flex justify-between items-center bg-muted/30">
-                <div className="text-xs text-muted-foreground">
-                  {previewMode ? 'Preview Mode with Mock Data' : 'Editor Mode'}
-                </div>
+              {/* Preview Toggle - Compact */}
+              <div className="border-t p-1.5 flex justify-between items-center bg-muted/30 shrink-0">
+                <span className="text-xs text-muted-foreground">
+                  {previewMode ? 'Preview Mode' : 'Editor Mode'}
+                </span>
                 <Button
                   variant={previewMode ? 'default' : 'outline'}
                   size="sm"
+                  className="h-7 text-xs"
                   onClick={() => setPreviewMode(!previewMode)}
                 >
-                  <Eye className="mr-2 h-4 w-4" />
-                  {previewMode ? 'Back to Editor' : 'Preview Document'}
+                  <Eye className="mr-1.5 h-3.5 w-3.5" />
+                  {previewMode ? 'Editor' : 'Preview'}
                 </Button>
               </div>
             </div>
           </TabsContent>
 
           {/* Tab 2: Fields */}
-          <TabsContent value="fields" className="flex-1 flex gap-4 px-6 pb-4 overflow-hidden mt-4 min-h-0">
+          <TabsContent value="fields" className="flex-1 flex gap-4 px-6 pb-3 overflow-hidden mt-2 min-h-0">
             <div className="w-1/4 flex flex-col border rounded-lg overflow-hidden min-h-0">
-              <div className="p-4 bg-muted/50 border-b shrink-0">
+              <div className="p-3 bg-muted/50 border-b shrink-0">
                 <ThreeLayerHelp helpId="tb2_field_library" showExplanation={false}>
-                  <h3 className="font-medium">Field Library</h3>
+                  <h3 className="font-medium text-sm">Field Library</h3>
                 </ThreeLayerHelp>
-                <p className="text-sm text-muted-foreground mt-1">Available data fields from your system</p>
+                <p className="text-xs text-muted-foreground">Available data fields</p>
               </div>
               
-              <div className="p-3 border-b flex gap-2 shrink-0">
+              <div className="p-2 border-b flex gap-2 shrink-0">
                 <Input
-                  placeholder="Search fields..."
+                  placeholder="Search..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1"
+                  className="flex-1 h-7 text-sm"
                 />
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-24 h-7 text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -865,20 +858,20 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
               </div>
               
               <ScrollArea className="flex-1 min-h-0">
-                <div className="p-3 space-y-2">
+                <div className="p-2 space-y-1">
                   {filteredFields.map(field => {
                     const Icon = field.icon;
                     return (
-                      <div key={field.key} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50">
-                        <div className="flex items-center gap-3">
-                          <Icon className="h-5 w-5 text-muted-foreground" />
-                          <div>
-                            <div className="font-medium text-sm">{field.label}</div>
-                            <div className="text-xs text-muted-foreground">{field.description}</div>
+                      <div key={field.key} className="flex items-center justify-between p-2 border rounded hover:bg-muted/50">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <div className="min-w-0">
+                            <div className="font-medium text-xs truncate">{field.label}</div>
+                            <div className="text-[10px] text-muted-foreground truncate">{field.description}</div>
                           </div>
                         </div>
-                        <Button size="sm" onClick={() => addField(field)}>
-                          <Plus className="h-4 w-4" />
+                        <Button size="sm" className="h-6 w-6 p-0 shrink-0" onClick={() => addField(field)}>
+                          <Plus className="h-3 w-3" />
                         </Button>
                       </div>
                     );
@@ -888,29 +881,29 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
             </div>
 
             <div className="w-3/4 flex flex-col border rounded-lg overflow-hidden min-h-0">
-              <div className="p-4 bg-muted/50 border-b shrink-0">
-                <h3 className="font-medium">Selected Fields ({templateData.fields.length})</h3>
-                <p className="text-sm text-muted-foreground">Fields in your template</p>
+              <div className="p-3 bg-muted/50 border-b shrink-0">
+                <h3 className="font-medium text-sm">Selected Fields ({templateData.fields.length})</h3>
+                <p className="text-xs text-muted-foreground">Fields in your template</p>
               </div>
               
               <ScrollArea className="flex-1 min-h-0">
                 {templateData.fields.length === 0 ? (
-                  <div className="p-8 text-center text-muted-foreground">
-                    <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No fields added yet</p>
-                    <p className="text-sm">Add fields from the library</p>
+                  <div className="p-6 text-center text-muted-foreground">
+                    <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No fields added yet</p>
+                    <p className="text-xs">Add fields from the library</p>
                   </div>
                 ) : (
-                  <div className="p-3 space-y-2">
+                  <div className="p-2 space-y-1">
                     {templateData.fields.map(field => (
-                      <div key={field.key} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div key={field.key} className="flex items-center justify-between p-2 border rounded">
                         <div>
                           <div className="font-medium text-sm">{field.label}</div>
                           <div className="text-xs text-muted-foreground">
                             Type: {field.type} • Key: {field.key}
                           </div>
                         </div>
-                        <Button size="sm" variant="ghost" onClick={() => removeField(field.key)}>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => removeField(field.key)}>
                           Remove
                         </Button>
                       </div>
@@ -922,8 +915,8 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           </TabsContent>
 
           {/* Tab 3: Branding */}
-          <TabsContent value="branding" className="flex-1 px-6 pb-4 overflow-auto mt-4 min-h-0">
-            <div className="max-w-3xl mx-auto space-y-6">
+          <TabsContent value="branding" className="flex-1 px-6 pb-3 overflow-auto mt-2 min-h-0">
+            <div className="max-w-3xl mx-auto space-y-4">
               <div className="space-y-6 p-6 border rounded-lg">
                 <div className="space-y-2">
                   <ThreeLayerHelp helpId="tb2_logo" showExplanation={false} />

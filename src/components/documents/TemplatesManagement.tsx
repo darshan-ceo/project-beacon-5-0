@@ -195,6 +195,53 @@ export const TemplatesManagement: React.FC = () => {
   };
 
   const handleEdit = (template: FormTemplate) => {
+    // Default branding for normalization
+    const defaultBranding = {
+      header: 'H-Office Legal Team – GST Practice',
+      footer: 'Confidential | Generated via Beacon 5.0',
+      watermark: { enabled: false, opacity: 10 },
+      font: 'Inter',
+      primaryColor: '#0B5FFF',
+      accentColor: '#00C2A8',
+    };
+    
+    // Default output for normalization
+    const defaultOutput = {
+      format: 'PDF' as const,
+      orientation: 'Portrait' as const,
+      pageSize: 'A4' as const,
+      margins: { top: 20, bottom: 20, left: 20, right: 20 },
+      includeHeader: true,
+      includeFooter: true,
+      includePageNumbers: true,
+      filenamePattern: '${code}_${case.caseNumber}_${now:YYYYMMDD}.pdf',
+    };
+    
+    // Detect legacy output schema (has filename but no format)
+    const rawOutput = ('output' in template && template.output) ? template.output as any : null;
+    const hasLegacyOutput = rawOutput && 
+      ('filename' in rawOutput || 'dms_folder_by_stage' in rawOutput || 'timeline_event' in rawOutput) && 
+      !('format' in rawOutput);
+
+    console.log('[Template Edit] Legacy output detected:', hasLegacyOutput, rawOutput);
+
+    // Build normalized output - if legacy, start fresh from defaults and preserve filenamePattern
+    let normalizedOutput;
+    if (hasLegacyOutput) {
+      normalizedOutput = {
+        ...defaultOutput,
+        filenamePattern: rawOutput.filename || defaultOutput.filenamePattern,
+      };
+    } else if (rawOutput && 'format' in rawOutput) {
+      normalizedOutput = {
+        ...defaultOutput,
+        ...rawOutput,
+        margins: { ...defaultOutput.margins, ...(rawOutput.margins || {}) }
+      };
+    } else {
+      normalizedOutput = defaultOutput;
+    }
+    
     // Convert any template type to unified format for editing
     const unifiedTemplate: UnifiedTemplate = {
       templateCode: template.code,
@@ -208,24 +255,15 @@ export const TemplatesManagement: React.FC = () => {
       richContent: (('richContent' in template && typeof template.richContent === 'string') ? template.richContent : '<p>Edit your template content here...</p>'),
       fields: template.fields || [],
       variableMappings: (('variableMappings' in template && typeof template.variableMappings === 'object' && template.variableMappings) ? template.variableMappings as Record<string, string> : {}),
-      branding: (('branding' in template && template.branding) ? template.branding : {
-        header: 'H-Office Legal Team – GST Practice',
-        footer: 'Confidential | Generated via Beacon 5.0',
-        watermark: { enabled: false, opacity: 10 },
-        font: 'Inter',
-        primaryColor: '#0B5FFF',
-        accentColor: '#00C2A8',
-      }) as any,
-      output: (('output' in template && template.output && typeof template.output === 'object' && 'format' in template.output) ? template.output : {
-        format: 'PDF' as const,
-        orientation: 'Portrait' as const,
-        pageSize: 'A4' as const,
-        margins: { top: 20, bottom: 20, left: 20, right: 20 },
-        includeHeader: true,
-        includeFooter: true,
-        includePageNumbers: true,
-        filenamePattern: '${code}_${case.caseNumber}_${now:YYYYMMDD}.pdf',
-      }) as any,
+      branding: {
+        ...defaultBranding,
+        ...(('branding' in template && template.branding) ? template.branding as any : {}),
+        watermark: {
+          ...defaultBranding.watermark,
+          ...(('branding' in template && template.branding && (template.branding as any).watermark) ? (template.branding as any).watermark : {}),
+        },
+      },
+      output: normalizedOutput,
       templateType: 'unified',
       sourceType: (('templateType' in template && (template.templateType === 'richtext' || template.templateType === 'fields' || template.templateType === 'docx' || template.templateType === 'json')) ? template.templateType : 'richtext'),
     };
