@@ -661,8 +661,8 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           {/* Tab 1: Design */}
           <TabsContent value="design" className="flex-1 flex gap-4 px-6 pb-4 overflow-hidden mt-4 min-h-0">
             {/* Left Sidebar - Variables */}
-            <div className="w-64 flex flex-col border rounded-lg overflow-hidden">
-              <div className="p-3 bg-muted/50 border-b">
+            <div className="w-64 flex flex-col border rounded-lg overflow-hidden min-h-0">
+              <div className="p-3 bg-muted/50 border-b shrink-0">
                 <ThreeLayerHelp helpId="tb2_variable_list" showExplanation={false}>
                   <h3 className="font-medium text-sm">Insert Variables</h3>
                 </ThreeLayerHelp>
@@ -673,10 +673,10 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
                 placeholder="Search variables..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="m-3 h-8"
+                className="m-3 h-8 shrink-0"
               />
               
-              <ScrollArea className="flex-1">
+              <ScrollArea className="flex-1 min-h-0">
                 <div className="p-3 space-y-3">
                   {categories.map(cat => {
                     const categoryFields = filteredFields.filter(f => cat === 'all' || f.category === cat);
@@ -804,14 +804,14 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
               </div>
 
               {/* Editor Content */}
-              <ScrollArea className="flex-1 border border-t-0 rounded-b-lg min-h-0 overflow-auto">
+              <ScrollArea className="flex-1 border border-t-0 rounded-b-lg min-h-0">
                 {previewMode ? (
                   <div className="bg-background p-8">
                     {renderPreview()}
                   </div>
                 ) : (
-                  <div className="min-h-[500px]">
-                    <EditorContent editor={editor} className="h-full" />
+                  <div className="min-h-0 h-full">
+                    <EditorContent editor={editor} className="h-full min-h-[300px]" />
                   </div>
                 )}
               </ScrollArea>
@@ -835,15 +835,15 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
 
           {/* Tab 2: Fields */}
           <TabsContent value="fields" className="flex-1 flex gap-4 px-6 pb-4 overflow-hidden mt-4 min-h-0">
-            <div className="w-1/4 flex flex-col border rounded-lg overflow-hidden">
-              <div className="p-4 bg-muted/50 border-b">
+            <div className="w-1/4 flex flex-col border rounded-lg overflow-hidden min-h-0">
+              <div className="p-4 bg-muted/50 border-b shrink-0">
                 <ThreeLayerHelp helpId="tb2_field_library" showExplanation={false}>
                   <h3 className="font-medium">Field Library</h3>
                 </ThreeLayerHelp>
                 <p className="text-sm text-muted-foreground mt-1">Available data fields from your system</p>
               </div>
               
-              <div className="p-3 border-b flex gap-2">
+              <div className="p-3 border-b flex gap-2 shrink-0">
                 <Input
                   placeholder="Search fields..."
                   value={searchTerm}
@@ -864,7 +864,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
                 </Select>
               </div>
               
-              <ScrollArea className="flex-1">
+              <ScrollArea className="flex-1 min-h-0">
                 <div className="p-3 space-y-2">
                   {filteredFields.map(field => {
                     const Icon = field.icon;
@@ -887,13 +887,13 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
               </ScrollArea>
             </div>
 
-            <div className="w-3/4 flex flex-col border rounded-lg overflow-hidden">
-              <div className="p-4 bg-muted/50 border-b">
+            <div className="w-3/4 flex flex-col border rounded-lg overflow-hidden min-h-0">
+              <div className="p-4 bg-muted/50 border-b shrink-0">
                 <h3 className="font-medium">Selected Fields ({templateData.fields.length})</h3>
                 <p className="text-sm text-muted-foreground">Fields in your template</p>
               </div>
               
-              <ScrollArea className="flex-1">
+              <ScrollArea className="flex-1 min-h-0">
                 {templateData.fields.length === 0 ? (
                   <div className="p-8 text-center text-muted-foreground">
                     <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
