@@ -1,254 +1,106 @@
 
-# Fix Staff Role "Edit Task" Permission Issue
+## Document Template Generation Error Fix
 
-## ✅ COMPLETED
+### Problem Analysis
 
-## Problem Statement (RESOLVED)
+When clicking "Generate Document" for a Custom Template, the application crashes with:
+**"Cannot read properties of undefined (reading 'font')"**
 
-Mahesh with **Staff** role can see and click the "Edit Task" button, even though Staff role in the Access & Roles settings has:
-- ✅ **Create** permission for tasks
-- ❌ **Edit** permission for tasks (NOT granted)
+This occurs because:
+1. Templates stored in the database may have incomplete nested objects (`branding`, `output`, `margins`)
+2. The generation service directly accesses `template.branding.font` without null checks
+3. The cast from `CustomTemplate` to `UnifiedTemplate` doesn't fill in missing properties
 
-### Root Cause Analysis
+### Solution Overview
 
-1. **Database correctly stores separate permissions**:
-   - `tasks.create` - Staff has this ✓
-   - `tasks.update` - Staff does NOT have this
+Apply defensive programming patterns to ensure all nested properties exist before accessing them, similar to the fix applied for the UnifiedTemplateBuilder.
 
-2. **UI incorrectly conflates create and edit**:
-   - All components check `hasPermission('tasks', 'write')` for both create AND edit buttons
-   - The `supabasePermissionsResolver.mapActionToDatabaseActions('write')` returns `['create', 'update']`
-   - If **either** permission exists, the check returns true
-   - Since Staff has `tasks.create`, the `'write'` check passes, allowing edit button visibility
+### Technical Details
 
-3. **Screenshot evidence confirms**:
-   - Access & Roles shows Task Management: Create ✓, View ✓, Edit ✗, Delete ✗
-   - But Staff user sees "Edit Task" button on task detail page
+#### File 1: `src/services/unifiedTemplateGenerationService.ts`
 
----
-
-## Solution: Granular Permission Actions
-
-### Approach
-Add `'create'` and `'update'` as separate permission action types, allowing UI components to check them independently.
-
----
-
-## Technical Changes
-
-### File 1: `src/services/supabasePermissionsResolver.ts`
-
-**Change**: Add 'create' and 'update' to the PermissionAction type and mapper
-
-**Lines 14, 268-285**
+Add a `normalizeTemplate()` method that ensures all required nested objects exist with default values:
 
 ```typescript
-// Line 14 - Update type definition
-export type PermissionAction = 'read' | 'write' | 'delete' | 'admin' | 'manage' | 'create' | 'update';
+private normalizeTemplate(template: UnifiedTemplate): UnifiedTemplate {
+  const defaultBranding = {
+    font: 'Inter',
+    primaryColor: '#0B5FFF',
+    accentColor: '#00C2A8',
+    header: '',
+    footer: '',
+    watermark: { enabled: false, opacity: 10 }
+  };
 
-// Lines 268-285 - Update the mapper function
-private mapActionToDatabaseActions(action: PermissionAction): string[] {
-  switch (action) {
-    case 'read':
-      return ['read'];
-    case 'create':           // NEW: Granular create check
-      return ['create'];
-    case 'update':           // NEW: Granular update check  
-      return ['update'];
-    case 'write':
-      // write = create OR update (backward compatibility)
-      return ['create', 'update'];
-    case 'delete':
-      return ['delete'];
-    case 'admin':
-      return ['manage', 'admin'];
-    case 'manage':
-      return ['manage'];
-    default:
-      return [action];
-  }
+  const defaultOutput = {
+    format: 'PDF' as const,
+    orientation: 'Portrait' as const,
+    pageSize: 'A4' as const,
+    includeHeader: true,
+    includeFooter: true,
+    includePageNumbers: true,
+    filenamePattern: '{{title}}_{{caseNumber}}',
+    margins: { top: 10, bottom: 10, left: 10, right: 10 }
+  };
+
+  return {
+    ...template,
+    branding: {
+      ...defaultBranding,
+      ...(template.branding || {}),
+      watermark: {
+        ...defaultBranding.watermark,
+        ...(template.branding?.watermark || {})
+      }
+    },
+    output: {
+      ...defaultOutput,
+      ...(template.output || {}),
+      margins: {
+        ...defaultOutput.margins,
+        ...(template.output?.margins || {})
+      }
+    }
+  };
 }
 ```
 
-### File 2: `src/hooks/useAdvancedRBAC.tsx`
+Call this normalizer at the start of each generation method (`generateDocument`, `generatePDF`, `generateHTML`, `generateDOCX`).
 
-**Change**: Add 'create' and 'update' to Permission action type
+#### File 2: `src/components/documents/TemplatesManagement.tsx`
 
-**Line 18**
-
-```typescript
-export interface Permission {
-  module: string;
-  action: 'read' | 'write' | 'delete' | 'admin' | 'manage' | 'create' | 'update';
-}
-```
-
-### File 3: `src/components/tasks/TaskConversation.tsx`
-
-**Change**: Use granular permission checks
-
-**Lines 59-61**
+Update the `handleGenerate` function to normalize the template before setting it as selected:
 
 ```typescript
-// RBAC permission checks - granular actions
-const canDeleteTasks = hasPermission('tasks', 'delete');
-const canCreateTasks = hasPermission('tasks', 'create');  // NEW
-const canEditTasks = hasPermission('tasks', 'update');    // CHANGED from 'write'
-```
-
-### File 4: `src/components/tasks/TaskBoard.tsx`
-
-**Change**: Use granular permission checks
-
-**Lines 72-75**
-
-```typescript
-// RBAC permission flags - granular actions
-const canCreateTasks = hasPermission('tasks', 'create');  // NEW
-const canEditTasks = hasPermission('tasks', 'update');    // CHANGED from 'write'
-const canDeleteTasks = hasPermission('tasks', 'delete');
-```
-
-**Note**: Need to update status change check to use 'update' permission as well (line 146)
-
-### File 5: `src/components/tasks/TaskList.tsx`
-
-**Change**: Use granular permission checks
-
-**Lines 100-102**
-
-```typescript
-// RBAC permission checks - granular actions
-const canDeleteTasks = hasPermission('tasks', 'delete');
-const canCreateTasks = hasPermission('tasks', 'create');  // NEW
-const canEditTasks = hasPermission('tasks', 'update');    // CHANGED from 'write'
-```
-
-### File 6: `src/components/cases/CaseTasksTab.tsx`
-
-**Change**: Use granular permission checks for add vs edit
-
-**Lines 178-213**
-
-```typescript
-// Navigate to create task with case context
-const handleAddTask = () => {
-  if (!hasPermission('tasks', 'create')) {  // CHANGED from 'write'
-    toast({
-      title: 'Permission Denied',
-      description: "You don't have permission to create tasks.",
-      variant: 'destructive',
-    });
-    return;
+const handleGenerate = (template: FormTemplate | CustomTemplate) => {
+  if ('templateType' in template && template.templateType === 'unified' && 'richContent' in template) {
+    // Normalize template with defaults before generation
+    const normalizedTemplate = normalizeUnifiedTemplate(template as unknown as UnifiedTemplate);
+    setSelectedUnifiedTemplate(normalizedTemplate);
+    setUnifiedGenerateModalOpen(true);
   }
-  // ... rest unchanged
-};
-
-// Navigate to edit task
-const handleEditTask = (taskId: string) => {
-  if (!hasPermission('tasks', 'update')) {  // CHANGED from 'write'
-    toast({
-      title: 'Permission Denied',
-      description: "You don't have permission to edit tasks.",
-      variant: 'destructive',
-    });
-    return;
-  }
-  // ... rest unchanged
+  // ... rest of function
 };
 ```
 
-### File 7: `src/components/tasks/TaskManagement.tsx`
+Add a helper function to ensure all nested properties exist with defaults.
 
-**Change**: Separate create permission check
+### Changes Summary
 
-**Lines 114-115**
+| File | Change Type | Description |
+|------|-------------|-------------|
+| `src/services/unifiedTemplateGenerationService.ts` | Add method | `normalizeTemplate()` with defensive defaults |
+| `src/services/unifiedTemplateGenerationService.ts` | Modify | Call normalizer in all generation entry points |
+| `src/components/documents/TemplatesManagement.tsx` | Add function | Template normalization helper |
+| `src/components/documents/TemplatesManagement.tsx` | Modify | Apply normalization in `handleGenerate` |
 
-```typescript
-// RBAC permission checks - base module
-const canDeleteTasks = hasPermission('tasks', 'delete');
-const canCreateTasks = hasPermission('tasks', 'create');  // CHANGED from 'write'
-const canEditTasks = hasPermission('tasks', 'update');    // NEW: for edit buttons
-```
+### Testing Verification
 
-### File 8: `src/pages/CreateTask.tsx`
+After implementation:
+1. Navigate to Document Management > Custom Templates
+2. Select any unified template (Rich Text or Builder 2.0)
+3. Click "Generate" button
+4. Select a case from the dropdown
+5. Click "Generate Document" - should download successfully without errors
 
-**Change**: Use specific create permission
-
-**Line 63**
-
-```typescript
-// Check if user has permission to create tasks
-const canCreateTasks = hasPermission('tasks', 'create');  // CHANGED from 'write'
-```
-
----
-
-## Summary of Changes
-
-| File | Change |
-|------|--------|
-| `supabasePermissionsResolver.ts` | Add 'create'/'update' to PermissionAction type and mapper |
-| `useAdvancedRBAC.tsx` | Add 'create'/'update' to Permission interface |
-| `TaskConversation.tsx` | Use 'update' for edit button check |
-| `TaskBoard.tsx` | Use 'create'/'update' granularly |
-| `TaskList.tsx` | Use 'create'/'update' granularly |
-| `CaseTasksTab.tsx` | Use 'create' for add, 'update' for edit |
-| `TaskManagement.tsx` | Add canEditTasks with 'update' check |
-| `CreateTask.tsx` | Use 'create' for create permission |
-
----
-
-## Expected Result After Fix
-
-| User Role | tasks.create | tasks.update | Can Create | Can Edit |
-|-----------|--------------|--------------|------------|----------|
-| Staff     | ✓            | ✗            | ✓          | ✗        |
-| Manager   | ✓            | ✓            | ✓          | ✓        |
-| Admin     | ✓            | ✓            | ✓          | ✓        |
-
-**Mahesh (Staff)** will:
-- ✅ See "Create Task" buttons
-- ✅ Be able to create new tasks
-- ❌ NOT see "Edit Task" button (currently visible - BUG)
-- ❌ NOT be able to edit existing tasks
-
----
-
-## Testing Checklist
-
-1. **Staff Role (Mahesh)**:
-   - Can see and use "Create Task" button ✓
-   - Cannot see "Edit Task" button on task detail page
-   - Cannot edit tasks from task board dropdown
-   - Cannot change task status via drag-drop (if that requires edit)
-
-2. **Manager Role**:
-   - Can see and use both "Create Task" and "Edit Task" buttons
-   - Can edit tasks from all locations
-
-3. **Admin Role**:
-   - Full access to all task operations
-
-4. **Backward Compatibility**:
-   - Components still using `'write'` continue to work (OR check)
-   - No breaking changes for other modules
-
----
-
-## Additional Check: Missing Role Permissions
-
-Based on database query, these task permissions exist:
-
-| Permission Key | Purpose |
-|----------------|---------|
-| tasks.create | Create new tasks |
-| tasks.read | View tasks |
-| tasks.update | Edit existing tasks |
-| tasks.delete | Delete tasks |
-| tasks.templates.* | Template management |
-| tasks.automation.* | Automation rules |
-| tasks.escalation.* | Escalation matrix |
-| tasks.ai.* | AI assistant |
-
-All necessary permissions are already defined in the database. No new permissions need to be added.
+The fix ensures backward compatibility with templates that were created before all branding/output fields were required, and prevents similar crashes for any future partial template data.
