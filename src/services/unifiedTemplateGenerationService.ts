@@ -127,14 +127,26 @@ export class UnifiedTemplateGenerationService {
     };
 
     // Replace each variable with its mapped value
+    // Escape special regex characters in variable name (especially dots in paths like client.display_name)
     Object.entries(template.variableMappings).forEach(([variable, path]) => {
       const value = this.resolveValue(path, allData);
-      const variableRegex = new RegExp(`{{${variable}}}`, 'g');
+      const escapedVariable = variable.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const variableRegex = new RegExp(`\\{\\{${escapedVariable}\\}\\}`, 'g');
       processedContent = processedContent.replace(variableRegex, value);
     });
 
+    // Direct path replacement for {{case.xxx}}, {{client.xxx}}, and {{system.xxx}} patterns
+    // This handles variables that weren't in variableMappings but follow the dot-notation pattern
+    processedContent = processedContent.replace(
+      /\{\{(case|client|system)\.([^}]+)\}\}/g, 
+      (match, prefix, field) => {
+        const path = `${prefix}.${field}`;
+        return this.resolveValue(path, allData) || '';
+      }
+    );
+
     // Replace any remaining unmapped variables with empty string
-    processedContent = processedContent.replace(/{{[^}]+}}/g, '');
+    processedContent = processedContent.replace(/\{\{[^}]+\}\}/g, '');
 
     return processedContent;
   }
@@ -555,6 +567,7 @@ export class UnifiedTemplateGenerationService {
 
   /**
    * Generate filename from template pattern
+   * Handles both ${} and {{}} placeholder styles for backward compatibility
    */
   generateFilename(
     template: UnifiedTemplate,
@@ -566,20 +579,33 @@ export class UnifiedTemplateGenerationService {
     
     let filename = normalizedTemplate.output.filenamePattern || '${code}_${now:YYYYMMDD}';
     
-    // Replace ${code}
-    filename = filename.replace('${code}', normalizedTemplate.templateCode || 'document');
+    // Replace ${code} and {{code}} style
+    filename = filename.replace(/\$\{code\}|{{code}}/gi, normalizedTemplate.templateCode || 'document');
     
-    // Replace ${case.*}
+    // Replace ${title} and {{title}}
+    filename = filename.replace(/\$\{title\}|{{title}}/gi, normalizedTemplate.title || 'document');
+    
+    // Replace ${case.*} and {{case.*}} patterns
     if (caseData) {
-      filename = filename.replace(/\$\{case\.(\w+)\}/g, (match, field) => {
-        return (caseData as any)[field] || match;
-      });
+      filename = filename.replace(
+        /\$\{case\.(\w+)\}|{{case\.(\w+)}}/g, 
+        (match, field1, field2) => {
+          const field = field1 || field2;
+          return (caseData as any)[field] || '';
+        }
+      );
+      // Handle {{caseNumber}} shorthand (common pattern)
+      filename = filename.replace(/{{caseNumber}}/gi, caseData.caseNumber || '');
     }
     
-    // Replace ${now:format}
-    filename = filename.replace(/\$\{now:([^}]+)\}/g, (match, dateFormat) => {
-      return format(new Date(), dateFormat.replace('DD', 'dd').replace('YYYY', 'yyyy').replace('MM', 'MM'));
-    });
+    // Replace ${now:format} and {{now:format}} patterns
+    filename = filename.replace(
+      /\$\{now:([^}]+)\}|{{now:([^}]+)}}/g, 
+      (match, fmt1, fmt2) => {
+        const dateFormat = fmt1 || fmt2;
+        return format(new Date(), dateFormat.replace('DD', 'dd').replace('YYYY', 'yyyy'));
+      }
+    );
     
     // Add extension if not present
     const extension = normalizedTemplate.output.format.toLowerCase();
