@@ -53,7 +53,6 @@ export interface CaseFormData {
   interest_amount: string;
   penalty_amount: string;
   total_demand: number;
-  authorityLevel: string;
   specificOfficer: string;
   jurisdictionalCommissionerate: string;
   departmentLocation: string;
@@ -450,7 +449,7 @@ export const CaseForm: React.FC<CaseFormProps> = ({
                 </SelectTrigger>
                 <SelectContent className="z-[200] bg-popover" position="popper" sideOffset={5}>
                   {authorityHierarchyService.getActiveAuthorityLevels().map(level => (
-                    <SelectItem key={level.id} value={level.id}>
+                    <SelectItem key={level.id} value={level.name}>
                       {level.name}
                     </SelectItem>
                   ))}
