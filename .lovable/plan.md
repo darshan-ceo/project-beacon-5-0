@@ -1,106 +1,192 @@
 
-## Document Template Generation Error Fix
+# Fix Plan: Custom Document Template Regression
 
-### Problem Analysis
+## Problem Summary
 
-When clicking "Generate Document" for a Custom Template, the application crashes with:
-**"Cannot read properties of undefined (reading 'font')"**
+After Supabase migration, the Custom Template feature has three regressions:
+1. **Blank PDF** - Template content renders but variables aren't being replaced
+2. **Unresolved Filename Placeholders** - Downloaded filename shows `{{title}}_{{caseNumber}}.pdf`
+3. **UI Clipping** - Template editor content gets clipped at normal screen resolution
 
-This occurs because:
-1. Templates stored in the database may have incomplete nested objects (`branding`, `output`, `margins`)
-2. The generation service directly accesses `template.branding.font` without null checks
-3. The cast from `CustomTemplate` to `UnifiedTemplate` doesn't fill in missing properties
+## Root Cause Analysis
 
-### Solution Overview
+### A. Blank PDF / Variable Resolution Failure
 
-Apply defensive programming patterns to ensure all nested properties exist before accessing them, similar to the fix applied for the UnifiedTemplateBuilder.
+The variable replacement logic has a **key mismatch** between stored templates and the resolver:
 
-### Technical Details
+**Stored Template Content** (in Supabase):
+```html
+<p>Client Name: {{client.display_name}}</p>
+<p>Case Number: {{case.case_number}}</p>
+```
 
-#### File 1: `src/services/unifiedTemplateGenerationService.ts`
-
-Add a `normalizeTemplate()` method that ensures all required nested objects exist with default values:
-
-```typescript
-private normalizeTemplate(template: UnifiedTemplate): UnifiedTemplate {
-  const defaultBranding = {
-    font: 'Inter',
-    primaryColor: '#0B5FFF',
-    accentColor: '#00C2A8',
-    header: '',
-    footer: '',
-    watermark: { enabled: false, opacity: 10 }
-  };
-
-  const defaultOutput = {
-    format: 'PDF' as const,
-    orientation: 'Portrait' as const,
-    pageSize: 'A4' as const,
-    includeHeader: true,
-    includeFooter: true,
-    includePageNumbers: true,
-    filenamePattern: '{{title}}_{{caseNumber}}',
-    margins: { top: 10, bottom: 10, left: 10, right: 10 }
-  };
-
-  return {
-    ...template,
-    branding: {
-      ...defaultBranding,
-      ...(template.branding || {}),
-      watermark: {
-        ...defaultBranding.watermark,
-        ...(template.branding?.watermark || {})
-      }
-    },
-    output: {
-      ...defaultOutput,
-      ...(template.output || {}),
-      margins: {
-        ...defaultOutput.margins,
-        ...(template.output?.margins || {})
-      }
-    }
-  };
+**Stored Variable Mappings**:
+```json
+{
+  "client.display_name": "client.display_name",
+  "case.case_number": "case.case_number"
 }
 ```
 
-Call this normalizer at the start of each generation method (`generateDocument`, `generatePDF`, `generateHTML`, `generateDOCX`).
-
-#### File 2: `src/components/documents/TemplatesManagement.tsx`
-
-Update the `handleGenerate` function to normalize the template before setting it as selected:
-
+**Current Replacement Logic** (line 130-133 of `unifiedTemplateGenerationService.ts`):
 ```typescript
-const handleGenerate = (template: FormTemplate | CustomTemplate) => {
-  if ('templateType' in template && template.templateType === 'unified' && 'richContent' in template) {
-    // Normalize template with defaults before generation
-    const normalizedTemplate = normalizeUnifiedTemplate(template as unknown as UnifiedTemplate);
-    setSelectedUnifiedTemplate(normalizedTemplate);
-    setUnifiedGenerateModalOpen(true);
-  }
-  // ... rest of function
-};
+Object.entries(template.variableMappings).forEach(([variable, path]) => {
+  const value = this.resolveValue(path, allData);
+  // Replaces {{variable}} where variable = "client.display_name"
+  // But regex needs to escape dots in the pattern
+  const variableRegex = new RegExp(`{{${variable}}}`, 'g');
+});
 ```
 
-Add a helper function to ensure all nested properties exist with defaults.
+**Problem**: The regex `{{client.display_name}}` isn't escaping the dots, so `.` matches any character instead of a literal dot. This causes unreliable matching.
 
-### Changes Summary
+Additionally, there's a fallback issue where unmapped variables get replaced with empty strings (line 137), but the FIELD_LIBRARY uses underscore-style keys (`client_name`) while templates use dot notation (`client.display_name`).
 
-| File | Change Type | Description |
-|------|-------------|-------------|
-| `src/services/unifiedTemplateGenerationService.ts` | Add method | `normalizeTemplate()` with defensive defaults |
-| `src/services/unifiedTemplateGenerationService.ts` | Modify | Call normalizer in all generation entry points |
-| `src/components/documents/TemplatesManagement.tsx` | Add function | Template normalization helper |
-| `src/components/documents/TemplatesManagement.tsx` | Modify | Apply normalization in `handleGenerate` |
+### B. Filename Placeholder Mismatch
 
-### Testing Verification
+| Default Pattern | Expected by Generator |
+|-----------------|----------------------|
+| `{{title}}_{{caseNumber}}` | `${code}_${case.caseNumber}` |
+
+The `generateFilename` method uses `${}` syntax but defaults/normalization provides `{{}}` syntax.
+
+### C. UI Layout Clipping
+
+The dialog uses `h-[90vh]` with flex layout, but inner `TabsContent` containers lack:
+- `min-h-0` (required for flex children to properly shrink)
+- Proper `overflow-auto` on scrollable content areas
+
+## Solution
+
+### Fix 1: Variable Replacement (Critical)
+
+**File**: `src/services/unifiedTemplateGenerationService.ts`
+
+Update `replaceVariables` method to:
+1. Escape special regex characters in variable names
+2. Also directly replace variables using their path (for dot-notation keys)
+3. Add fallback direct replacement for common patterns
+
+```typescript
+private replaceVariables(...): string {
+  let processedContent = content;
+  
+  const allData = { case: caseData, client: clientData, ...additionalData };
+
+  // Replace each variable with its mapped value
+  Object.entries(template.variableMappings).forEach(([variable, path]) => {
+    const value = this.resolveValue(path, allData);
+    // Escape special regex characters in variable name
+    const escapedVariable = variable.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const variableRegex = new RegExp(`\\{\\{${escapedVariable}\\}\\}`, 'g');
+    processedContent = processedContent.replace(variableRegex, value);
+  });
+
+  // Also do direct path replacement for {{case.xxx}} and {{client.xxx}} patterns
+  processedContent = processedContent.replace(
+    /\{\{(case|client|system)\.([^}]+)\}\}/g, 
+    (match, prefix, field) => {
+      const path = `${prefix}.${field}`;
+      return this.resolveValue(path, allData) || '';
+    }
+  );
+
+  // Replace any remaining unmapped variables with empty string
+  processedContent = processedContent.replace(/\{\{[^}]+\}\}/g, '');
+
+  return processedContent;
+}
+```
+
+### Fix 2: Filename Pattern Normalization
+
+**File**: `src/services/unifiedTemplateGenerationService.ts`
+
+Update `generateFilename` to handle both `${}` and `{{}}` placeholder styles:
+
+```typescript
+generateFilename(template: UnifiedTemplate, caseData?: Case): string {
+  const normalizedTemplate = this.normalizeTemplate(template);
+  let filename = normalizedTemplate.output.filenamePattern || '${code}_${now:YYYYMMDD}';
+  
+  // Replace ${code} and {{code}} style
+  filename = filename.replace(/\$\{code\}|{{code}}/gi, normalizedTemplate.templateCode || 'document');
+  
+  // Replace ${title} and {{title}}
+  filename = filename.replace(/\$\{title\}|{{title}}/gi, normalizedTemplate.title || 'document');
+  
+  // Replace ${case.*} and {{case.*}} patterns
+  if (caseData) {
+    filename = filename.replace(
+      /(\$\{case\.(\w+)\}|{{case\.(\w+)}})/g, 
+      (match, full, field1, field2) => {
+        const field = field1 || field2;
+        return (caseData as any)[field] || '';
+      }
+    );
+    // Handle {{caseNumber}} shorthand
+    filename = filename.replace(/{{caseNumber}}/gi, caseData.caseNumber || '');
+  }
+  
+  // Replace ${now:format} and {{now:format}} patterns
+  filename = filename.replace(
+    /(\$\{now:([^}]+)\}|{{now:([^}]+)}})/g, 
+    (match, full, fmt1, fmt2) => {
+      const dateFormat = fmt1 || fmt2;
+      return format(new Date(), dateFormat.replace('DD', 'dd').replace('YYYY', 'yyyy'));
+    }
+  );
+  
+  // Add extension if not present
+  const extension = normalizedTemplate.output.format.toLowerCase();
+  if (!filename.endsWith(`.${extension}`)) {
+    filename += `.${extension}`;
+  }
+  
+  return filename;
+}
+```
+
+### Fix 3: UI Layout Overflow
+
+**File**: `src/components/documents/UnifiedTemplateBuilder.tsx`
+
+Update the dialog layout structure to ensure proper overflow handling:
+
+```typescript
+// Line 559 - Add min-h-0 to flex container
+<DialogContent className="max-w-[1100px] h-[90vh] flex flex-col p-0 overflow-hidden">
+
+// Line 634 - Add min-h-0 to Tabs container  
+<Tabs ... className="flex-1 flex flex-col overflow-hidden min-h-0">
+
+// Line 662 - Add min-h-0 to TabsContent
+<TabsContent value="design" className="flex-1 flex gap-4 px-6 pb-4 overflow-hidden mt-4 min-h-0">
+
+// Line 720 - Add min-h-0 and overflow to editor panel
+<div className="flex-1 flex flex-col overflow-hidden min-h-0">
+
+// Line 807 - Ensure ScrollArea has min-h-0
+<ScrollArea className="flex-1 border border-t-0 rounded-b-lg min-h-0 overflow-auto">
+```
+
+Similar changes for Fields, Branding, Output tabs.
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/services/unifiedTemplateGenerationService.ts` | Fix regex escaping in `replaceVariables`, add direct path replacement, update `generateFilename` to handle both placeholder styles |
+| `src/components/documents/UnifiedTemplateBuilder.tsx` | Add `min-h-0` and proper overflow classes to flex containers |
+
+## Testing Checklist
 
 After implementation:
 1. Navigate to Document Management > Custom Templates
-2. Select any unified template (Rich Text or Builder 2.0)
-3. Click "Generate" button
-4. Select a case from the dropdown
-5. Click "Generate Document" - should download successfully without errors
-
-The fix ensures backward compatibility with templates that were created before all branding/output fields were required, and prevents similar crashes for any future partial template data.
+2. Edit an existing unified template - verify all tabs are fully visible without scrolling the browser
+3. Add content and variables in the Design tab
+4. Click Generate, select a case
+5. Verify:
+   - PDF contains the template content with variables replaced
+   - Filename includes resolved case number (not `{{caseNumber}}`)
+   - All tabs (Design, Fields, Branding, Output) scroll properly at 1080p resolution
