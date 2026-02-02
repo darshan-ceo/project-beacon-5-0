@@ -1,192 +1,140 @@
 
-# Fix Plan: Custom Document Template Regression
+## What’s happening (restating the issue precisely)
+In **Document Management → Custom Templates**, you can:
+- Add content in the **Design** tab and save the template successfully.
+- Click **Generate**, select a case, and the PDF downloads.
+- But the PDF content is **blank** (even though the template clearly contains text in the editor).
+Additionally:
+- The **Edit Template** dialog UI is **clipped** (variable panel/editor area not fully visible at normal resolution) across **Design / Fields / Branding / Output** tabs.
 
-## Problem Summary
+## What I found in the codebase (key observations)
+### 1) PDF generation uses `html2pdf` on a hidden container
+`unifiedTemplateGenerationService.generatePDF()`:
+- Builds `processedContent` from `template.richContent`
+- Wraps it using normalize/branding HTML (`applyBranding`)
+- Sanitizes with DOMPurify and sets `container.innerHTML = sanitized(styledContent)`
+- Appends container off-screen (`left: -9999px`)
+- Calls `html2pdf().from(container).outputPdf('blob')`
 
-After Supabase migration, the Custom Template feature has three regressions:
-1. **Blank PDF** - Template content renders but variables aren't being replaced
-2. **Unresolved Filename Placeholders** - Downloaded filename shows `{{title}}_{{caseNumber}}.pdf`
-3. **UI Clipping** - Template editor content gets clipped at normal screen resolution
+A blank PDF strongly suggests one of these is true at runtime:
+- The container ends up with **0 width/height** (html2canvas captures “nothing”).
+- DOMPurify + full-document HTML string (`<!doctype><html><head>...`) results in **unexpected DOM** inside a `<div>` container.
+- The element is off-screen in a way html2canvas/html2pdf fails to render (common if the element has no computed layout).
+- The “content” is present, but the captured node ends up empty because of sanitization/DOM parsing quirks.
 
-## Root Cause Analysis
+### 2) Variable pipelines are mixed (snake_case/dot paths vs camelCase app state)
+Your app state objects appear camelCase (e.g. `case.caseNumber`, `client.name`), while some templates/seed content uses snake_case/dot (e.g. `case.case_number`, `client.display_name`).
+We already added regex escaping and direct `{{case.xxx}}` replacement, but **value resolution can still yield empty strings** if the underlying data uses different key naming than the template expects.
+This can reduce content, but it **does not fully explain totally blank PDFs when the template contains plain text**, so we need to fix the PDF capture robustness first.
 
-### A. Blank PDF / Variable Resolution Failure
+### 3) UI clipping: Builder already has many `min-h-0`/overflow fixes, but some flex children still force height
+In `UnifiedTemplateBuilder.tsx`, the editor area still includes:
+- A `min-h-[500px]` wrapper around `EditorContent` inside a `ScrollArea`.
+This can cause the dialog’s internal flex layout to “overflow + clip” at common resolutions, especially when combined with `overflow-hidden` parents.
+Also, the left sidebar variable list uses a `ScrollArea className="flex-1"` but the sidebar container lacks `min-h-0`, which can break proper scroll sizing in nested flex.
 
-The variable replacement logic has a **key mismatch** between stored templates and the resolver:
+## Do I know what the issue is?
+Partially.
+- **UI clipping**: yes—this is classic nested flex + missing `min-h-0` + “min-height forcing” (the `min-h-[500px]`) causing content to be clipped.
+- **Blank PDF**: not 100% proven yet, but the most likely cause is the html2pdf/html2canvas capture node having **invalid/zero layout** due to building a full `<html><head><body>` document inside a `<div>` and/or offscreen sizing issues. We need to instrument and then adjust the capture DOM to a predictable structure.
 
-**Stored Template Content** (in Supabase):
-```html
-<p>Client Name: {{client.display_name}}</p>
-<p>Case Number: {{case.case_number}}</p>
-```
+## Implementation plan (no redesign; strictly regression fix)
 
-**Stored Variable Mappings**:
-```json
-{
-  "client.display_name": "client.display_name",
-  "case.case_number": "case.case_number"
-}
-```
+### Phase 1 — Add targeted instrumentation (fast, decisive)
+Goal: determine whether the PDF pipeline receives real HTML and whether the capture node has real dimensions.
 
-**Current Replacement Logic** (line 130-133 of `unifiedTemplateGenerationService.ts`):
-```typescript
-Object.entries(template.variableMappings).forEach(([variable, path]) => {
-  const value = this.resolveValue(path, allData);
-  // Replaces {{variable}} where variable = "client.display_name"
-  // But regex needs to escape dots in the pattern
-  const variableRegex = new RegExp(`{{${variable}}}`, 'g');
-});
-```
+In `UnifiedTemplateGenerationService.generatePDF()` add temporary debug logs:
+- `template.templateCode`, `template.title`
+- `normalizedTemplate.richContent.length`
+- `processedContent.length` and a short preview `processedContent.slice(0, 200)`
+- `container.innerHTML.length`
+- `container.getBoundingClientRect()` (width/height)
+- If width/height are ~0, that’s the smoking gun.
 
-**Problem**: The regex `{{client.display_name}}` isn't escaping the dots, so `.` matches any character instead of a literal dot. This causes unreliable matching.
+This will confirm whether the blank PDF is because:
+- content is missing, or
+- content exists but capture DOM is effectively empty.
 
-Additionally, there's a fallback issue where unmapped variables get replaced with empty strings (line 137), but the FIELD_LIBRARY uses underscore-style keys (`client_name`) while templates use dot notation (`client.display_name`).
+### Phase 2 — Make the PDF capture DOM predictable and measurable (primary blank-PDF fix)
+Refactor `generatePDF()` to stop injecting a **full HTML document string** into a `<div>`.
 
-### B. Filename Placeholder Mismatch
+Instead:
+1) Build **CSS** separately (from branding/output).
+2) Sanitize **only the content HTML** (the template’s richContent), not the whole wrapper document.
+3) Create a container like:
 
-| Default Pattern | Expected by Generator |
-|-----------------|----------------------|
-| `{{title}}_{{caseNumber}}` | `${code}_${case.caseNumber}` |
+- `<div>` (outer) with:
+  - explicit width matching page size (A4/Letter/Legal)
+  - background white
+  - padding/margins applied
+  - `position: fixed; left: 0; top: 0; visibility: hidden;` (better than -9999px for some html2canvas cases)
+- `<style>` element appended to the container (or document head temporarily)
+- `<div class="document-content">` containing sanitized `processedContent`
 
-The `generateFilename` method uses `${}` syntax but defaults/normalization provides `{{}}` syntax.
+4) Ensure the container has a valid computed size:
+- set `container.style.width`:
+  - A4 portrait: ~`210mm`
+  - A4 landscape: ~`297mm`
+  - or use px fallback (e.g., 794px for A4 width at 96dpi)
+- set `container.style.minHeight` similarly
 
-### C. UI Layout Clipping
+5) Call html2pdf on the inner content element or the container after it’s laid out.
 
-The dialog uses `h-[90vh]` with flex layout, but inner `TabsContent` containers lack:
-- `min-h-0` (required for flex children to properly shrink)
-- Proper `overflow-auto` on scrollable content areas
+This removes DOM parsing ambiguity and prevents “empty capture”.
 
-## Solution
+### Phase 3 — Strengthen value resolution without breaking existing templates (variable regression hardening)
+Update `resolveValue()` to support:
+- snake_case → camelCase fallback per segment (e.g. `case.case_number` → try `case.caseNumber`)
+- common aliases:
+  - `client.display_name` → `client.name`
+  - `case.case_number` → `case.caseNumber`
+This keeps older templates working post-migration without needing manual edits.
 
-### Fix 1: Variable Replacement (Critical)
+Also update filename resolver to handle both:
+- `{{case.case_number}}` and `{{caseNumber}}`
+by using the same fallback logic.
 
-**File**: `src/services/unifiedTemplateGenerationService.ts`
+### Phase 4 — Fix the dialog clipping (UI regression fix)
+In `UnifiedTemplateBuilder.tsx`:
+1) Remove or reduce the forced minimum height that breaks layout:
+- Replace the editor wrapper `min-h-[500px]` with `min-h-0 h-full` so ScrollArea owns scroll.
+2) Ensure every flex child that should scroll has `min-h-0`:
+- Left sidebar container: add `min-h-0`
+- Left sidebar ScrollArea: add `min-h-0`
+- Fields tab left/right panels and their ScrollAreas: add `min-h-0`
+3) Verify `TabsContent` containers:
+- Keep `overflow-hidden` at the TabContent level (so the dialog doesn’t scroll)
+- Ensure the inner ScrollAreas are the only scroll surfaces
 
-Update `replaceVariables` method to:
-1. Escape special regex characters in variable names
-2. Also directly replace variables using their path (for dot-notation keys)
-3. Add fallback direct replacement for common patterns
+This should make the builder fully visible at 1080p without needing to resize the window smaller.
 
-```typescript
-private replaceVariables(...): string {
-  let processedContent = content;
-  
-  const allData = { case: caseData, client: clientData, ...additionalData };
+### Phase 5 — Verification checklist (end-to-end)
+1) Open Custom Templates → Edit Template:
+- At normal screen size, confirm all tabs show fully and editor/variables panels are usable with internal scrolling.
+2) Add plain text + at least one variable, Save & Publish.
+3) Generate → select a case → download PDF:
+- PDF must show:
+  - the plain text from the editor
+  - the resolved variable values
+4) Confirm filename resolution:
+- no `{{title}}_{{caseNumber}}.pdf` placeholders remain
+5) Repeat on an older template created pre-migration (to confirm backward compatibility).
 
-  // Replace each variable with its mapped value
-  Object.entries(template.variableMappings).forEach(([variable, path]) => {
-    const value = this.resolveValue(path, allData);
-    // Escape special regex characters in variable name
-    const escapedVariable = variable.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const variableRegex = new RegExp(`\\{\\{${escapedVariable}\\}\\}`, 'g');
-    processedContent = processedContent.replace(variableRegex, value);
-  });
+## Deliverables (what will change)
+- `src/services/unifiedTemplateGenerationService.ts`
+  - Add instrumentation (temporary)
+  - Refactor PDF DOM build for reliable capture
+  - Add robust snake_case/camelCase + alias resolution
+- `src/components/documents/UnifiedTemplateBuilder.tsx`
+  - Remove forced min-height, add missing `min-h-0`/scroll fixes to eliminate clipping
 
-  // Also do direct path replacement for {{case.xxx}} and {{client.xxx}} patterns
-  processedContent = processedContent.replace(
-    /\{\{(case|client|system)\.([^}]+)\}\}/g, 
-    (match, prefix, field) => {
-      const path = `${prefix}.${field}`;
-      return this.resolveValue(path, allData) || '';
-    }
-  );
+## Risk management
+- The PDF change is localized to the generation service and does not affect template editing or saving.
+- The resolver fallback will be additive: it tries the original path first, then tries fallbacks, reducing risk of breaking existing mappings.
+- UI changes are CSS-class-level and can be validated quickly in the preview.
 
-  // Replace any remaining unmapped variables with empty string
-  processedContent = processedContent.replace(/\{\{[^}]+\}\}/g, '');
-
-  return processedContent;
-}
-```
-
-### Fix 2: Filename Pattern Normalization
-
-**File**: `src/services/unifiedTemplateGenerationService.ts`
-
-Update `generateFilename` to handle both `${}` and `{{}}` placeholder styles:
-
-```typescript
-generateFilename(template: UnifiedTemplate, caseData?: Case): string {
-  const normalizedTemplate = this.normalizeTemplate(template);
-  let filename = normalizedTemplate.output.filenamePattern || '${code}_${now:YYYYMMDD}';
-  
-  // Replace ${code} and {{code}} style
-  filename = filename.replace(/\$\{code\}|{{code}}/gi, normalizedTemplate.templateCode || 'document');
-  
-  // Replace ${title} and {{title}}
-  filename = filename.replace(/\$\{title\}|{{title}}/gi, normalizedTemplate.title || 'document');
-  
-  // Replace ${case.*} and {{case.*}} patterns
-  if (caseData) {
-    filename = filename.replace(
-      /(\$\{case\.(\w+)\}|{{case\.(\w+)}})/g, 
-      (match, full, field1, field2) => {
-        const field = field1 || field2;
-        return (caseData as any)[field] || '';
-      }
-    );
-    // Handle {{caseNumber}} shorthand
-    filename = filename.replace(/{{caseNumber}}/gi, caseData.caseNumber || '');
-  }
-  
-  // Replace ${now:format} and {{now:format}} patterns
-  filename = filename.replace(
-    /(\$\{now:([^}]+)\}|{{now:([^}]+)}})/g, 
-    (match, full, fmt1, fmt2) => {
-      const dateFormat = fmt1 || fmt2;
-      return format(new Date(), dateFormat.replace('DD', 'dd').replace('YYYY', 'yyyy'));
-    }
-  );
-  
-  // Add extension if not present
-  const extension = normalizedTemplate.output.format.toLowerCase();
-  if (!filename.endsWith(`.${extension}`)) {
-    filename += `.${extension}`;
-  }
-  
-  return filename;
-}
-```
-
-### Fix 3: UI Layout Overflow
-
-**File**: `src/components/documents/UnifiedTemplateBuilder.tsx`
-
-Update the dialog layout structure to ensure proper overflow handling:
-
-```typescript
-// Line 559 - Add min-h-0 to flex container
-<DialogContent className="max-w-[1100px] h-[90vh] flex flex-col p-0 overflow-hidden">
-
-// Line 634 - Add min-h-0 to Tabs container  
-<Tabs ... className="flex-1 flex flex-col overflow-hidden min-h-0">
-
-// Line 662 - Add min-h-0 to TabsContent
-<TabsContent value="design" className="flex-1 flex gap-4 px-6 pb-4 overflow-hidden mt-4 min-h-0">
-
-// Line 720 - Add min-h-0 and overflow to editor panel
-<div className="flex-1 flex flex-col overflow-hidden min-h-0">
-
-// Line 807 - Ensure ScrollArea has min-h-0
-<ScrollArea className="flex-1 border border-t-0 rounded-b-lg min-h-0 overflow-auto">
-```
-
-Similar changes for Fields, Branding, Output tabs.
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/services/unifiedTemplateGenerationService.ts` | Fix regex escaping in `replaceVariables`, add direct path replacement, update `generateFilename` to handle both placeholder styles |
-| `src/components/documents/UnifiedTemplateBuilder.tsx` | Add `min-h-0` and proper overflow classes to flex containers |
-
-## Testing Checklist
-
-After implementation:
-1. Navigate to Document Management > Custom Templates
-2. Edit an existing unified template - verify all tabs are fully visible without scrolling the browser
-3. Add content and variables in the Design tab
-4. Click Generate, select a case
-5. Verify:
-   - PDF contains the template content with variables replaced
-   - Filename includes resolved case number (not `{{caseNumber}}`)
-   - All tabs (Design, Fields, Branding, Output) scroll properly at 1080p resolution
+## What I need from you (only if the debug logs confirm ambiguity)
+If after Phase 1 logs we still see “content exists and container has correct dimensions” but PDF is blank, then the next step would be to capture:
+- the first ~200 characters of `container.innerHTML`
+- `container.getBoundingClientRect()`
+to pinpoint if html2canvas is failing due to CSS/CORS/font loading.
