@@ -256,11 +256,19 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
   }, [templateData.richContent]);
 
   const updateTemplateData = (updates: Partial<UnifiedTemplate>) => {
-    setTemplateData(prev => ({
-      ...prev,
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    }));
+    // Defensive deep-merge with defaults so nested objects (branding/output/margins)
+    // can never become undefined due to partial updates.
+    setTemplateData((prev) => {
+      const merged = mergeWithDefaults({
+        ...prev,
+        ...updates,
+      } as UnifiedTemplate);
+
+      return {
+        ...merged,
+        updatedAt: new Date().toISOString(),
+      };
+    });
   };
 
   const generateTemplateCode = () => {
