@@ -1,173 +1,155 @@
 
-
-# Full-Screen Template Builder Layout Fix
+# Full-Screen Template Builder - Complete Layout Overhaul
 
 ## Problem Summary
 
-The Custom Template Builder dialog has limited visible space for the "Insert Variables" sidebar, content editor, and Field Library sections. Users must scroll within these panels to see all available variables and content. The request is to make these sections use the full available screen height so all data is visible at once without internal scrolling.
+The Custom Template Builder (Document Management > Custom Templates) currently shows:
+1. **Insert Variables sidebar** has internal scrolling when it should fit the full height
+2. **Content editor** doesn't extend to the full available height
+3. **Blank space** exists between content areas and the Save button
+4. All tabs (Design, Fields, Branding, Output, Import/Export) have similar issues
+
+The goal is to make all content fill the entire vertical space from the header to the Save button with zero wasted space.
 
 ## Current Layout Analysis
 
-The dialog structure:
+From the screenshots, the current structure has these issues:
+
+| Component | Current State | Issue |
+|-----------|--------------|-------|
+| Dialog | `h-[98vh]` | Good, but content areas don't fill it |
+| Variables Sidebar | `w-72` with `overflow-y-auto` | Still shows scroll when content could fit |
+| Editor | `min-h-[450px]` hardcoded in prose class | Doesn't flex to fill available space |
+| Tab Content | `flex-1` but competes with internal fixed heights | Content gets compressed |
+| Footer | `py-3` | OK |
+
+**Root Cause**: The editor component has a hardcoded `min-h-[450px]` in its prose class styling, and the flex layout isn't properly propagating through all nested containers to allow content to truly fill the available space.
+
+## Solution: True Full-Height Layout
+
+### Key Changes
+
+1. **Remove hardcoded editor min-height** - Let flexbox determine height
+2. **Use CSS calc() for precise height allocation** - Subtract header/footer from viewport
+3. **Make all tab content areas use identical flex patterns** - Consistent behavior across tabs
+4. **Ensure every nested flex container has min-h-0** - Critical for proper flex overflow behavior
+
+### Technical Details
+
+#### 1. Editor Prose Class Fix (Line 244)
+Remove the fixed `min-h-[450px]` that prevents flexible sizing:
+
+```typescript
+// Before
+class: 'prose prose-sm max-w-none focus:outline-none min-h-[450px] p-6 bg-background',
+
+// After - Remove min-height, let parent container control size
+class: 'prose prose-sm max-w-none focus:outline-none h-full p-6 bg-background',
 ```
-DialogContent (h-[95vh] = ~912px on 1080p)
-├── DialogHeader (~140px)
-│   ├── Title row
-│   └── Metadata grid (3 columns with inputs)
-├── Tabs Container (flex-1)
-│   ├── TabsList (~48px)
-│   └── TabsContent (flex-1 → gets ~680px)
-│       ├── Variables Sidebar (w-56, contains ScrollArea)
-│       └── Editor Panel (flex-1)
-└── DialogFooter (~60px with Save/Cancel buttons)
+
+#### 2. Design Tab - Variables Sidebar (Lines 662-707)
+The sidebar should expand to fill available height without internal scroll unless truly needed:
+
+```tsx
+// Current
+<div className="w-72 flex flex-col border rounded-lg overflow-hidden min-h-0">
+  // ... header, search ...
+  <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-1">
+
+// After - Remove artificial height constraints, let it grow
+<div className="w-64 flex flex-col border rounded-lg overflow-hidden h-full">
+  // ... header, search (shrink-0) ...
+  <div className="flex-1 overflow-y-auto p-2 space-y-1">
 ```
 
-**Issues identified:**
-1. Dialog height `h-[95vh]` is good, but the header metadata takes significant space
-2. The sidebar uses `ScrollArea` which clips content unnecessarily
-3. On 1080p screens, the variable list only shows ~8-10 items before requiring scroll
-4. The editor area is similarly compressed
+#### 3. Design Tab - Editor Panel (Lines 709-824)
+Ensure the editor truly fills all available height:
 
-## Solution Approach
+```tsx
+// Current ScrollArea wrapper
+<ScrollArea className="flex-1 border border-t-0 rounded-b-lg min-h-0">
 
-Make the Template Builder dialog truly full-screen and maximize content area visibility:
+// After - Make it fill container height
+<ScrollArea className="flex-1 border border-t-0 rounded-b-lg h-full">
+  <EditorContent editor={editor} className="h-full" />
+</ScrollArea>
+```
 
-### 1. Increase Dialog to Maximum Viewport Height
-- Change from `h-[95vh]` to `h-[98vh]` for maximum screen utilization
-- This provides an additional ~30px on 1080p screens
+#### 4. Fields Tab Layout (Lines 828-911)
+Both the Field Library and Selected Fields panels should fill height:
 
-### 2. Compact Header Metadata
-- Reduce the metadata grid vertical spacing (gap-3 → gap-2)
-- Make inputs more compact (h-8 → h-7)
-- Reduce header padding (pt-4 pb-3 → pt-3 pb-2)
-- This saves approximately 30-40px
+```tsx
+// Left panel - Field Library
+<div className="w-1/3 flex flex-col border rounded-lg overflow-hidden h-full">
+  // ... header (shrink-0) ...
+  <div className="flex-1 overflow-y-auto p-2 space-y-1">
 
-### 3. Optimize Tab Content Areas
+// Right panel - Selected Fields  
+<div className="w-2/3 flex flex-col border rounded-lg overflow-hidden h-full">
+  // ... header (shrink-0) ...
+  <ScrollArea className="flex-1">
+```
 
-**Design Tab:**
-- Widen the variables sidebar from `w-56` to `w-64` to show more label text
-- Remove `ScrollArea` wrapper from the variables sidebar; let the parent handle overflow only when truly needed
-- Set `overflow-y-auto` on the sidebar container itself so it only scrolls if content exceeds available space
-- Increase editor area to use remaining space
+#### 5. Branding/Output/Import Tabs
+These tabs already use `overflow-auto` but should also ensure full height usage with `h-full` on content containers.
 
-**Fields Tab:**
-- Similar treatment: widen Field Library panel from `w-1/4` to `w-1/3`
-- Remove unnecessary ScrollArea nesting
+#### 6. Tab Content Container (Line 660)
+All TabsContent should have consistent height allocation:
 
-**Branding/Output/Import Tabs:**
-- Already use `overflow-auto` on content; keep as-is
+```tsx
+// Before
+<TabsContent value="design" className="flex-1 flex gap-4 px-6 pb-3 overflow-hidden mt-2 min-h-0">
 
-### 4. Make Footer More Compact
-- Reduce footer padding from `py-4` to `py-3`
-- This saves ~16px
+// After - Add h-full to ensure children can calculate height
+<TabsContent value="design" className="flex-1 flex gap-4 px-6 pb-3 overflow-hidden mt-2 h-full">
+```
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/documents/UnifiedTemplateBuilder.tsx` | (1) Increase dialog height, (2) Compact header, (3) Widen sidebars, (4) Remove unnecessary ScrollArea nesting, (5) Compact footer |
+| `src/components/documents/UnifiedTemplateBuilder.tsx` | Remove hardcoded heights, add h-full to flex containers, ensure proper flex inheritance |
 
-## Detailed Changes
+## Height Distribution After Changes
 
-### DialogContent (Line 559)
-```tsx
-// Before
-className="max-w-[1100px] h-[95vh] flex flex-col p-0 overflow-hidden"
+On a 1080p screen (960px viewport height at 98vh):
 
-// After
-className="max-w-[1200px] h-[98vh] flex flex-col p-0 overflow-hidden"
-```
+| Component | Height |
+|-----------|--------|
+| Dialog total | 940px |
+| Header with metadata | ~90px |
+| Tab list | 48px |
+| Tab content padding | 20px |
+| **Available for content** | **~730px** |
+| Footer | ~52px |
 
-### DialogHeader (Line 560)
-```tsx
-// Before
-className="px-6 pt-4 pb-3 border-b shrink-0"
+The Variables sidebar and Editor will both get the full 730px height, showing all variables without scroll (unless there are truly more than fit).
 
-// After
-className="px-6 pt-3 pb-2 border-b shrink-0"
-```
-
-### Metadata Grid (Line 567)
-```tsx
-// Before
-<div className="grid grid-cols-3 gap-3 mt-3 text-sm">
-
-// After
-<div className="grid grid-cols-3 gap-2 mt-2 text-sm">
-```
-
-### All Input Heights
-```tsx
-// Before: className="h-8 text-sm"
-// After: className="h-7 text-sm"
-```
-
-### Design Tab Variables Sidebar (Lines 662-709)
-```tsx
-// Before
-<div className="w-56 flex flex-col border rounded-lg overflow-hidden min-h-0">
-  ...
-  <ScrollArea className="flex-1 min-h-0">
-    <div className="p-2 space-y-2">
-      {categories.map(...)}
-    </div>
-  </ScrollArea>
-</div>
-
-// After - wider, overflow-y-auto directly on container
-<div className="w-72 flex flex-col border rounded-lg overflow-hidden min-h-0">
-  ...
-  <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-1">
-    {categories.map(...)}
-  </div>
-</div>
-```
-
-### Fields Tab Field Library Panel (Lines 831-876)
-```tsx
-// Before
-<div className="w-1/4 flex flex-col border rounded-lg overflow-hidden min-h-0">
-
-// After - wider panel
-<div className="w-1/3 flex flex-col border rounded-lg overflow-hidden min-h-0">
-```
-
-### DialogFooter (Line 1313)
-```tsx
-// Before
-className="px-6 py-4 border-t flex justify-end gap-3"
-
-// After
-className="px-6 py-3 border-t flex justify-end gap-3"
-```
-
-## Height Calculation After Changes (1080p Screen)
-
-| Component | Before | After | Savings |
-|-----------|--------|-------|---------|
-| Dialog Height | 95vh = 912px | 98vh = 940px | +28px |
-| Header | ~140px | ~110px | +30px |
-| Tab List | 48px | 48px | 0 |
-| Footer | 60px | 52px | +8px |
-| **Content Area** | ~664px | ~730px | **+66px** |
-
-This provides approximately 10% more vertical space for content, making more variables visible without scrolling.
-
-## Expected Outcome
+## Visual Result
 
 After implementation:
-1. **Design Tab**: The "Insert Variables" sidebar will show 15-18 variable items visible at once (up from ~10)
-2. **Editor Area**: Taller editing space with the same width
-3. **Fields Tab**: Field Library panel shows more items without scrolling
-4. **All Tabs**: Footer buttons remain sticky at bottom
-5. **Scroll Behavior**: Internal scrolling only activates when content truly exceeds available space
+- **Design Tab**: Variables sidebar shows all items (Client, Case, Employee, Court, System categories) without scrolling. Editor fills from toolbar to preview toggle.
+- **Fields Tab**: Field Library shows all fields. Selected Fields panel fills remaining width.
+- **Branding/Output/Import**: Content extends to footer without gaps.
+- **No blank space** between content and Save button.
 
 ## Testing Checklist
 
 1. Open Template Builder at 1080p resolution
-2. Verify all variable items in "Insert Variables" sidebar are visible without scrolling (or minimal scrolling)
-3. Verify editor area extends from toolbar to preview toggle row
-4. Switch to Fields tab - verify Field Library shows more items
-5. Verify Save & Publish and Cancel buttons remain visible at all times
-6. Test at different resolutions to confirm responsive behavior
-
+2. **Design Tab**:
+   - All variable categories and items visible without sidebar scroll
+   - Editor fills from toolbar to preview toggle row
+   - No gap between preview toggle and footer
+3. **Fields Tab**:
+   - Field Library shows all fields without scrolling
+   - Selected Fields panel fills right side
+4. **Branding Tab**:
+   - Form fields extend to footer area
+   - No large empty space
+5. **Output Tab**:
+   - All output settings visible
+   - No scrolling needed
+6. **Import/Export Tab**:
+   - DOCX upload and JSON sections visible
+   - Content fills available space
+7. Test at different resolutions (1440p, 768p) to ensure responsive behavior
