@@ -241,7 +241,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
     content: templateData.richContent,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[450px] p-6 bg-background',
+        class: 'prose prose-sm max-w-none focus:outline-none h-full p-6 bg-background',
       },
     },
     onUpdate: ({ editor }) => {
@@ -657,9 +657,9 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           </div>
 
           {/* Tab 1: Design */}
-          <TabsContent value="design" className="flex-1 flex gap-4 px-6 pb-3 overflow-hidden mt-2 min-h-0">
+          <TabsContent value="design" className="flex-1 flex gap-4 px-6 pb-3 overflow-hidden mt-2 min-h-0 h-full">
             {/* Left Sidebar - Variables */}
-            <div className="w-72 flex flex-col border rounded-lg overflow-hidden min-h-0">
+            <div className="w-64 flex flex-col border rounded-lg overflow-hidden h-full">
               <div className="p-2 bg-muted/50 border-b shrink-0">
                 <ThreeLayerHelp helpId="tb2_variable_list" showExplanation={false}>
                   <h3 className="font-medium text-sm">Insert Variables</h3>
@@ -707,7 +707,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
             </div>
 
             {/* Right Panel - Editor */}
-            <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+            <div className="flex-1 flex flex-col overflow-hidden h-full">
               {/* Editor Toolbar */}
               <div className="border rounded-t-lg bg-muted/50 p-2 flex gap-1 flex-wrap">
                 <Button
@@ -794,14 +794,14 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
               </div>
 
               {/* Editor Content - flex-1 with proper min-h-0 for scrolling */}
-              <ScrollArea className="flex-1 border border-t-0 rounded-b-lg min-h-0">
+              <ScrollArea className="flex-1 border border-t-0 rounded-b-lg h-full">
                 {previewMode ? (
                   <div className="bg-background p-6">
                     {renderPreview()}
                   </div>
                 ) : (
-                  <div className="min-h-0 flex flex-col">
-                    <EditorContent editor={editor} className="flex-1" />
+                  <div className="h-full flex flex-col">
+                    <EditorContent editor={editor} className="flex-1 h-full" />
                   </div>
                 )}
               </ScrollArea>
@@ -825,8 +825,8 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           </TabsContent>
 
           {/* Tab 2: Fields */}
-          <TabsContent value="fields" className="flex-1 flex gap-4 px-6 pb-3 overflow-hidden mt-2 min-h-0">
-            <div className="w-1/3 flex flex-col border rounded-lg overflow-hidden min-h-0">
+          <TabsContent value="fields" className="flex-1 flex gap-4 px-6 pb-3 overflow-hidden mt-2 min-h-0 h-full">
+            <div className="w-1/3 flex flex-col border rounded-lg overflow-hidden h-full">
               <div className="p-2 bg-muted/50 border-b shrink-0">
                 <ThreeLayerHelp helpId="tb2_field_library" showExplanation={false}>
                   <h3 className="font-medium text-sm">Field Library</h3>
@@ -876,13 +876,13 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
               </div>
             </div>
 
-            <div className="w-2/3 flex flex-col border rounded-lg overflow-hidden min-h-0">
+            <div className="w-2/3 flex flex-col border rounded-lg overflow-hidden h-full">
               <div className="p-3 bg-muted/50 border-b shrink-0">
                 <h3 className="font-medium text-sm">Selected Fields ({templateData.fields.length})</h3>
                 <p className="text-xs text-muted-foreground">Fields in your template</p>
               </div>
               
-              <ScrollArea className="flex-1 min-h-0">
+              <ScrollArea className="flex-1 h-full">
                 {templateData.fields.length === 0 ? (
                   <div className="p-6 text-center text-muted-foreground">
                     <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
@@ -911,7 +911,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           </TabsContent>
 
           {/* Tab 3: Branding */}
-          <TabsContent value="branding" className="flex-1 px-6 pb-3 overflow-auto mt-2 min-h-0">
+          <TabsContent value="branding" className="flex-1 px-6 pb-3 overflow-auto mt-2 h-full">
             <div className="max-w-3xl mx-auto space-y-4">
               <div className="space-y-6 p-6 border rounded-lg">
                 <div className="space-y-2">
@@ -1058,7 +1058,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           </TabsContent>
 
           {/* Tab 4: Output */}
-          <TabsContent value="output" className="flex-1 px-6 pb-4 overflow-auto mt-4 min-h-0">
+          <TabsContent value="output" className="flex-1 px-6 pb-4 overflow-auto mt-2 h-full">
             <div className="max-w-3xl mx-auto space-y-6">
               <div className="space-y-6 p-6 border rounded-lg">
                 <div className="grid grid-cols-3 gap-4">
@@ -1218,7 +1218,7 @@ export const UnifiedTemplateBuilder: React.FC<UnifiedTemplateBuilderProps> = ({
           </TabsContent>
 
           {/* Tab 5: Import/Export */}
-          <TabsContent value="import" className="flex-1 px-6 pb-4 overflow-auto mt-4">
+          <TabsContent value="import" className="flex-1 px-6 pb-4 overflow-auto mt-2 h-full">
             <div className="max-w-3xl mx-auto space-y-6">
               <div className="p-6 border rounded-lg bg-muted/30">
                 <div className="flex items-center gap-2 mb-2">
