@@ -104,6 +104,7 @@ export const hearingsService = {
 
       const hearingData = {
         case_id: data.case_id,
+        stage_instance_id: sanitizeUuidField(data.stage_instance_id), // Link to stage workflow
         hearing_date: utcDate.toISOString(),
         next_hearing_date: null,
         // Sanitize UUID fields - convert empty strings to null

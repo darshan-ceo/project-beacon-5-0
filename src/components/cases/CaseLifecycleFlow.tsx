@@ -694,12 +694,91 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         })}
       </motion.div>
 
-      {/* Stage Dashboard - Collapsible */}
-      {selectedCase && (
+      {/* ★ Stage Workflow Timeline - Feature Flagged (HIGH PRIORITY - shown above Stage Dashboard) */}
+      {selectedCase && isStageWorkflowEnabled && workflowState && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.3 }}
+          className="space-y-4"
+        >
+          {/* Workflow Timeline Stepper */}
+          <StageWorkflowTimeline
+            stageKey={selectedCase.currentStage}
+            steps={workflowState.steps}
+            currentStep={workflowState.currentStep}
+            overallProgress={workflowState.overallProgress}
+            activeStep={activeStep}
+            onStepClick={setActiveStep}
+            isLoading={false}
+          />
+
+          {/* Active Step Panel */}
+          {activeStep === 'notices' && (
+            <StageNoticesPanel
+              notices={workflowState.notices}
+              stageInstanceId={stageInstanceId}
+              caseId={selectedCase.id}
+              onAddNotice={handleAddNotice}
+              onEditNotice={handleEditNotice}
+              onDeleteNotice={handleDeleteNotice}
+              onViewNotice={handleViewNotice}
+              onFileReply={handleFileReply}
+            />
+          )}
+
+          {activeStep === 'reply' && (
+            workflowState.notices.filter(n => n.status === 'Reply Pending' || n.status === 'Received').length > 0 
+            ? (
+              <StageNoticesPanel
+                notices={workflowState.notices.filter(n => n.status === 'Reply Pending' || n.status === 'Received')}
+                stageInstanceId={stageInstanceId}
+                caseId={selectedCase.id}
+                onAddNotice={handleAddNotice}
+                onEditNotice={handleEditNotice}
+                onDeleteNotice={handleDeleteNotice}
+                onViewNotice={handleViewNotice}
+                onFileReply={handleFileReply}
+              />
+            ) : (
+              <Card className="border-dashed">
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  <ArrowRight className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm font-medium">No notices awaiting reply</p>
+                  <p className="text-xs mt-1">Add a notice first, then file replies</p>
+                </CardContent>
+              </Card>
+            )
+          )}
+
+          {activeStep === 'hearings' && (
+            <StageHearingsPanel
+              hearings={stageHearings}
+              stageInstanceId={stageInstanceId}
+              caseId={selectedCase.id}
+              onScheduleHearing={() => setShowHearingModal(true)}
+            />
+          )}
+
+          {activeStep === 'closure' && (
+            <StageClosurePanel
+              stageKey={selectedCase.currentStage}
+              stageInstanceId={stageInstanceId}
+              canClose={workflowState.canClose}
+              blockingReasons={workflowState.blockingReasons}
+              onCloseStage={handleCloseStage}
+              isClosing={isClosingStage}
+            />
+          )}
+        </motion.div>
+      )}
+
+      {/* Stage Dashboard - Collapsible (moved below Stage Workflow) */}
+      {selectedCase && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.35 }}
         >
           <Collapsible open={isStageDetailsOpen} onOpenChange={setIsStageDetailsOpen}>
             <Card>
@@ -1042,74 +1121,6 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         </motion.div>
       )}
 
-      {/* ★ Stage Workflow Timeline - Feature Flagged */}
-      {selectedCase && isStageWorkflowEnabled && workflowState && (
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.35 }}
-          className="space-y-4"
-        >
-          {/* Workflow Timeline Stepper */}
-          <StageWorkflowTimeline
-            stageKey={selectedCase.currentStage}
-            steps={workflowState.steps}
-            currentStep={workflowState.currentStep}
-            overallProgress={workflowState.overallProgress}
-            activeStep={activeStep}
-            onStepClick={setActiveStep}
-            isLoading={false}
-          />
-
-          {/* Active Step Panel */}
-          {activeStep === 'notices' && (
-            <StageNoticesPanel
-              notices={workflowState.notices}
-              stageInstanceId={stageInstanceId}
-              caseId={selectedCase.id}
-              onAddNotice={handleAddNotice}
-              onEditNotice={handleEditNotice}
-              onDeleteNotice={handleDeleteNotice}
-              onViewNotice={handleViewNotice}
-              onFileReply={handleFileReply}
-            />
-          )}
-
-          {activeStep === 'reply' && workflowState.notices.length > 0 && (
-            <StageNoticesPanel
-              notices={workflowState.notices.filter(n => n.status === 'Reply Pending' || n.status === 'Received')}
-              stageInstanceId={stageInstanceId}
-              caseId={selectedCase.id}
-              onAddNotice={handleAddNotice}
-              onEditNotice={handleEditNotice}
-              onDeleteNotice={handleDeleteNotice}
-              onViewNotice={handleViewNotice}
-              onFileReply={handleFileReply}
-            />
-          )}
-
-          {activeStep === 'hearings' && (
-            <StageHearingsPanel
-              hearings={stageHearings}
-              stageInstanceId={stageInstanceId}
-              caseId={selectedCase.id}
-              onScheduleHearing={() => setShowHearingModal(true)}
-            />
-          )}
-
-          {activeStep === 'closure' && (
-            <StageClosurePanel
-              stageKey={selectedCase.currentStage}
-              stageInstanceId={stageInstanceId}
-              canClose={workflowState.canClose}
-              blockingReasons={workflowState.blockingReasons}
-              onCloseStage={handleCloseStage}
-              isClosing={isClosingStage}
-            />
-          )}
-        </motion.div>
-      )}
-
       {/* Stage History & Transition History - Enhanced Visual Timeline */}
       {selectedCase && featureFlagService.isEnabled('lifecycle_cycles_v1') && (
         <motion.div 
@@ -1176,10 +1187,14 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
       {/* Hearing Modal */}
       <HearingModal
         isOpen={showHearingModal}
-        onClose={() => setShowHearingModal(false)}
+        onClose={() => {
+          setShowHearingModal(false);
+          refreshWorkflow(); // Refresh workflow to pick up new hearing
+        }}
         mode="create"
         contextCaseId={selectedCase?.id}
         contextClientId={selectedCase?.clientId}
+        stageInstanceId={stageInstanceId}
       />
 
       {/* Form Render Modal */}
