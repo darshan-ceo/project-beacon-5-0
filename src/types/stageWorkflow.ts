@@ -140,8 +140,11 @@ export interface StageWorkflowState {
   stageKey: string;
   caseId: string;
   
-  // Workflow steps status
-  steps: StageWorkflowStep[];
+  // Workflow steps status - transformed for timeline display
+  steps: WorkflowTimelineStep[];
+  
+  // Raw step data (for updates)
+  rawSteps: StageWorkflowStep[];
   
   // Data for each step
   notices: StageNotice[];
@@ -151,6 +154,10 @@ export interface StageWorkflowState {
   // Computed progress
   currentStep: WorkflowStepKey;
   overallProgress: number; // 0-100
+  
+  // Closure eligibility
+  canClose: boolean;
+  blockingReasons: string[];
   
   // Metadata
   isLoading: boolean;

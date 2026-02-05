@@ -31,9 +31,9 @@ interface StageHearingsPanelProps {
   stageInstanceId: string | null;
   caseId: string;
   onScheduleHearing: () => void;
-  onViewHearing: (hearing: Hearing) => void;
-  onRecordOutcome: (hearing: Hearing) => void;
-  onAdjournHearing: (hearing: Hearing) => void;
+  onViewHearing?: (hearing: Hearing) => void;
+  onRecordOutcome?: (hearing: Hearing) => void;
+  onAdjournHearing?: (hearing: Hearing) => void;
   isLoading?: boolean;
 }
 
