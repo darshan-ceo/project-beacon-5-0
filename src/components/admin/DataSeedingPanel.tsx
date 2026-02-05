@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { EnterpriseDemoManager } from './EnterpriseDemoManager';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -288,7 +289,7 @@ export const DataSeedingPanel = () => {
             This includes users, clients, courts, cases, hearings, tasks, and documents.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 max-h-[500px] overflow-y-auto">
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
@@ -669,5 +670,15 @@ export const DataSeedingPanel = () => {
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+};
+
+// Export as a combined panel with Enterprise Demo at top
+export const DataSeedingPanelWithDemo = () => {
+  return (
+    <div className="space-y-6">
+      <EnterpriseDemoManager />
+      <DataSeedingPanel />
+    </div>
   );
 };
