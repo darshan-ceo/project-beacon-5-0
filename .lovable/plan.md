@@ -1,272 +1,157 @@
 
-# Validation and UX Refactor Plan: Create New Case
 
-## Summary
+# Correction Plan: Create New Case Form Field Alignment
 
-Refactor "Create New Case" validation to enable fast case creation (under 60 seconds) by enforcing only essential fields while keeping detailed notice documentation in the "Add Notice" workflow.
+## Issues Identified
 
----
-
-## Current State Analysis
-
-### Current Required Fields (CaseModal.tsx lines 224-262)
-
-| Field | Currently Required | Blocks Creation |
-|-------|-------------------|-----------------|
-| Office File No | Yes | Yes |
-| Notice No | Yes | Yes |
-| Issue Type | Yes | Yes |
-| Notice Date | Yes | Yes |
-| Reply Due Date | Yes | Yes |
-| City | Yes | Yes |
-| Client | Yes | Yes |
-| Assigned To | Yes | Yes |
-
-### Fields That Should Be Required Per Prompt
-
-| Field | Should Be Required |
-|-------|-------------------|
-| Case Type | Yes (already enforced) |
-| Year/Sequence | Yes (auto-generated) |
-| Notice Type | Yes (form_type) |
-| Notice Number (notice_no) | Yes |
-| Notice Date | Yes |
-| Reply Due Date | Yes |
-| Client | Yes |
-| Assigned To | Yes |
-
-### Fields To Make Optional
-
-| Field | Currently Required | Change To |
-|-------|-------------------|-----------|
-| Office File No | Yes | Optional |
-| Issue Type | Yes | Optional (relabel) |
-| City | Yes | Optional |
+| Issue | Location | Problem |
+|-------|----------|---------|
+| Duplicate Notice Number | Section 1 + Section 7 | "Notice / Reference No *" AND "Notice Number" - confusing duplicate |
+| Section 7 Title | "GST Notice Details" | Name implies required GST data, but most fields are optional |
+| Field Organization | Multiple sections | Fields that should be "Add Notice" workflow appear in Create Case |
 
 ---
 
-## Implementation Changes
+## Required Corrections
 
-### 1. Validation Logic Changes (CaseModal.tsx)
+### 1. Remove Duplicate "Notice Number" Field from Section 7
 
-**Remove blocking validation for:**
-
-```typescript
-// REMOVE these validations:
-// - officeFileNo (was required)
-// - issueType (was required)  
-// - city (was required)
-```
-
-**Keep required:**
-
-```typescript
-// KEEP these validations:
-// - clientId (ownership)
-// - assignedToId (ownership)
-// - noticeNo or notice_no (notice snapshot)
-// - form_type (notice type - add this)
-// - notice_date (compliance)
-// - reply_due_date (compliance)
-```
-
-**Updated validation block:**
-
-```typescript
-// Validation - Minimal required for case creation
-if (mode === 'create') {
-  // Notice snapshot - bare minimum
-  if (!formData.noticeNo && !formData.notice_no) {
-    showValidationError("Notice No / Reference No is required.");
-    return;
-  }
-  if (!formData.form_type) {
-    showValidationError("Notice Type (Form Type) is required to categorize the case.");
-    return;
-  }
-  if (!formData.notice_date) {
-    showValidationError("Notice Date is required for deadline tracking.");
-    return;
-  }
-  if (!formData.reply_due_date) {
-    showValidationError("Reply Due Date is required for compliance tracking.");
-    return;
-  }
-}
-
-// Ownership - always required
-if (!formData.clientId) {
-  showValidationError("Client is required.");
-  return;
-}
-if (!formData.assignedToId && mode === 'create') {
-  showValidationError("Case Owner is required for assignment.");
-  return;
-}
-```
-
----
-
-### 2. Form Field Label and UI Changes (CaseForm.tsx)
-
-**Section 1: Case Identification**
-
-| Field | Current Label | New Label | Required Indicator |
-|-------|--------------|-----------|-------------------|
-| Office File No | Office File No * | Office File No | Remove asterisk |
-| Notice No | Notice No * | Notice / Reference No * | Keep asterisk |
-
-**Section 2: Case Details**
-
-| Field | Current Label | New Label | Required Indicator |
-|-------|--------------|-----------|-------------------|
-| Issue Type | Issue Type * | Primary Issue (if known) | Remove asterisk |
-
-**GST Notice Details Section**
-
-| Field | Current Label | New Label | Required Indicator |
-|-------|--------------|-----------|-------------------|
-| Form Type | Form Type | Notice Type * | Add asterisk |
-
-**Section 5 (Legal Stage)**
-
-| Field | Current Label | Change |
-|-------|--------------|--------|
-| City | City * | City (remove asterisk) |
-
----
-
-### 3. Add Helper Text / Section Captions
-
-**Add to Section 1 (Case Identification):**
-```tsx
-<p className="text-xs text-muted-foreground mt-1">
-  Minimal notice details required to start tracking this case
-</p>
-```
-
-**Add to Financial Details Section:**
-```tsx
-<CardHeader className="pb-4">
-  <div className="flex items-center justify-between">
-    <div className="flex items-center gap-2">
-      <DollarSign className="h-5 w-5 text-primary" />
-      <CardTitle className="text-base">Financial Details</CardTitle>
-    </div>
-    <span className="text-xs text-muted-foreground">Optional – if details are available now</span>
-  </div>
-</CardHeader>
-```
-
-**Add to Authority/Location Section:**
-```tsx
-<span className="text-xs text-muted-foreground">Optional – if details are available now</span>
-```
-
-**Add near submit button (in CaseModal footer):**
-```tsx
-<p className="text-xs text-muted-foreground mr-auto">
-  You can add or verify full notice details later from the notice document.
-</p>
-```
-
----
-
-### 4. GST Notice Details - Make Form Type Required
-
-Update the Form Type field in CaseForm.tsx:
-
+**Current State (Section 7, lines 655-667):**
 ```tsx
 <div>
-  <div className="flex items-center gap-1 mb-2">
-    <Label htmlFor="form_type">
-      Notice Type <span className="text-destructive">*</span>
-    </Label>
-    <FieldTooltip formId="create-case" fieldId="form_type" />
-  </div>
-  <Select
-    value={formData.form_type}
-    onValueChange={(value) => setFormData(prev => ({ ...prev, form_type: value }))}
-    disabled={isDisabled}
-    required
-  >
-    {/* ... existing options ... */}
-  </Select>
+  <Label htmlFor="notice_no">Notice Number</Label>
+  <Input id="notice_no" ... placeholder="e.g., ZA270325006940Y" />
 </div>
 ```
 
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/components/modals/CaseModal.tsx` | Update validation logic (lines 224-262), add footer helper text |
-| `src/components/cases/CaseForm.tsx` | Update labels, remove asterisks from optional fields, add section helper text |
-| `public/help/inline/create-case.json` | Update tooltip content to reflect optional vs required |
+**Action:** Remove this field entirely - it duplicates "Notice / Reference No *" from Section 1.
 
 ---
 
-## Behavioral Rules Preserved
+### 2. Rename Section 7 Header
 
-1. **Draft vs Authoritative**: Notice data from Create Case is treated as initial/draft; Add Notice data is authoritative
-2. **No data overwrite**: Add Notice will not overwrite case-level notice fields (they remain separate in stage_notices)
-3. **Case creation without Add Notice**: Cases can be created without adding a formal stage notice
-4. **Backward compatibility**: Existing cases with all fields populated continue to work normally
+**Current:** "GST Notice Details"
 
----
+**Change to:** "Additional Notice Information"
 
-## Fields NOT Modified (Correct as-is)
+**Add helper text:** "Optional – if details are available now"
 
-These fields remain in Create Case but are NOT required:
-- Priority (optional dropdown, defaults to Medium)
-- Description
-- Tax Demand / Interest / Penalty (optional financials)
-- Section Invoked
-- Financial Year
-- Tax Period
-- Specific Officer
-- Jurisdictional Commissionerate
-- Department Location
-- Order/Appeal milestone fields (Phase 5)
+This clarifies all fields in this section are supplementary, not blocking.
 
 ---
 
-## Technical Summary
+### 3. Mark All Section 7 Fields as Optional (except Notice Type)
 
-### Removed Validations
+Fields to update labels (remove asterisk or add "(Optional)"):
 
-```typescript
-// BEFORE (lines 226-245):
-if (!formData.officeFileNo || !formData.noticeNo) { ... }
-if (!formData.issueType) { ... }
-if (!formData.city) { ... }
+| Field | Current | Should Be |
+|-------|---------|-----------|
+| Notice Type | Notice Type * | **Keep required** |
+| Section Invoked | Section Invoked | Section Invoked (optional) |
+| Financial Year | Financial Year | Financial Year (optional) |
+| Legal Forum / Issuing Authority | * for non-Assessment | Remove asterisk - make fully optional |
+| City | City | City (optional) - already done |
+| Specific Officer Name | (Optional) | Already correct |
 
-// AFTER:
-if (!formData.noticeNo && !formData.notice_no) { ... }
-if (!formData.form_type) { ... }
-// notice_date and reply_due_date validations remain
-// city and officeFileNo validations removed
-// issueType validation removed
+---
+
+### 4. Remove Authority Validation Error Message
+
+**Current (lines 778-780):**
+```tsx
+{!formData.authorityId && formData.currentStage !== 'Assessment' && (
+  <p className="text-sm text-destructive mt-1">Authority is required</p>
+)}
 ```
 
-### Label Changes Summary
+**Action:** Remove this validation error display - Authority should NOT block case creation per the prompt.
 
-| Location | Old Text | New Text |
-|----------|---------|----------|
-| Office File No label | "Office File No *" | "Office File No" |
-| Issue Type label | "Issue Type *" | "Primary Issue (if known)" |
-| Form Type label | "Form Type" | "Notice Type *" |
-| City label | "City *" | "City" |
+---
+
+## Summary of Changes
+
+| File | Section | Change |
+|------|---------|--------|
+| `CaseForm.tsx` | Section 7 Header | Rename to "Additional Notice Information" + add "Optional" helper |
+| `CaseForm.tsx` | Section 7 | Remove duplicate "Notice Number" field |
+| `CaseForm.tsx` | Section 7 | Add "(optional)" to Section Invoked, Financial Year labels |
+| `CaseForm.tsx` | Section 7 | Remove asterisk from "Legal Forum / Issuing Authority" |
+| `CaseForm.tsx` | Section 7 | Remove "Authority is required" error message |
+| `CaseModal.tsx` | Validation | Ensure authorityId is NOT validated/blocking |
+
+---
+
+## Field Placement Summary (After Fix)
+
+**Section 1: Case Identification** (Required)
+- Case Type, Year, Sequence
+- Office File No (optional)
+- Notice / Reference No * (required)
+
+**Section 2: Compliance Dates** (Required)
+- Notice Date *
+- Reply Due Date *
+
+**Section 3: Assignment** (Required)
+- Client *
+- Case Owner *
+
+**Section 4: Case Details** (Optional)
+- Primary Issue (if known)
+- Description
+- Priority
+
+**Section 5: Legal Stage & Forum**
+- Authority Level *
+- Matter Type (conditional)
+
+**Section 6: Financial Details** (Optional)
+- Period, Tax Demand, Interest, Penalty
+
+**Section 7: Additional Notice Information** (All Optional except Notice Type)
+- Notice Type * (required for categorization)
+- Section Invoked (optional)
+- Financial Year (optional)
+- Legal Forum / Issuing Authority (optional)
+- City (optional)
+- Specific Officer Name (optional)
+
+**Section 8: Jurisdiction Details** (Optional)
+- GST Commissionerate
+- Office Location
+
+---
+
+## Validation Logic Alignment
+
+Ensure `CaseModal.tsx` validation matches:
+
+```typescript
+// REQUIRED (blocks creation)
+- clientId
+- assignedToId
+- noticeNo (Notice / Reference No)
+- form_type (Notice Type)
+- notice_date
+- reply_due_date
+
+// NOT REQUIRED (should NOT block)
+- officeFileNo ✓ already fixed
+- issueType ✓ already fixed
+- city ✓ already fixed
+- authorityId ← MUST VERIFY NOT BLOCKING
+- section_invoked
+- financial_year
+- notice_no (the duplicate one in Section 7)
+```
 
 ---
 
 ## Success Criteria
 
 After implementation:
-1. Case creation possible with only: Client, Assigned To, Notice Type, Notice No, Notice Date, Reply Due Date
-2. All other fields remain available but don't block submission
-3. Missing documents don't block case creation
-4. Compliance deadlines (notice_date, reply_due_date) always captured
-5. Full notice accuracy enforced only in Add Notice workflow
-6. Existing cases continue to work without any data migration
+1. No duplicate "Notice Number" field visible
+2. Section 7 clearly labeled as optional
+3. Only 6 fields truly block case creation: Client, Assigned To, Notice Type, Notice/Reference No, Notice Date, Reply Due Date
+4. No validation errors for Authority/Issuing Forum
+
