@@ -38,6 +38,7 @@ interface HearingModalProps {
   mode: 'create' | 'edit' | 'view';
   contextCaseId?: string;
   contextClientId?: string;
+  stageInstanceId?: string | null;
 }
 
 export const HearingModal: React.FC<HearingModalProps> = ({ 
@@ -46,7 +47,8 @@ export const HearingModal: React.FC<HearingModalProps> = ({
   hearing: hearingData, 
   mode,
   contextCaseId,
-  contextClientId 
+  contextClientId,
+  stageInstanceId
 }) => {
   const { state, dispatch } = useAppState();
   const { hasPermission } = useAdvancedRBAC();
@@ -325,6 +327,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
 
         const hearingFormData = {
           case_id: formData.caseId,
+          stage_instance_id: stageInstanceId || undefined, // Link to current stage instance
           date: format(formData.date, 'yyyy-MM-dd'),
           start_time: startTime,
           end_time: endTime,
