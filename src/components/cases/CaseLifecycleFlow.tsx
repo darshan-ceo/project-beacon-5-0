@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,6 +49,17 @@ import {
   Activity
 } from 'lucide-react';
 import { HelpButton } from '@/components/ui/help-button';
+import { supabase } from '@/integrations/supabase/client';
+
+// Stage Workflow Components
+import { StageWorkflowTimeline } from '@/components/lifecycle/StageWorkflowTimeline';
+import { StageNoticesPanel } from '@/components/lifecycle/StageNoticesPanel';
+import { StageHearingsPanel } from '@/components/lifecycle/StageHearingsPanel';
+import { StageClosurePanel } from '@/components/lifecycle/StageClosurePanel';
+import { AddNoticeModal } from '@/components/modals/AddNoticeModal';
+import { FileReplyModal } from '@/components/modals/FileReplyModal';
+import { useStageWorkflow } from '@/hooks/useStageWorkflow';
+import { StageNotice, WorkflowStepKey, StageClosureDetails, CreateStageNoticeInput, CreateStageReplyInput } from '@/types/stageWorkflow';
 
 interface CaseLifecycleFlowProps {
   selectedCase?: Case | null;
@@ -119,6 +130,14 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [isStageDetailsOpen, setIsStageDetailsOpen] = useState(false);
   const [isContextPanelOpen, setIsContextPanelOpen] = useState(false);
+  
+  // Stage Workflow state
+  const [showAddNoticeModal, setShowAddNoticeModal] = useState(false);
+  const [showFileReplyModal, setShowFileReplyModal] = useState(false);
+  const [selectedNotice, setSelectedNotice] = useState<StageNotice | null>(null);
+  const [editingNotice, setEditingNotice] = useState<StageNotice | null>(null);
+  const [stageInstanceId, setStageInstanceId] = useState<string | null>(null);
+  const [isClosingStage, setIsClosingStage] = useState(false);
 
   // Helper function to format dates safely
   const formatDate = (dateStr?: string | null): string => {
@@ -199,6 +218,154 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
       documentsCount: caseDocuments.length
     };
   }, [selectedCase, state.tasks, state.documents, state.hearings]);
+
+  // Fetch active stage instance ID for workflow
+  useEffect(() => {
+    async function fetchStageInstance() {
+      if (!selectedCase?.id) {
+        setStageInstanceId(null);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from('stage_instances')
+          .select('id')
+          .eq('case_id', selectedCase.id)
+          .eq('status', 'Active')
+          .maybeSingle();
+        
+        if (error) {
+          console.error('[CaseLifecycleFlow] Error fetching stage instance:', error);
+          setStageInstanceId(null);
+        } else {
+          setStageInstanceId(data?.id || null);
+        }
+      } catch (err) {
+        console.error('[CaseLifecycleFlow] Exception fetching stage instance:', err);
+        setStageInstanceId(null);
+      }
+    }
+    
+    fetchStageInstance();
+  }, [selectedCase?.id, selectedCase?.currentStage]);
+
+  // Stage Workflow hook
+  const {
+    workflowState,
+    activeStep,
+    setActiveStep,
+    noticeReplies,
+    refresh: refreshWorkflow,
+    addNotice,
+    updateNotice,
+    deleteNotice,
+    loadRepliesForNotice,
+    addReply,
+    completeStep,
+    skipStep,
+    isFeatureEnabled: isStageWorkflowEnabled
+  } = useStageWorkflow({
+    stageInstanceId,
+    caseId: selectedCase?.id || '',
+    stageKey: selectedCase?.currentStage || '',
+    enabled: !!selectedCase
+  });
+
+  // Stage Workflow handlers
+  const handleAddNotice = useCallback(() => {
+    setEditingNotice(null);
+    setShowAddNoticeModal(true);
+  }, []);
+
+  const handleEditNotice = useCallback((notice: StageNotice) => {
+    setEditingNotice(notice);
+    setShowAddNoticeModal(true);
+  }, []);
+
+  const handleDeleteNotice = useCallback(async (noticeId: string) => {
+    const success = await deleteNotice(noticeId);
+    if (success) {
+      toast({
+        title: "Notice Deleted",
+        description: "The notice has been removed.",
+      });
+    }
+  }, [deleteNotice, toast]);
+
+  const handleViewNotice = useCallback((notice: StageNotice) => {
+    // Could open a detail view modal - for now, expand in panel
+    console.log('[CaseLifecycleFlow] View notice:', notice.id);
+  }, []);
+
+  const handleFileReply = useCallback((notice: StageNotice) => {
+    setSelectedNotice(notice);
+    setShowFileReplyModal(true);
+  }, []);
+
+  const handleSaveNotice = useCallback(async (data: CreateStageNoticeInput) => {
+    if (editingNotice) {
+      await updateNotice(editingNotice.id, data);
+      toast({
+        title: "Notice Updated",
+        description: "The notice has been updated.",
+      });
+    } else {
+      await addNotice(data);
+      toast({
+        title: "Notice Added",
+        description: "A new notice has been recorded.",
+      });
+    }
+    setShowAddNoticeModal(false);
+    setEditingNotice(null);
+  }, [editingNotice, updateNotice, addNotice, toast]);
+
+  const handleSaveReply = useCallback(async (data: CreateStageReplyInput) => {
+    await addReply(data);
+    toast({
+      title: "Reply Filed",
+      description: "The reply has been recorded.",
+    });
+    setShowFileReplyModal(false);
+    setSelectedNotice(null);
+  }, [addReply, toast]);
+
+  const handleCloseStage = useCallback(async (details: StageClosureDetails) => {
+    if (!stageInstanceId) return;
+    
+    setIsClosingStage(true);
+    try {
+      // Complete the closure step
+      const success = await completeStep('closure');
+      if (success) {
+        toast({
+          title: "Stage Closed",
+          description: `Stage closed with outcome: ${details.outcome}`,
+        });
+        // Trigger refresh
+        await refreshWorkflow();
+      }
+    } catch (err) {
+      console.error('[CaseLifecycleFlow] Error closing stage:', err);
+      toast({
+        title: "Error",
+        description: "Failed to close stage. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsClosingStage(false);
+    }
+  }, [stageInstanceId, completeStep, toast, refreshWorkflow]);
+
+  // Get stage-specific hearings
+  const stageHearings = useMemo(() => {
+    if (!selectedCase?.id) return [];
+    return state.hearings?.filter(h => 
+      h.caseId === selectedCase.id && 
+      (h.stage_instance_id === stageInstanceId || !h.stage_instance_id)
+    ) || [];
+  }, [selectedCase?.id, stageInstanceId, state.hearings]);
 
   // Handler for navigating to create task
   const handleCreateTask = () => {
@@ -875,6 +1042,74 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         </motion.div>
       )}
 
+      {/* ★ Stage Workflow Timeline - Feature Flagged */}
+      {selectedCase && isStageWorkflowEnabled && workflowState && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.35 }}
+          className="space-y-4"
+        >
+          {/* Workflow Timeline Stepper */}
+          <StageWorkflowTimeline
+            stageKey={selectedCase.currentStage}
+            steps={workflowState.steps}
+            currentStep={workflowState.currentStep}
+            overallProgress={workflowState.overallProgress}
+            activeStep={activeStep}
+            onStepClick={setActiveStep}
+            isLoading={false}
+          />
+
+          {/* Active Step Panel */}
+          {activeStep === 'notices' && (
+            <StageNoticesPanel
+              notices={workflowState.notices}
+              stageInstanceId={stageInstanceId}
+              caseId={selectedCase.id}
+              onAddNotice={handleAddNotice}
+              onEditNotice={handleEditNotice}
+              onDeleteNotice={handleDeleteNotice}
+              onViewNotice={handleViewNotice}
+              onFileReply={handleFileReply}
+            />
+          )}
+
+          {activeStep === 'reply' && workflowState.notices.length > 0 && (
+            <StageNoticesPanel
+              notices={workflowState.notices.filter(n => n.status === 'Reply Pending' || n.status === 'Received')}
+              stageInstanceId={stageInstanceId}
+              caseId={selectedCase.id}
+              onAddNotice={handleAddNotice}
+              onEditNotice={handleEditNotice}
+              onDeleteNotice={handleDeleteNotice}
+              onViewNotice={handleViewNotice}
+              onFileReply={handleFileReply}
+            />
+          )}
+
+          {activeStep === 'hearings' && (
+            <StageHearingsPanel
+              hearings={stageHearings}
+              stageInstanceId={stageInstanceId}
+              caseId={selectedCase.id}
+              onScheduleHearing={() => setShowHearingModal(true)}
+            />
+          )}
+
+          {activeStep === 'closure' && (
+            <StageClosurePanel
+              stageKey={selectedCase.currentStage}
+              stageInstanceId={stageInstanceId}
+              canClose={workflowState.canClose}
+              blockingReasons={workflowState.blockingReasons}
+              onCloseStage={handleCloseStage}
+              isClosing={isClosingStage}
+            />
+          )}
+        </motion.div>
+      )}
+
       {/* Stage History & Transition History - Enhanced Visual Timeline */}
       {selectedCase && featureFlagService.isEnabled('lifecycle_cycles_v1') && (
         <motion.div 
@@ -976,6 +1211,30 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
           }}
         />
       )}
+
+      {/* Stage Workflow Modals */}
+      <AddNoticeModal
+        isOpen={showAddNoticeModal}
+        onClose={() => {
+          setShowAddNoticeModal(false);
+          setEditingNotice(null);
+        }}
+        onSave={handleSaveNotice}
+        caseId={selectedCase?.id || ''}
+        stageInstanceId={stageInstanceId}
+        editNotice={editingNotice}
+      />
+
+      <FileReplyModal
+        isOpen={showFileReplyModal}
+        onClose={() => {
+          setShowFileReplyModal(false);
+          setSelectedNotice(null);
+        }}
+        onSave={handleSaveReply}
+        notice={selectedNotice}
+        stageInstanceId={stageInstanceId}
+      />
     </div>
   );
 };

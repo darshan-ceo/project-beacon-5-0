@@ -216,7 +216,7 @@ class StageWorkflowService {
   async getWorkflowState(stageInstanceId: string, caseId: string, stageKey: string): Promise<StageWorkflowState> {
     try {
       // Fetch all data in parallel
-      const [steps, notices, hearingsCount] = await Promise.all([
+      const [rawSteps, notices, hearingsCount] = await Promise.all([
         this.getWorkflowSteps(stageInstanceId),
         stageNoticesService.getNoticesByStageInstance(stageInstanceId),
         this.getHearingsCount(stageInstanceId, caseId)
@@ -228,22 +228,31 @@ class StageWorkflowService {
         : 0;
 
       // Determine current step
-      const currentStep = this.determineCurrentStep(steps);
+      const currentStep = this.determineCurrentStep(rawSteps);
 
       // Calculate overall progress
-      const completedSteps = steps.filter(s => s.status === 'Completed' || s.status === 'Skipped').length;
+      const completedSteps = rawSteps.filter(s => s.status === 'Completed' || s.status === 'Skipped').length;
       const overallProgress = Math.round((completedSteps / WORKFLOW_STEPS.length) * 100);
+
+      // Build timeline steps for display
+      const steps = this.buildTimelineSteps(rawSteps, notices.length, repliesCount, hearingsCount);
+
+      // Determine closure eligibility
+      const canCloseResult = this.checkCanClose(rawSteps, notices);
 
       return {
         stageInstanceId,
         stageKey,
         caseId,
         steps,
+        rawSteps,
         notices,
         replies: [], // Loaded on-demand per notice
         hearingsCount,
         currentStep,
         overallProgress,
+        canClose: canCloseResult.canClose,
+        blockingReasons: canCloseResult.blockingReasons,
         isLoading: false,
         error: null
       };
@@ -254,15 +263,54 @@ class StageWorkflowService {
         stageKey,
         caseId,
         steps: [],
+        rawSteps: [],
         notices: [],
         replies: [],
         hearingsCount: 0,
         currentStep: 'notices',
         overallProgress: 0,
+        canClose: false,
+        blockingReasons: ['Failed to load workflow state'],
         isLoading: false,
         error: 'Failed to load workflow state'
       };
     }
+  }
+
+  /**
+   * Check if stage can be closed
+   */
+  private checkCanClose(steps: StageWorkflowStep[], notices: any[]): { canClose: boolean; blockingReasons: string[] } {
+    const blockingReasons: string[] = [];
+
+    // Check if there are any notices
+    if (notices.length === 0) {
+      blockingReasons.push('At least one notice must be recorded');
+    }
+
+    // Check if there are any pending replies
+    const pendingNotices = notices.filter(n => n.status === 'Received' || n.status === 'Reply Pending');
+    if (pendingNotices.length > 0) {
+      blockingReasons.push(`${pendingNotices.length} notice(s) require a reply`);
+    }
+
+    // Check if closure step is available (all prior steps should be done or skipped)
+    const closureStep = steps.find(s => s.step_key === 'closure');
+    const nonClosureSteps = steps.filter(s => s.step_key !== 'closure');
+    const incompletePriorSteps = nonClosureSteps.filter(s => s.status === 'Pending' || s.status === 'In Progress');
+    
+    if (incompletePriorSteps.length > 0 && closureStep?.status === 'Pending') {
+      // Allow closure if at least notices step is done
+      const noticesStep = steps.find(s => s.step_key === 'notices');
+      if (noticesStep?.status !== 'Completed' && noticesStep?.status !== 'Skipped') {
+        blockingReasons.push('Complete or skip preceding workflow steps first');
+      }
+    }
+
+    return {
+      canClose: blockingReasons.length === 0,
+      blockingReasons
+    };
   }
 
   /**
