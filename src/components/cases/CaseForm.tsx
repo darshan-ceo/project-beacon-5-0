@@ -642,30 +642,19 @@ export const CaseForm: React.FC<CaseFormProps> = ({
         </CardContent>
       </Card>
 
-      {/* Section 7: GST Notice Details */}
+      {/* Section 7: Additional Notice Information */}
       <Card className="shadow-sm border">
         <CardHeader className="pb-4">
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            <CardTitle className="text-base">GST Notice Details</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Additional Notice Information</CardTitle>
+            </div>
+            <span className="text-xs text-muted-foreground">Optional – if details are available now</span>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <div className="flex items-center gap-1 mb-2">
-                <Label htmlFor="notice_no">Notice Number</Label>
-                <FieldTooltip formId="create-case" fieldId="notice_number" />
-              </div>
-              <Input
-                id="notice_no"
-                value={formData.notice_no}
-                onChange={(e) => setFormData(prev => ({ ...prev, notice_no: e.target.value }))}
-                disabled={isDisabled}
-                placeholder="e.g., ZA270325006940Y"
-              />
-            </div>
-
             <div>
               <div className="flex items-center gap-1 mb-2">
                 <Label htmlFor="form_type">
@@ -703,7 +692,9 @@ export const CaseForm: React.FC<CaseFormProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <div className="flex items-center gap-1 mb-2">
-                <Label htmlFor="section_invoked">Section Invoked</Label>
+                <Label htmlFor="section_invoked">
+                  Section Invoked <span className="text-muted-foreground">(optional)</span>
+                </Label>
                 <FieldTooltip formId="create-case" fieldId="section_invoked" />
               </div>
               <Input
@@ -718,7 +709,9 @@ export const CaseForm: React.FC<CaseFormProps> = ({
 
             <div>
               <div className="flex items-center gap-1 mb-2">
-                <Label htmlFor="financial_year">Financial Year</Label>
+                <Label htmlFor="financial_year">
+                  Financial Year <span className="text-muted-foreground">(optional)</span>
+                </Label>
                 <FieldTooltip formId="create-case" fieldId="financial_year" />
               </div>
               <Input
@@ -735,7 +728,7 @@ export const CaseForm: React.FC<CaseFormProps> = ({
             <div>
               <div className="flex items-center gap-1 mb-2">
                 <Label htmlFor="authorityId">
-                  Legal Forum / Issuing Authority {formData.currentStage !== 'Assessment' && <span className="text-destructive">*</span>}
+                  Legal Forum / Issuing Authority <span className="text-muted-foreground">(optional)</span>
                 </Label>
                 <FieldTooltip formId="create-case" fieldId="authority" />
               </div>
@@ -751,11 +744,8 @@ export const CaseForm: React.FC<CaseFormProps> = ({
                 }}
                 disabled={isDisabled}
               >
-                <SelectTrigger className={cn(
-                  "bg-background",
-                  !formData.authorityId && formData.currentStage !== 'Assessment' && 'border-destructive'
-                )}>
-                  <SelectValue placeholder="Select authority" />
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Select authority (optional)" />
                 </SelectTrigger>
                 <SelectContent className="z-[200] bg-popover" position="popper" sideOffset={5}>
                   {state.courts
@@ -775,9 +765,6 @@ export const CaseForm: React.FC<CaseFormProps> = ({
                     ))}
                 </SelectContent>
               </Select>
-              {!formData.authorityId && formData.currentStage !== 'Assessment' && (
-                <p className="text-sm text-destructive mt-1">Authority is required</p>
-              )}
             </div>
 
             <div>
