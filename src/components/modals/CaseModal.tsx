@@ -221,30 +221,28 @@ export const CaseModal: React.FC<CaseModalProps> = ({
       toast({ title: "Validation Error", description: msg, variant: "destructive" });
     };
 
-    // Validation
+    // Validation - Minimal required for fast case creation
     if (mode === 'create') {
-      if (!formData.officeFileNo || !formData.noticeNo) {
-        showValidationError("Office File No and Notice No are required for new cases.");
+      // Notice snapshot - bare minimum required fields
+      if (!formData.noticeNo && !formData.notice_no) {
+        showValidationError("Notice No / Reference No is required.");
         return;
       }
-      if (!formData.issueType) {
-        showValidationError("Please select an issue type for new cases.");
+      if (!formData.form_type) {
+        showValidationError("Notice Type (Form Type) is required to categorize the case.");
         return;
       }
       if (!formData.notice_date) {
-        showValidationError("Notice Date is required for new cases.");
+        showValidationError("Notice Date is required for deadline tracking.");
         return;
       }
       if (!formData.reply_due_date) {
-        showValidationError("Reply Due Date is required for new cases.");
-        return;
-      }
-      if (!formData.city) {
-        showValidationError("City is required for jurisdiction determination.");
+        showValidationError("Reply Due Date is required for compliance tracking.");
         return;
       }
     }
     
+    // Ownership - always required
     if (!formData.clientId) {
       showValidationError("Client is required.");
       return;
@@ -257,7 +255,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
     }
 
     if (!formData.assignedToId && mode === 'create') {
-      showValidationError("Please select an employee for assignment.");
+      showValidationError("Case Owner is required for assignment.");
       return;
     }
 
@@ -422,7 +420,12 @@ export const CaseModal: React.FC<CaseModalProps> = ({
   };
 
   const footer = (
-    <div className="flex items-center justify-end gap-3 px-6 py-4">
+    <div className="flex items-center gap-3 px-6 py-4">
+      {mode === 'create' && (
+        <p className="text-xs text-muted-foreground mr-auto">
+          You can add or verify full notice details later from the notice document.
+        </p>
+      )}
       <Button type="button" variant="outline" onClick={onClose}>
         {mode === 'view' ? 'Close' : 'Cancel'}
       </Button>

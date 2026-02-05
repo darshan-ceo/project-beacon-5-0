@@ -116,10 +116,15 @@ export const CaseForm: React.FC<CaseFormProps> = ({
       {/* Section 1: Case Identification */}
       <Card className="shadow-sm border">
         <CardHeader className="pb-4">
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            <CardTitle className="text-base">Case Identification</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Case Identification</CardTitle>
+            </div>
           </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Minimal notice details required to start tracking this case
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -169,7 +174,7 @@ export const CaseForm: React.FC<CaseFormProps> = ({
             <div>
               <div className="flex items-center gap-1 mb-2">
                 <Label htmlFor="officeFileNo">
-                  Office File No <span className="text-destructive">*</span>
+                  Office File No
                 </Label>
                 <FieldTooltip formId="create-case" fieldId="office_file_no" />
               </div>
@@ -178,14 +183,13 @@ export const CaseForm: React.FC<CaseFormProps> = ({
                 value={formData.officeFileNo}
                 onChange={(e) => setFormData(prev => ({ ...prev, officeFileNo: e.target.value }))}
                 disabled={isDisabled}
-                placeholder="e.g., OFFICE001"
-                required
+                placeholder="e.g., OFFICE001 (optional)"
               />
             </div>
             <div>
               <div className="flex items-center gap-1 mb-2">
                 <Label htmlFor="noticeNo">
-                  Notice No <span className="text-destructive">*</span>
+                  Notice / Reference No <span className="text-destructive">*</span>
                 </Label>
                 <FieldTooltip formId="create-case" fieldId="notice_no" />
               </div>
@@ -227,7 +231,7 @@ export const CaseForm: React.FC<CaseFormProps> = ({
           <div>
             <div className="flex items-center gap-1 mb-2">
               <Label htmlFor="issueType">
-                Issue Type <span className="text-destructive">*</span>
+                Primary Issue (if known)
               </Label>
               <FieldTooltip formId="create-case" fieldId="issue_type" />
             </div>
@@ -554,9 +558,12 @@ export const CaseForm: React.FC<CaseFormProps> = ({
       {/* Section 6: Financial Details */}
       <Card className="shadow-sm border">
         <CardHeader className="pb-4">
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-primary" />
-            <CardTitle className="text-base">Financial Details</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Financial Details</CardTitle>
+            </div>
+            <span className="text-xs text-muted-foreground">Optional – if details are available now</span>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -661,16 +668,19 @@ export const CaseForm: React.FC<CaseFormProps> = ({
 
             <div>
               <div className="flex items-center gap-1 mb-2">
-                <Label htmlFor="form_type">Form Type</Label>
+                <Label htmlFor="form_type">
+                  Notice Type <span className="text-destructive">*</span>
+                </Label>
                 <FieldTooltip formId="create-case" fieldId="form_type" />
               </div>
               <Select
                 value={formData.form_type}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, form_type: value }))}
                 disabled={isDisabled}
+                required
               >
                 <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="Select form type" />
+                  <SelectValue placeholder="Select notice type" />
                 </SelectTrigger>
                 <SelectContent className="z-[200] bg-popover" position="popper" sideOffset={5}>
                   <SelectItem value="DRC-01A">DRC-01A (Pre-SCN Intimation)</SelectItem>
@@ -773,7 +783,7 @@ export const CaseForm: React.FC<CaseFormProps> = ({
             <div>
               <div className="flex items-center gap-1 mb-2">
                 <Label htmlFor="city">
-                  City <span className="text-destructive">*</span>
+                  City
                 </Label>
                 <FieldTooltip formId="create-case" fieldId="city" />
               </div>
@@ -782,12 +792,8 @@ export const CaseForm: React.FC<CaseFormProps> = ({
                 value={formData.city}
                 onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
                 disabled={isDisabled}
-                placeholder="e.g., Ahmedabad"
-                className={!formData.city ? 'border-destructive' : ''}
+                placeholder="e.g., Ahmedabad (optional)"
               />
-              {!formData.city && (
-                <p className="text-sm text-destructive mt-1">City is required</p>
-              )}
             </div>
           </div>
 
