@@ -58,8 +58,9 @@ import { StageHearingsPanel } from '@/components/lifecycle/StageHearingsPanel';
 import { StageClosurePanel } from '@/components/lifecycle/StageClosurePanel';
 import { AddNoticeModal } from '@/components/modals/AddNoticeModal';
 import { FileReplyModal } from '@/components/modals/FileReplyModal';
+import { NoticeClosureModal } from '@/components/modals/NoticeClosureModal';
 import { useStageWorkflow } from '@/hooks/useStageWorkflow';
-import { StageNotice, WorkflowStepKey, StageClosureDetails, CreateStageNoticeInput, CreateStageReplyInput } from '@/types/stageWorkflow';
+import { StageNotice, WorkflowStepKey, StageClosureDetails, CreateStageNoticeInput, CreateStageReplyInput, UpdateStageNoticeInput } from '@/types/stageWorkflow';
 
 interface CaseLifecycleFlowProps {
   selectedCase?: Case | null;
@@ -137,6 +138,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   const [selectedNotice, setSelectedNotice] = useState<StageNotice | null>(null);
   const [editingNotice, setEditingNotice] = useState<StageNotice | null>(null);
   const [viewingNotice, setViewingNotice] = useState<StageNotice | null>(null);
+  const [closingNotice, setClosingNotice] = useState<StageNotice | null>(null);
   const [stageInstanceId, setStageInstanceId] = useState<string | null>(null);
   const [isClosingStage, setIsClosingStage] = useState(false);
 
@@ -303,6 +305,19 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
     setSelectedNotice(notice);
     setShowFileReplyModal(true);
   }, []);
+
+  const handleCloseNotice = useCallback((notice: StageNotice) => {
+    setClosingNotice(notice);
+  }, []);
+
+  const handleSaveNoticeClosure = useCallback(async (noticeId: string, data: UpdateStageNoticeInput) => {
+    await updateNotice(noticeId, data);
+    toast({
+      title: "Notice Closed",
+      description: "The notice has been closed.",
+    });
+    setClosingNotice(null);
+  }, [updateNotice, toast]);
 
   const handleSaveNotice = useCallback(async (data: CreateStageNoticeInput) => {
     if (editingNotice) {
@@ -728,6 +743,8 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
               onDeleteNotice={handleDeleteNotice}
               onViewNotice={handleViewNotice}
               onFileReply={handleFileReply}
+              onCloseNotice={handleCloseNotice}
+              onScheduleHearing={() => setShowHearingModal(true)}
               noticeReplies={noticeReplies}
               onLoadReplies={loadRepliesForNotice}
             />
@@ -745,6 +762,8 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                 onDeleteNotice={handleDeleteNotice}
                 onViewNotice={handleViewNotice}
                 onFileReply={handleFileReply}
+                onCloseNotice={handleCloseNotice}
+                onScheduleHearing={() => setShowHearingModal(true)}
                 noticeReplies={noticeReplies}
                 onLoadReplies={loadRepliesForNotice}
               />
@@ -1259,6 +1278,13 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         onSave={handleSaveReply}
         notice={selectedNotice}
         stageInstanceId={stageInstanceId}
+      />
+
+      <NoticeClosureModal
+        isOpen={!!closingNotice}
+        onClose={() => setClosingNotice(null)}
+        onSave={handleSaveNoticeClosure}
+        notice={closingNotice}
       />
     </div>
   );

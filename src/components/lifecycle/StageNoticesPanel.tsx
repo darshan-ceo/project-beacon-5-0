@@ -24,9 +24,11 @@ import {
   Trash2,
   ExternalLink,
   MessageSquare,
-  Paperclip
+  Paperclip,
+  XCircle,
+  CalendarCheck
 } from 'lucide-react';
-import { StageNotice, NoticeStatus, StageReply } from '@/types/stageWorkflow';
+import { StageNotice, NoticeStatus, StageReply, NoticeWorkflowStep } from '@/types/stageWorkflow';
 import { stageNoticesService } from '@/services/stageNoticesService';
 import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -40,6 +42,8 @@ interface StageNoticesPanelProps {
   onDeleteNotice: (noticeId: string) => void;
   onViewNotice: (notice: StageNotice) => void;
   onFileReply: (notice: StageNotice) => void;
+  onCloseNotice?: (notice: StageNotice) => void;
+  onScheduleHearing?: (notice: StageNotice) => void;
   isLoading?: boolean;
   // Replies support
   noticeReplies?: Map<string, StageReply[]>;
@@ -94,6 +98,47 @@ function getFilingStatusBadge(status: string) {
   }
 }
 
+// Mini workflow step indicator
+function NoticeWorkflowStepper({ step }: { step: NoticeWorkflowStep }) {
+  const steps: { key: NoticeWorkflowStep; label: string }[] = [
+    { key: 'notice', label: 'Notice' },
+    { key: 'reply', label: 'Reply' },
+    { key: 'hearing', label: 'Hearing' },
+    { key: 'closed', label: 'Closed' }
+  ];
+
+  const currentIndex = steps.findIndex(s => s.key === step);
+
+  return (
+    <div className="flex items-center gap-1 text-[10px]">
+      {steps.map((s, idx) => {
+        const isCompleted = idx < currentIndex;
+        const isCurrent = idx === currentIndex;
+        const isPending = idx > currentIndex;
+        
+        return (
+          <React.Fragment key={s.key}>
+            <span className={cn(
+              "px-1.5 py-0.5 rounded",
+              isCompleted && "bg-success/20 text-success",
+              isCurrent && "bg-primary/20 text-primary font-medium",
+              isPending && "text-muted-foreground"
+            )}>
+              {s.label}
+            </span>
+            {idx < steps.length - 1 && (
+              <span className={cn(
+                "text-muted-foreground/50",
+                isCompleted && "text-success"
+              )}>→</span>
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
 export const StageNoticesPanel: React.FC<StageNoticesPanelProps> = ({
   notices,
   stageInstanceId,
@@ -103,6 +148,8 @@ export const StageNoticesPanel: React.FC<StageNoticesPanelProps> = ({
   onDeleteNotice,
   onViewNotice,
   onFileReply,
+  onCloseNotice,
+  onScheduleHearing,
   isLoading = false,
   noticeReplies,
   onLoadReplies
@@ -185,6 +232,11 @@ export const StageNoticesPanel: React.FC<StageNoticesPanelProps> = ({
                               Original
                             </Badge>
                           )}
+                        </div>
+                        
+                        {/* Mini Workflow Stepper */}
+                        <div className="mt-2">
+                          <NoticeWorkflowStepper step={notice.workflow_step || 'notice'} />
                         </div>
                         
                         {/* Key Info Row */}
@@ -321,7 +373,7 @@ export const StageNoticesPanel: React.FC<StageNoticesPanelProps> = ({
                           )}
                           
                           {/* Action Bar */}
-                          <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+                          <div className="flex items-center gap-2 mt-3 pt-3 border-t flex-wrap">
                             <Button 
                               size="sm" 
                               variant="outline" 
@@ -340,6 +392,32 @@ export const StageNoticesPanel: React.FC<StageNoticesPanelProps> = ({
                               <Pencil className="h-3 w-3 mr-1" />
                               Edit
                             </Button>
+                            {notice.status !== 'Closed' && (
+                              <>
+                                {onScheduleHearing && (
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    onClick={() => onScheduleHearing(notice)}
+                                    className="h-7 text-xs"
+                                  >
+                                    <CalendarCheck className="h-3 w-3 mr-1" />
+                                    Hearing
+                                  </Button>
+                                )}
+                                {onCloseNotice && (
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    onClick={() => onCloseNotice(notice)}
+                                    className="h-7 text-xs"
+                                  >
+                                    <XCircle className="h-3 w-3 mr-1" />
+                                    Close
+                                  </Button>
+                                )}
+                              </>
+                            )}
                             {!notice.is_original && (
                               <Button 
                                 size="sm" 

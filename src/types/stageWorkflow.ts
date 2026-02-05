@@ -6,6 +6,7 @@
 // ============= Stage Notice Types =============
 
 export type NoticeStatus = 'Received' | 'Reply Pending' | 'Replied' | 'Closed';
+export type NoticeWorkflowStep = 'notice' | 'reply' | 'hearing' | 'closed';
 
 export interface StageNotice {
   id: string;
@@ -25,6 +26,20 @@ export interface StageNotice {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  // New fields for expanded notice workflow
+  offline_reference_no: string | null;
+  issuing_authority: string | null;
+  issuing_designation: string | null;
+  tax_period_start: string | null;
+  tax_period_end: string | null;
+  financial_year: string | null;
+  tax_amount: number | null;
+  interest_amount: number | null;
+  penalty_amount: number | null;
+  tax_applicable: boolean;
+  interest_applicable: boolean;
+  penalty_applicable: boolean;
+  workflow_step: NoticeWorkflowStep;
 }
 
 export interface CreateStageNoticeInput {
@@ -40,6 +55,20 @@ export interface CreateStageNoticeInput {
   is_original?: boolean;
   documents?: string[];
   metadata?: Record<string, any>;
+  // New fields
+  offline_reference_no?: string;
+  issuing_authority?: string;
+  issuing_designation?: string;
+  tax_period_start?: string;
+  tax_period_end?: string;
+  financial_year?: string;
+  tax_amount?: number;
+  interest_amount?: number;
+  penalty_amount?: number;
+  tax_applicable?: boolean;
+  interest_applicable?: boolean;
+  penalty_applicable?: boolean;
+  workflow_step?: NoticeWorkflowStep;
 }
 
 export interface UpdateStageNoticeInput {
@@ -52,11 +81,27 @@ export interface UpdateStageNoticeInput {
   status?: NoticeStatus;
   documents?: string[];
   metadata?: Record<string, any>;
+  // New fields
+  offline_reference_no?: string;
+  issuing_authority?: string;
+  issuing_designation?: string;
+  tax_period_start?: string;
+  tax_period_end?: string;
+  financial_year?: string;
+  tax_amount?: number;
+  interest_amount?: number;
+  penalty_amount?: number;
+  tax_applicable?: boolean;
+  interest_applicable?: boolean;
+  penalty_applicable?: boolean;
+  workflow_step?: NoticeWorkflowStep;
 }
 
 // ============= Stage Reply Types =============
 
 export type ReplyFilingStatus = 'Draft' | 'Filed' | 'Acknowledged';
+
+export type FilingMode = 'Portal' | 'Physical' | 'Email';
 
 export interface StageReply {
   id: string;
@@ -66,6 +111,7 @@ export interface StageReply {
   reply_date: string | null;
   reply_reference: string | null;
   filing_status: ReplyFilingStatus;
+  filing_mode: FilingMode | null;
   documents: string[]; // Array of document IDs
   notes: string | null;
   filed_by: string | null;
@@ -80,6 +126,7 @@ export interface CreateStageReplyInput {
   reply_date?: string;
   reply_reference?: string;
   filing_status?: ReplyFilingStatus;
+  filing_mode?: FilingMode;
   documents?: string[];
   notes?: string;
 }
@@ -88,6 +135,7 @@ export interface UpdateStageReplyInput {
   reply_date?: string;
   reply_reference?: string;
   filing_status?: ReplyFilingStatus;
+  filing_mode?: FilingMode;
   documents?: string[];
   notes?: string;
 }

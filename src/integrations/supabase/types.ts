@@ -2615,11 +2615,14 @@ export type Database = {
           demo_batch_id: string | null
           forum_id: string | null
           hearing_date: string
+          hearing_outcome: string | null
+          hearing_purpose: string | null
           id: string
           is_demo: boolean | null
           judge_name: string | null
           next_hearing_date: string | null
           notes: string | null
+          notice_id: string | null
           order_file_path: string | null
           order_file_url: string | null
           outcome: string | null
@@ -2638,11 +2641,14 @@ export type Database = {
           demo_batch_id?: string | null
           forum_id?: string | null
           hearing_date: string
+          hearing_outcome?: string | null
+          hearing_purpose?: string | null
           id?: string
           is_demo?: boolean | null
           judge_name?: string | null
           next_hearing_date?: string | null
           notes?: string | null
+          notice_id?: string | null
           order_file_path?: string | null
           order_file_url?: string | null
           outcome?: string | null
@@ -2661,11 +2667,14 @@ export type Database = {
           demo_batch_id?: string | null
           forum_id?: string | null
           hearing_date?: string
+          hearing_outcome?: string | null
+          hearing_purpose?: string | null
           id?: string
           is_demo?: boolean | null
           judge_name?: string | null
           next_hearing_date?: string | null
           notes?: string | null
+          notice_id?: string | null
           order_file_path?: string | null
           order_file_url?: string | null
           outcome?: string | null
@@ -2709,6 +2718,13 @@ export type Database = {
             columns: ["forum_id"]
             isOneToOne: false
             referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hearings_notice_id_fkey"
+            columns: ["notice_id"]
+            isOneToOne: false
+            referencedRelation: "stage_notices"
             referencedColumns: ["id"]
           },
           {
@@ -3911,17 +3927,30 @@ export type Database = {
           created_by: string | null
           documents: Json | null
           due_date: string | null
+          financial_year: string | null
           id: string
+          interest_amount: number | null
+          interest_applicable: boolean | null
           is_original: boolean | null
+          issuing_authority: string | null
+          issuing_designation: string | null
           metadata: Json | null
           notice_date: string | null
           notice_number: string | null
           notice_type: string | null
+          offline_reference_no: string | null
+          penalty_amount: number | null
+          penalty_applicable: boolean | null
           section_invoked: string | null
           stage_instance_id: string | null
           status: string | null
+          tax_amount: number | null
+          tax_applicable: boolean | null
+          tax_period_end: string | null
+          tax_period_start: string | null
           tenant_id: string
           updated_at: string | null
+          workflow_step: string | null
         }
         Insert: {
           amount_demanded?: number | null
@@ -3930,17 +3959,30 @@ export type Database = {
           created_by?: string | null
           documents?: Json | null
           due_date?: string | null
+          financial_year?: string | null
           id?: string
+          interest_amount?: number | null
+          interest_applicable?: boolean | null
           is_original?: boolean | null
+          issuing_authority?: string | null
+          issuing_designation?: string | null
           metadata?: Json | null
           notice_date?: string | null
           notice_number?: string | null
           notice_type?: string | null
+          offline_reference_no?: string | null
+          penalty_amount?: number | null
+          penalty_applicable?: boolean | null
           section_invoked?: string | null
           stage_instance_id?: string | null
           status?: string | null
+          tax_amount?: number | null
+          tax_applicable?: boolean | null
+          tax_period_end?: string | null
+          tax_period_start?: string | null
           tenant_id: string
           updated_at?: string | null
+          workflow_step?: string | null
         }
         Update: {
           amount_demanded?: number | null
@@ -3949,17 +3991,30 @@ export type Database = {
           created_by?: string | null
           documents?: Json | null
           due_date?: string | null
+          financial_year?: string | null
           id?: string
+          interest_amount?: number | null
+          interest_applicable?: boolean | null
           is_original?: boolean | null
+          issuing_authority?: string | null
+          issuing_designation?: string | null
           metadata?: Json | null
           notice_date?: string | null
           notice_number?: string | null
           notice_type?: string | null
+          offline_reference_no?: string | null
+          penalty_amount?: number | null
+          penalty_applicable?: boolean | null
           section_invoked?: string | null
           stage_instance_id?: string | null
           status?: string | null
+          tax_amount?: number | null
+          tax_applicable?: boolean | null
+          tax_period_end?: string | null
+          tax_period_start?: string | null
           tenant_id?: string
           updated_at?: string | null
+          workflow_step?: string | null
         }
         Relationships: [
           {
@@ -4011,6 +4066,7 @@ export type Database = {
           created_at: string | null
           documents: Json | null
           filed_by: string | null
+          filing_mode: string | null
           filing_status: string | null
           id: string
           notes: string | null
@@ -4025,6 +4081,7 @@ export type Database = {
           created_at?: string | null
           documents?: Json | null
           filed_by?: string | null
+          filing_mode?: string | null
           filing_status?: string | null
           id?: string
           notes?: string | null
@@ -4039,6 +4096,7 @@ export type Database = {
           created_at?: string | null
           documents?: Json | null
           filed_by?: string | null
+          filing_mode?: string | null
           filing_status?: string | null
           id?: string
           notes?: string | null

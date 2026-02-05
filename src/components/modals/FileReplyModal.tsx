@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ModalLayout } from '@/components/ui/modal-layout';
 import { Send, Calendar, Upload, X, FileText } from 'lucide-react';
-import { StageNotice, StageReply, CreateStageReplyInput, ReplyFilingStatus } from '@/types/stageWorkflow';
+import { StageNotice, StageReply, CreateStageReplyInput, ReplyFilingStatus, FilingMode } from '@/types/stageWorkflow';
 import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { uploadDocument, DocumentMetadata } from '@/services/supabaseDocumentService';
@@ -33,6 +33,12 @@ const FILING_STATUS_OPTIONS: { value: ReplyFilingStatus; label: string; descript
   { value: 'Draft', label: 'Draft', description: 'Save as draft, not yet filed' },
   { value: 'Filed', label: 'Filed', description: 'Reply has been submitted' },
   { value: 'Acknowledged', label: 'Acknowledged', description: 'Filing acknowledged by authority' }
+];
+
+const FILING_MODES: { value: FilingMode; label: string; description: string }[] = [
+  { value: 'Portal', label: 'Online Portal', description: 'Filed via GST portal' },
+  { value: 'Physical', label: 'Physical', description: 'Submitted in person or by post' },
+  { value: 'Email', label: 'Email', description: 'Filed via email' }
 ];
 
 function formatDate(dateStr: string | null): string {
@@ -59,6 +65,7 @@ export const FileReplyModal: React.FC<FileReplyModalProps> = ({
     reply_date: '',
     reply_reference: '',
     filing_status: 'Draft' as ReplyFilingStatus,
+    filing_mode: 'Portal' as FilingMode,
     notes: ''
   });
   
@@ -77,14 +84,16 @@ export const FileReplyModal: React.FC<FileReplyModalProps> = ({
         reply_date: editReply.reply_date || '',
         reply_reference: editReply.reply_reference || '',
         filing_status: editReply.filing_status || 'Draft',
+        filing_mode: editReply.filing_mode || 'Portal',
         notes: editReply.notes || ''
       });
       setSelectedFiles([]);
     } else if (isOpen) {
       setFormData({
-        reply_date: new Date().toISOString().split('T')[0], // Default to today
+        reply_date: new Date().toISOString().split('T')[0],
         reply_reference: '',
         filing_status: 'Draft',
+        filing_mode: 'Portal',
         notes: ''
       });
       setSelectedFiles([]);
@@ -170,6 +179,7 @@ export const FileReplyModal: React.FC<FileReplyModalProps> = ({
         reply_date: formData.reply_date || undefined,
         reply_reference: formData.reply_reference || undefined,
         filing_status: formData.filing_status,
+        filing_mode: formData.filing_mode,
         documents: documentIds.length > 0 ? documentIds : undefined,
         notes: formData.notes || undefined
       };
@@ -266,28 +276,44 @@ export const FileReplyModal: React.FC<FileReplyModalProps> = ({
         </div>
 
         {/* Filing Status */}
-        <div className="space-y-1.5">
-          <Label htmlFor="filing_status">Filing Status</Label>
-          <Select
-            value={formData.filing_status}
-            onValueChange={(value) => setFormData(prev => ({ ...prev, filing_status: value as ReplyFilingStatus }))}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {FILING_STATUS_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  <div>
-                    <span className="font-medium">{option.label}</span>
-                    <span className="text-xs text-muted-foreground ml-2">
-                      — {option.description}
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="filing_status">Filing Status</Label>
+            <Select
+              value={formData.filing_status}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, filing_status: value as ReplyFilingStatus }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FILING_STATUS_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-1.5">
+            <Label htmlFor="filing_mode">Filing Mode</Label>
+            <Select
+              value={formData.filing_mode}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, filing_mode: value as FilingMode }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FILING_MODES.map((mode) => (
+                  <SelectItem key={mode.value} value={mode.value}>
+                    <span>{mode.label}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Document Upload Zone */}
