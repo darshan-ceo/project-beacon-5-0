@@ -38,6 +38,13 @@ class FeatureFlagService {
       version: 'v1'
     });
 
+    // Stage Workflow Micro-Workflow (UAT enabled)
+    this.flags.set('stage_workflow_v1', {
+      key: 'stage_workflow_v1',
+      isEnabled: true, // ON in UAT
+      version: 'v1'
+    });
+
     this.flags.set('stage_task_automation_v1', {
       key: 'stage_task_automation_v1',
       isEnabled: true, // ON in UAT

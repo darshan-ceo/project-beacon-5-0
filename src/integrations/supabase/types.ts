@@ -2624,6 +2624,7 @@ export type Database = {
           order_file_url: string | null
           outcome: string | null
           outcome_text: string | null
+          stage_instance_id: string | null
           status: string | null
           tenant_id: string
           updated_at: string | null
@@ -2646,6 +2647,7 @@ export type Database = {
           order_file_url?: string | null
           outcome?: string | null
           outcome_text?: string | null
+          stage_instance_id?: string | null
           status?: string | null
           tenant_id: string
           updated_at?: string | null
@@ -2668,6 +2670,7 @@ export type Database = {
           order_file_url?: string | null
           outcome?: string | null
           outcome_text?: string | null
+          stage_instance_id?: string | null
           status?: string | null
           tenant_id?: string
           updated_at?: string | null
@@ -2706,6 +2709,13 @@ export type Database = {
             columns: ["forum_id"]
             isOneToOne: false
             referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hearings_stage_instance_id_fkey"
+            columns: ["stage_instance_id"]
+            isOneToOne: false
+            referencedRelation: "stage_instances"
             referencedColumns: ["id"]
           },
           {
@@ -3893,6 +3903,190 @@ export type Database = {
           },
         ]
       }
+      stage_notices: {
+        Row: {
+          amount_demanded: number | null
+          case_id: string
+          created_at: string | null
+          created_by: string | null
+          documents: Json | null
+          due_date: string | null
+          id: string
+          is_original: boolean | null
+          metadata: Json | null
+          notice_date: string | null
+          notice_number: string | null
+          notice_type: string | null
+          section_invoked: string | null
+          stage_instance_id: string | null
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount_demanded?: number | null
+          case_id: string
+          created_at?: string | null
+          created_by?: string | null
+          documents?: Json | null
+          due_date?: string | null
+          id?: string
+          is_original?: boolean | null
+          metadata?: Json | null
+          notice_date?: string | null
+          notice_number?: string | null
+          notice_type?: string | null
+          section_invoked?: string | null
+          stage_instance_id?: string | null
+          status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount_demanded?: number | null
+          case_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          documents?: Json | null
+          due_date?: string | null
+          id?: string
+          is_original?: boolean | null
+          metadata?: Json | null
+          notice_date?: string | null
+          notice_number?: string | null
+          notice_type?: string | null
+          section_invoked?: string | null
+          stage_instance_id?: string | null
+          status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_notices_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "case_activity_summary"
+            referencedColumns: ["case_id"]
+          },
+          {
+            foreignKeyName: "stage_notices_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_notices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_notices_stage_instance_id_fkey"
+            columns: ["stage_instance_id"]
+            isOneToOne: false
+            referencedRelation: "stage_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_notices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "stage_notices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stage_replies: {
+        Row: {
+          created_at: string | null
+          documents: Json | null
+          filed_by: string | null
+          filing_status: string | null
+          id: string
+          notes: string | null
+          notice_id: string
+          reply_date: string | null
+          reply_reference: string | null
+          stage_instance_id: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          documents?: Json | null
+          filed_by?: string | null
+          filing_status?: string | null
+          id?: string
+          notes?: string | null
+          notice_id: string
+          reply_date?: string | null
+          reply_reference?: string | null
+          stage_instance_id?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          documents?: Json | null
+          filed_by?: string | null
+          filing_status?: string | null
+          id?: string
+          notes?: string | null
+          notice_id?: string
+          reply_date?: string | null
+          reply_reference?: string | null
+          stage_instance_id?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_replies_filed_by_fkey"
+            columns: ["filed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_replies_notice_id_fkey"
+            columns: ["notice_id"]
+            isOneToOne: false
+            referencedRelation: "stage_notices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_replies_stage_instance_id_fkey"
+            columns: ["stage_instance_id"]
+            isOneToOne: false
+            referencedRelation: "stage_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_replies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "stage_replies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stage_transition_approvals: {
         Row: {
           action: string
@@ -4079,6 +4273,74 @@ export type Database = {
             columns: ["order_document_id"]
             isOneToOne: false
             referencedRelation: "pending_review_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stage_workflow_steps: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          stage_instance_id: string
+          status: string | null
+          step_key: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          stage_instance_id: string
+          status?: string | null
+          step_key: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          stage_instance_id?: string
+          status?: string | null
+          step_key?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_workflow_steps_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_workflow_steps_stage_instance_id_fkey"
+            columns: ["stage_instance_id"]
+            isOneToOne: false
+            referencedRelation: "stage_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_workflow_steps_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "stage_workflow_steps_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
