@@ -102,7 +102,21 @@ class StageNoticesService {
           is_original: input.is_original || false,
           documents: input.documents || [],
           metadata: input.metadata || {},
-          created_by: user.id
+          created_by: user.id,
+          // New fields
+          offline_reference_no: input.offline_reference_no || null,
+          issuing_authority: input.issuing_authority || null,
+          issuing_designation: input.issuing_designation || null,
+          tax_period_start: input.tax_period_start || null,
+          tax_period_end: input.tax_period_end || null,
+          financial_year: input.financial_year || null,
+          tax_amount: input.tax_amount || null,
+          interest_amount: input.interest_amount || null,
+          penalty_amount: input.penalty_amount || null,
+          tax_applicable: input.tax_applicable ?? true,
+          interest_applicable: input.interest_applicable ?? true,
+          penalty_applicable: input.penalty_applicable ?? true,
+          workflow_step: input.workflow_step || 'notice'
         })
         .select()
         .single();
@@ -144,6 +158,20 @@ class StageNoticesService {
       if (input.status !== undefined) updateData.status = input.status;
       if (input.documents !== undefined) updateData.documents = input.documents;
       if (input.metadata !== undefined) updateData.metadata = input.metadata;
+      // New fields
+      if (input.offline_reference_no !== undefined) updateData.offline_reference_no = input.offline_reference_no;
+      if (input.issuing_authority !== undefined) updateData.issuing_authority = input.issuing_authority;
+      if (input.issuing_designation !== undefined) updateData.issuing_designation = input.issuing_designation;
+      if (input.tax_period_start !== undefined) updateData.tax_period_start = input.tax_period_start;
+      if (input.tax_period_end !== undefined) updateData.tax_period_end = input.tax_period_end;
+      if (input.financial_year !== undefined) updateData.financial_year = input.financial_year;
+      if (input.tax_amount !== undefined) updateData.tax_amount = input.tax_amount;
+      if (input.interest_amount !== undefined) updateData.interest_amount = input.interest_amount;
+      if (input.penalty_amount !== undefined) updateData.penalty_amount = input.penalty_amount;
+      if (input.tax_applicable !== undefined) updateData.tax_applicable = input.tax_applicable;
+      if (input.interest_applicable !== undefined) updateData.interest_applicable = input.interest_applicable;
+      if (input.penalty_applicable !== undefined) updateData.penalty_applicable = input.penalty_applicable;
+      if (input.workflow_step !== undefined) updateData.workflow_step = input.workflow_step;
 
       const { data, error } = await supabase
         .from('stage_notices')
@@ -293,8 +321,42 @@ class StageNoticesService {
       metadata: row.metadata || {},
       created_by: row.created_by,
       created_at: row.created_at,
-      updated_at: row.updated_at
+      updated_at: row.updated_at,
+      // New fields for expanded notice workflow
+      offline_reference_no: row.offline_reference_no || null,
+      issuing_authority: row.issuing_authority || null,
+      issuing_designation: row.issuing_designation || null,
+      tax_period_start: row.tax_period_start || null,
+      tax_period_end: row.tax_period_end || null,
+      financial_year: row.financial_year || null,
+      tax_amount: row.tax_amount || null,
+      interest_amount: row.interest_amount || null,
+      penalty_amount: row.penalty_amount || null,
+      tax_applicable: row.tax_applicable ?? true,
+      interest_applicable: row.interest_applicable ?? true,
+      penalty_applicable: row.penalty_applicable ?? true,
+      workflow_step: row.workflow_step || 'notice'
     };
+  }
+
+  /**
+   * Auto-advance workflow step based on actions
+   */
+  async autoAdvanceWorkflowStep(noticeId: string, toStep: 'reply' | 'hearing'): Promise<void> {
+    try {
+      const notice = await this.getNotice(noticeId);
+      if (!notice) return;
+      
+      const stepOrder = ['notice', 'reply', 'hearing', 'closed'];
+      const currentIndex = stepOrder.indexOf(notice.workflow_step || 'notice');
+      const targetIndex = stepOrder.indexOf(toStep);
+      
+      if (targetIndex > currentIndex) {
+        await this.updateNotice(noticeId, { workflow_step: toStep });
+      }
+    } catch (error) {
+      console.error('[StageNoticesService] Failed to advance workflow step:', error);
+    }
   }
 }
 

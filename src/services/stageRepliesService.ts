@@ -130,6 +130,7 @@ class StageRepliesService {
           reply_date: input.reply_date || null,
           reply_reference: input.reply_reference || null,
           filing_status: input.filing_status || 'Draft',
+          filing_mode: input.filing_mode || null,
           documents: input.documents || [],
           notes: input.notes || null,
           filed_by: user.id
@@ -142,12 +143,15 @@ class StageRepliesService {
 
       if (error) throw error;
 
-      // Update notice status to 'Reply Pending' or 'Replied' based on filing status
+      // Update notice status and workflow step
       const newNoticeStatus = input.filing_status === 'Filed' || input.filing_status === 'Acknowledged' 
         ? 'Replied' 
         : 'Reply Pending';
 
-      await stageNoticesService.updateNotice(input.notice_id, { status: newNoticeStatus });
+      await stageNoticesService.updateNotice(input.notice_id, { 
+        status: newNoticeStatus,
+        workflow_step: 'reply'  // Auto-advance workflow step
+      });
 
       toast({
         title: 'Reply Saved',
@@ -180,6 +184,7 @@ class StageRepliesService {
       if (input.reply_date !== undefined) updateData.reply_date = input.reply_date;
       if (input.reply_reference !== undefined) updateData.reply_reference = input.reply_reference;
       if (input.filing_status !== undefined) updateData.filing_status = input.filing_status;
+      if (input.filing_mode !== undefined) updateData.filing_mode = input.filing_mode;
       if (input.documents !== undefined) updateData.documents = input.documents;
       if (input.notes !== undefined) updateData.notes = input.notes;
 
@@ -258,6 +263,7 @@ class StageRepliesService {
       reply_date: row.reply_date,
       reply_reference: row.reply_reference,
       filing_status: row.filing_status as ReplyFilingStatus,
+      filing_mode: row.filing_mode || null,
       documents: Array.isArray(row.documents) ? row.documents : [],
       notes: row.notes,
       filed_by: row.filed_by,

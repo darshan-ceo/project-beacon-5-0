@@ -1,18 +1,25 @@
 /**
  * Add Notice Modal
- * Form for adding/editing stage notices with improved UI/UX
+ * Enhanced form for adding/editing stage notices with expanded fields
+ * Following the Notice Workflow Alignment requirements
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ModalLayout } from '@/components/ui/modal-layout';
-import { FileText, Calendar, IndianRupee } from 'lucide-react';
-import { StageNotice, CreateStageNoticeInput, NoticeStatus } from '@/types/stageWorkflow';
+import { Separator } from '@/components/ui/separator';
+import { FileText, Calendar, IndianRupee, Building2, Scale, Upload, X } from 'lucide-react';
+import { StageNotice, CreateStageNoticeInput, NoticeStatus, NoticeWorkflowStep } from '@/types/stageWorkflow';
 import { format, parseISO, isValid } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { uploadDocument, DocumentMetadata } from '@/services/supabaseDocumentService';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AddNoticeModalProps {
   isOpen: boolean;
@@ -40,6 +47,27 @@ const SECTIONS = [
   '73(1)', '73(2)', '74(1)', '74(2)', '75', '76', '77', '78', '79', '83', 'Other'
 ];
 
+const FINANCIAL_YEARS = (() => {
+  const currentYear = new Date().getFullYear();
+  const years: string[] = [];
+  for (let i = currentYear; i >= currentYear - 10; i--) {
+    years.push(`${i}-${(i + 1).toString().slice(-2)}`);
+  }
+  return years;
+})();
+
+const ISSUING_AUTHORITIES = [
+  'Assistant Commissioner',
+  'Deputy Commissioner',
+  'Joint Commissioner',
+  'Additional Commissioner',
+  'Commissioner',
+  'Principal Commissioner',
+  'Chief Commissioner',
+  'Superintendent',
+  'Other'
+];
+
 export const AddNoticeModal: React.FC<AddNoticeModalProps> = ({
   isOpen,
   onClose,
@@ -50,18 +78,50 @@ export const AddNoticeModal: React.FC<AddNoticeModalProps> = ({
   isLoading = false,
   mode = 'add'
 }) => {
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
+    // Section 1: Identification
     notice_type: '',
     notice_number: '',
+    offline_reference_no: '',
     notice_date: '',
     due_date: '',
-    amount_demanded: '',
+    // Section 2: Authority
+    issuing_authority: '',
+    issuing_designation: '',
+    // Section 3: Legal & Compliance
     section_invoked: '',
+    tax_period_start: '',
+    tax_period_end: '',
+    financial_year: '',
+    // Section 4: Demand Details
+    tax_amount: '',
+    interest_amount: '',
+    penalty_amount: '',
+    tax_applicable: true,
+    interest_applicable: true,
+    penalty_applicable: true,
+    // Section 5: Other
     notes: ''
   });
 
+  // Document upload state
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const isEdit = mode === 'edit' || (!!editNotice && mode !== 'view');
   const isViewOnly = mode === 'view';
+
+  // Compute total demand
+  const totalDemand = useMemo(() => {
+    const tax = formData.tax_applicable ? parseFloat(formData.tax_amount) || 0 : 0;
+    const interest = formData.interest_applicable ? parseFloat(formData.interest_amount) || 0 : 0;
+    const penalty = formData.penalty_applicable ? parseFloat(formData.penalty_amount) || 0 : 0;
+    return tax + interest + penalty;
+  }, [formData.tax_amount, formData.interest_amount, formData.penalty_amount, 
+      formData.tax_applicable, formData.interest_applicable, formData.penalty_applicable]);
 
   // Reset form when modal opens/closes or editNotice changes
   useEffect(() => {
@@ -69,42 +129,152 @@ export const AddNoticeModal: React.FC<AddNoticeModalProps> = ({
       setFormData({
         notice_type: editNotice.notice_type || '',
         notice_number: editNotice.notice_number || '',
+        offline_reference_no: editNotice.offline_reference_no || '',
         notice_date: editNotice.notice_date || '',
         due_date: editNotice.due_date || '',
-        amount_demanded: editNotice.amount_demanded?.toString() || '',
+        issuing_authority: editNotice.issuing_authority || '',
+        issuing_designation: editNotice.issuing_designation || '',
         section_invoked: editNotice.section_invoked || '',
+        tax_period_start: editNotice.tax_period_start || '',
+        tax_period_end: editNotice.tax_period_end || '',
+        financial_year: editNotice.financial_year || '',
+        tax_amount: editNotice.tax_amount?.toString() || '',
+        interest_amount: editNotice.interest_amount?.toString() || '',
+        penalty_amount: editNotice.penalty_amount?.toString() || '',
+        tax_applicable: editNotice.tax_applicable ?? true,
+        interest_applicable: editNotice.interest_applicable ?? true,
+        penalty_applicable: editNotice.penalty_applicable ?? true,
         notes: (editNotice.metadata as any)?.notes || ''
       });
+      setSelectedFiles([]);
     } else if (isOpen) {
       setFormData({
         notice_type: '',
         notice_number: '',
+        offline_reference_no: '',
         notice_date: '',
         due_date: '',
-        amount_demanded: '',
+        issuing_authority: '',
+        issuing_designation: '',
         section_invoked: '',
+        tax_period_start: '',
+        tax_period_end: '',
+        financial_year: '',
+        tax_amount: '',
+        interest_amount: '',
+        penalty_amount: '',
+        tax_applicable: true,
+        interest_applicable: true,
+        penalty_applicable: true,
         notes: ''
       });
+      setSelectedFiles([]);
     }
   }, [isOpen, editNotice]);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    setSelectedFiles(prev => [...prev, ...files]);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setSelectedFiles(prev => [...prev, ...files]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const input: CreateStageNoticeInput = {
-      case_id: caseId,
-      stage_instance_id: stageInstanceId || undefined,
-      notice_type: formData.notice_type || undefined,
-      notice_number: formData.notice_number || undefined,
-      notice_date: formData.notice_date || undefined,
-      due_date: formData.due_date || undefined,
-      amount_demanded: formData.amount_demanded ? parseFloat(formData.amount_demanded) : undefined,
-      section_invoked: formData.section_invoked || undefined,
-      metadata: formData.notes ? { notes: formData.notes } : undefined
-    };
+    setIsUploading(true);
+    let documentIds: string[] = editNotice?.documents || [];
 
-    await onSave(input);
-    onClose();
+    try {
+      // Get tenant_id for document uploads
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user?.id)
+        .single();
+
+      // Upload documents if any selected
+      if (selectedFiles.length > 0 && profile?.tenant_id) {
+        for (const file of selectedFiles) {
+          try {
+            const metadata: DocumentMetadata = {
+              tenant_id: profile.tenant_id,
+              case_id: caseId,
+              category: 'Notice',
+              remarks: `Notice document: ${formData.notice_type || 'Notice'}`
+            };
+            
+            const doc = await uploadDocument(file, metadata);
+            if (doc?.id) {
+              documentIds.push(doc.id);
+            }
+          } catch (uploadError) {
+            console.error('[AddNoticeModal] Document upload failed:', uploadError);
+            toast({
+              title: "Upload Warning",
+              description: `Failed to upload ${file.name}`,
+              variant: "destructive"
+            });
+          }
+        }
+      }
+
+      const input: CreateStageNoticeInput = {
+        case_id: caseId,
+        stage_instance_id: stageInstanceId || undefined,
+        notice_type: formData.notice_type || undefined,
+        notice_number: formData.notice_number || undefined,
+        notice_date: formData.notice_date || undefined,
+        due_date: formData.due_date || undefined,
+        section_invoked: formData.section_invoked || undefined,
+        metadata: formData.notes ? { notes: formData.notes } : undefined,
+        documents: documentIds.length > 0 ? documentIds : undefined,
+        // New fields
+        offline_reference_no: formData.offline_reference_no || undefined,
+        issuing_authority: formData.issuing_authority || undefined,
+        issuing_designation: formData.issuing_designation || undefined,
+        tax_period_start: formData.tax_period_start || undefined,
+        tax_period_end: formData.tax_period_end || undefined,
+        financial_year: formData.financial_year || undefined,
+        tax_amount: formData.tax_amount ? parseFloat(formData.tax_amount) : undefined,
+        interest_amount: formData.interest_amount ? parseFloat(formData.interest_amount) : undefined,
+        penalty_amount: formData.penalty_amount ? parseFloat(formData.penalty_amount) : undefined,
+        tax_applicable: formData.tax_applicable,
+        interest_applicable: formData.interest_applicable,
+        penalty_applicable: formData.penalty_applicable,
+        // Compute amount_demanded from breakdown
+        amount_demanded: totalDemand > 0 ? totalDemand : undefined,
+        workflow_step: 'notice'
+      };
+
+      await onSave(input);
+      onClose();
+    } catch (error) {
+      console.error('[AddNoticeModal] Save failed:', error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const getTitle = () => {
@@ -117,17 +287,27 @@ export const AddNoticeModal: React.FC<AddNoticeModalProps> = ({
     return isEdit ? 'Update the notice details below' : 'Record a new notice for this stage';
   };
 
+  const formatDisplayDate = (dateStr: string) => {
+    if (!dateStr) return '—';
+    try {
+      const date = parseISO(dateStr);
+      return isValid(date) ? format(date, 'dd MMM yyyy') : dateStr;
+    } catch {
+      return dateStr;
+    }
+  };
+
   const footerContent = isViewOnly ? (
     <Button type="button" onClick={onClose}>
       Close
     </Button>
   ) : (
     <>
-      <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+      <Button type="button" variant="outline" onClick={onClose} disabled={isLoading || isUploading}>
         Cancel
       </Button>
-      <Button type="submit" form="add-notice-form" disabled={isLoading}>
-        {isLoading ? 'Saving...' : isEdit ? 'Update Notice' : 'Add Notice'}
+      <Button type="submit" form="add-notice-form" disabled={isLoading || isUploading}>
+        {isUploading ? 'Uploading...' : isLoading ? 'Saving...' : isEdit ? 'Update Notice' : 'Add Notice'}
       </Button>
     </>
   );
@@ -140,148 +320,441 @@ export const AddNoticeModal: React.FC<AddNoticeModalProps> = ({
       description={getDescription()}
       icon={<FileText className="h-5 w-5 text-primary" />}
       footer={footerContent}
-      maxWidth="max-w-[500px]"
+      maxWidth="max-w-[600px]"
     >
-      <form id="add-notice-form" onSubmit={handleSubmit} className="space-y-4">
-        {/* Notice Type */}
-        <div className="space-y-1.5">
-          <Label htmlFor="notice_type">Notice Type</Label>
-          {isViewOnly ? (
-            <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
-              {NOTICE_TYPES.find(t => t.value === formData.notice_type)?.label || formData.notice_type || '—'}
-            </p>
-          ) : (
-            <Select
-              value={formData.notice_type}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, notice_type: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select notice type" />
-              </SelectTrigger>
-              <SelectContent>
-                {NOTICE_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
+      <form id="add-notice-form" onSubmit={handleSubmit} className="space-y-5">
+        {/* Section 1: Notice Identification */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <FileText className="h-4 w-4" />
+            Notice Identification
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="notice_type">Notice Type</Label>
+              {isViewOnly ? (
+                <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
+                  {NOTICE_TYPES.find(t => t.value === formData.notice_type)?.label || formData.notice_type || '—'}
+                </p>
+              ) : (
+                <Select
+                  value={formData.notice_type}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, notice_type: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {NOTICE_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
 
-        {/* Notice Number */}
-        <div className="space-y-1.5">
-          <Label htmlFor="notice_number">Notice Number</Label>
-          {isViewOnly ? (
-            <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
-              {formData.notice_number || '—'}
-            </p>
-          ) : (
-            <Input
-              id="notice_number"
-              placeholder="e.g., ASMT-10/2026/001234"
-              value={formData.notice_number}
-              onChange={(e) => setFormData(prev => ({ ...prev, notice_number: e.target.value }))}
-            />
-          )}
-        </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="notice_number">Online Reference No</Label>
+              {isViewOnly ? (
+                <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
+                  {formData.notice_number || '—'}
+                </p>
+              ) : (
+                <Input
+                  id="notice_number"
+                  placeholder="e.g., ASMT-10/2026/001234"
+                  value={formData.notice_number}
+                  onChange={(e) => setFormData(prev => ({ ...prev, notice_number: e.target.value }))}
+                />
+              )}
+            </div>
+          </div>
 
-        {/* Date Row */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="notice_date">Notice Date</Label>
-            {isViewOnly ? (
-              <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                {formData.notice_date ? format(parseISO(formData.notice_date), 'dd MMM yyyy') : '—'}
-              </p>
-            ) : (
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="offline_reference_no">Offline Reference No (Optional)</Label>
+              {isViewOnly ? (
+                <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
+                  {formData.offline_reference_no || '—'}
+                </p>
+              ) : (
+                <Input
+                  id="offline_reference_no"
+                  placeholder="Physical file reference"
+                  value={formData.offline_reference_no}
+                  onChange={(e) => setFormData(prev => ({ ...prev, offline_reference_no: e.target.value }))}
+                />
+              )}
+            </div>
+            
+            <div className="space-y-1.5">
+              <Label htmlFor="notice_date">Notice Date</Label>
+              {isViewOnly ? (
+                <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  {formatDisplayDate(formData.notice_date)}
+                </p>
+              ) : (
                 <Input
                   id="notice_date"
                   type="date"
                   value={formData.notice_date}
                   onChange={(e) => setFormData(prev => ({ ...prev, notice_date: e.target.value }))}
-                  className="pl-10"
                 />
-              </div>
-            )}
+              )}
+            </div>
           </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="due_date">Reply Due Date</Label>
             {isViewOnly ? (
               <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                {formData.due_date ? format(parseISO(formData.due_date), 'dd MMM yyyy') : '—'}
+                {formatDisplayDate(formData.due_date)}
               </p>
             ) : (
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="due_date"
-                  type="date"
-                  value={formData.due_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
-                  className="pl-10"
-                />
-              </div>
+              <Input
+                id="due_date"
+                type="date"
+                value={formData.due_date}
+                onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+              />
             )}
           </div>
         </div>
 
-        {/* Amount and Section Row */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="amount_demanded">Demand Amount (₹)</Label>
-            {isViewOnly ? (
-              <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md flex items-center gap-2">
-                <IndianRupee className="h-4 w-4 text-muted-foreground" />
-                {formData.amount_demanded ? new Intl.NumberFormat('en-IN').format(parseFloat(formData.amount_demanded)) : '—'}
-              </p>
-            ) : (
-              <div className="relative">
-                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Separator />
+
+        {/* Section 2: Issuing Authority */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Building2 className="h-4 w-4" />
+            Issuing Authority
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="issuing_authority">Authority Name</Label>
+              {isViewOnly ? (
+                <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
+                  {formData.issuing_authority || '—'}
+                </p>
+              ) : (
+                <Select
+                  value={formData.issuing_authority}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, issuing_authority: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select authority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ISSUING_AUTHORITIES.map((auth) => (
+                      <SelectItem key={auth} value={auth}>
+                        {auth}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="issuing_designation">Officer Designation</Label>
+              {isViewOnly ? (
+                <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
+                  {formData.issuing_designation || '—'}
+                </p>
+              ) : (
                 <Input
-                  id="amount_demanded"
-                  type="number"
-                  placeholder="0"
-                  value={formData.amount_demanded}
-                  onChange={(e) => setFormData(prev => ({ ...prev, amount_demanded: e.target.value }))}
-                  className="pl-10"
+                  id="issuing_designation"
+                  placeholder="e.g., CGST Delhi"
+                  value={formData.issuing_designation}
+                  onChange={(e) => setFormData(prev => ({ ...prev, issuing_designation: e.target.value }))}
                 />
+              )}
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Section 3: Legal & Compliance */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Scale className="h-4 w-4" />
+            Legal & Compliance
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="section_invoked">Section(s) Invoked</Label>
+              {isViewOnly ? (
+                <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
+                  {formData.section_invoked ? `Section ${formData.section_invoked}` : '—'}
+                </p>
+              ) : (
+                <Select
+                  value={formData.section_invoked}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, section_invoked: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select section" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SECTIONS.map((section) => (
+                      <SelectItem key={section} value={section}>
+                        Section {section}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="financial_year">Financial Year</Label>
+              {isViewOnly ? (
+                <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
+                  {formData.financial_year ? `FY ${formData.financial_year}` : '—'}
+                </p>
+              ) : (
+                <Select
+                  value={formData.financial_year}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, financial_year: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select FY" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FINANCIAL_YEARS.map((fy) => (
+                      <SelectItem key={fy} value={fy}>
+                        FY {fy}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="tax_period_start">Tax Period From</Label>
+              {isViewOnly ? (
+                <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
+                  {formatDisplayDate(formData.tax_period_start)}
+                </p>
+              ) : (
+                <Input
+                  id="tax_period_start"
+                  type="date"
+                  value={formData.tax_period_start}
+                  onChange={(e) => setFormData(prev => ({ ...prev, tax_period_start: e.target.value }))}
+                />
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="tax_period_end">Tax Period To</Label>
+              {isViewOnly ? (
+                <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
+                  {formatDisplayDate(formData.tax_period_end)}
+                </p>
+              ) : (
+                <Input
+                  id="tax_period_end"
+                  type="date"
+                  value={formData.tax_period_end}
+                  onChange={(e) => setFormData(prev => ({ ...prev, tax_period_end: e.target.value }))}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Section 4: Demand Details */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <IndianRupee className="h-4 w-4" />
+            Demand Details
+          </div>
+          
+          <div className="space-y-2">
+            {/* Tax Amount */}
+            <div className="grid grid-cols-[1fr,auto] gap-3 items-center">
+              <div className="space-y-1.5">
+                <Label htmlFor="tax_amount">Tax Amount (₹)</Label>
+                {isViewOnly ? (
+                  <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
+                    {formData.tax_amount ? new Intl.NumberFormat('en-IN').format(parseFloat(formData.tax_amount)) : '—'}
+                  </p>
+                ) : (
+                  <Input
+                    id="tax_amount"
+                    type="number"
+                    placeholder="0"
+                    value={formData.tax_amount}
+                    onChange={(e) => setFormData(prev => ({ ...prev, tax_amount: e.target.value }))}
+                    disabled={!formData.tax_applicable}
+                  />
+                )}
+              </div>
+              <div className="flex items-center space-x-2 pt-6">
+                <Checkbox
+                  id="tax_applicable"
+                  checked={formData.tax_applicable}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, tax_applicable: !!checked }))}
+                  disabled={isViewOnly}
+                />
+                <Label htmlFor="tax_applicable" className="text-xs">Applicable</Label>
+              </div>
+            </div>
+
+            {/* Interest Amount */}
+            <div className="grid grid-cols-[1fr,auto] gap-3 items-center">
+              <div className="space-y-1.5">
+                <Label htmlFor="interest_amount">Interest Amount (₹)</Label>
+                {isViewOnly ? (
+                  <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
+                    {formData.interest_amount ? new Intl.NumberFormat('en-IN').format(parseFloat(formData.interest_amount)) : '—'}
+                  </p>
+                ) : (
+                  <Input
+                    id="interest_amount"
+                    type="number"
+                    placeholder="0"
+                    value={formData.interest_amount}
+                    onChange={(e) => setFormData(prev => ({ ...prev, interest_amount: e.target.value }))}
+                    disabled={!formData.interest_applicable}
+                  />
+                )}
+              </div>
+              <div className="flex items-center space-x-2 pt-6">
+                <Checkbox
+                  id="interest_applicable"
+                  checked={formData.interest_applicable}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, interest_applicable: !!checked }))}
+                  disabled={isViewOnly}
+                />
+                <Label htmlFor="interest_applicable" className="text-xs">Applicable</Label>
+              </div>
+            </div>
+
+            {/* Penalty Amount */}
+            <div className="grid grid-cols-[1fr,auto] gap-3 items-center">
+              <div className="space-y-1.5">
+                <Label htmlFor="penalty_amount">Penalty Amount (₹)</Label>
+                {isViewOnly ? (
+                  <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
+                    {formData.penalty_amount ? new Intl.NumberFormat('en-IN').format(parseFloat(formData.penalty_amount)) : '—'}
+                  </p>
+                ) : (
+                  <Input
+                    id="penalty_amount"
+                    type="number"
+                    placeholder="0"
+                    value={formData.penalty_amount}
+                    onChange={(e) => setFormData(prev => ({ ...prev, penalty_amount: e.target.value }))}
+                    disabled={!formData.penalty_applicable}
+                  />
+                )}
+              </div>
+              <div className="flex items-center space-x-2 pt-6">
+                <Checkbox
+                  id="penalty_applicable"
+                  checked={formData.penalty_applicable}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, penalty_applicable: !!checked }))}
+                  disabled={isViewOnly}
+                />
+                <Label htmlFor="penalty_applicable" className="text-xs">Applicable</Label>
+              </div>
+            </div>
+
+            {/* Total */}
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md mt-2">
+              <span className="font-medium">Total Demand</span>
+              <span className="font-bold text-lg">
+                ₹{new Intl.NumberFormat('en-IN').format(totalDemand)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Section 5: Documents */}
+        {!isViewOnly && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Upload className="h-4 w-4" />
+              Attach Documents
+            </div>
+            
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer",
+                isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"
+              )}
+            >
+              <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">
+                Drop scanned notice files here or click to browse
+              </p>
+              <p className="text-[10px] text-muted-foreground/70 mt-1">
+                PDF, DOC, DOCX, JPG, PNG
+              </p>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            
+            {selectedFiles.length > 0 && (
+              <div className="space-y-1.5">
+                {selectedFiles.map((file, idx) => (
+                  <div 
+                    key={idx} 
+                    className="flex items-center justify-between p-2 border rounded-md bg-muted/30"
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-sm truncate">{file.name}</span>
+                      <span className="text-xs text-muted-foreground flex-shrink-0">
+                        ({(file.size / 1024).toFixed(0)} KB)
+                      </span>
+                    </div>
+                    <Button 
+                      type="button"
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFile(idx);
+                      }}
+                      className="h-6 w-6 flex-shrink-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="section_invoked">Section Invoked</Label>
-            {isViewOnly ? (
-              <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
-                {formData.section_invoked ? `Section ${formData.section_invoked}` : '—'}
-              </p>
-            ) : (
-              <Select
-                value={formData.section_invoked}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, section_invoked: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select section" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SECTIONS.map((section) => (
-                    <SelectItem key={section} value={section}>
-                      Section {section}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* Notes */}
         <div className="space-y-1.5">
-          <Label htmlFor="notes">Notes</Label>
+          <Label htmlFor="notes">Notes (Optional)</Label>
           {isViewOnly ? (
             <p className="text-sm py-2 px-3 bg-muted/50 rounded-md min-h-[60px]">
               {formData.notes || 'No notes'}
