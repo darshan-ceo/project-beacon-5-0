@@ -359,12 +359,15 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   }, [stageInstanceId, completeStep, toast, refreshWorkflow]);
 
   // Get stage-specific hearings
+  // Check both caseId (legacy) and case_id (DB) since hearingsService returns both formats
   const stageHearings = useMemo(() => {
     if (!selectedCase?.id) return [];
-    return state.hearings?.filter(h => 
-      h.caseId === selectedCase.id && 
-      (h.stage_instance_id === stageInstanceId || !h.stage_instance_id)
-    ) || [];
+    return state.hearings?.filter(h => {
+      const hearingCaseId = h.caseId || h.case_id;
+      const matchesCase = hearingCaseId === selectedCase.id;
+      const matchesStage = h.stage_instance_id === stageInstanceId || !h.stage_instance_id;
+      return matchesCase && matchesStage;
+    }) || [];
   }, [selectedCase?.id, stageInstanceId, state.hearings]);
 
   // Handler for navigating to create task
@@ -724,6 +727,8 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
               onDeleteNotice={handleDeleteNotice}
               onViewNotice={handleViewNotice}
               onFileReply={handleFileReply}
+              noticeReplies={noticeReplies}
+              onLoadReplies={loadRepliesForNotice}
             />
           )}
 
@@ -739,6 +744,8 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                 onDeleteNotice={handleDeleteNotice}
                 onViewNotice={handleViewNotice}
                 onFileReply={handleFileReply}
+                noticeReplies={noticeReplies}
+                onLoadReplies={loadRepliesForNotice}
               />
             ) : (
               <Card className="border-dashed">
