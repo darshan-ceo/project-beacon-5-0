@@ -1,195 +1,199 @@
 
-# Add Notice Workflow Alignment Plan
+# Validation and UX Refactor Plan: Create New Case
+
+## Summary
+
+Refactor "Create New Case" validation to enable fast case creation (under 60 seconds) by enforcing only essential fields while keeping detailed notice documentation in the "Add Notice" workflow.
+
+---
 
 ## Current State Analysis
 
-The Stage Workflow micro-workflow infrastructure is already implemented with:
+### Current Required Fields (CaseModal.tsx lines 224-262)
 
-| Component | Status | Gap |
-|-----------|--------|-----|
-| `stage_notices` table | Complete | Missing: `offline_reference_no`, `issuing_authority`, `issuing_designation`, `tax_period`, `financial_year`, demand breakdown fields |
-| `stage_replies` table | Complete | Missing: `mode` (Portal/Physical/Email) field |
-| `stage_workflow_steps` table | Complete | No gaps |
-| `AddNoticeModal.tsx` | Basic form | Needs expanded fields per requirements |
-| `StageNoticesPanel.tsx` | Card list view | Needs current workflow step indicator |
-| `FileReplyModal.tsx` | Working | Needs filing mode field |
-| `StageHearingsPanel.tsx` | Working | Needs hearing purpose, outcome options |
-| `StageClosurePanel.tsx` | Working | Already has configurable outcomes |
+| Field | Currently Required | Blocks Creation |
+|-------|-------------------|-----------------|
+| Office File No | Yes | Yes |
+| Notice No | Yes | Yes |
+| Issue Type | Yes | Yes |
+| Notice Date | Yes | Yes |
+| Reply Due Date | Yes | Yes |
+| City | Yes | Yes |
+| Client | Yes | Yes |
+| Assigned To | Yes | Yes |
 
----
+### Fields That Should Be Required Per Prompt
 
-## Implementation Scope
+| Field | Should Be Required |
+|-------|-------------------|
+| Case Type | Yes (already enforced) |
+| Year/Sequence | Yes (auto-generated) |
+| Notice Type | Yes (form_type) |
+| Notice Number (notice_no) | Yes |
+| Notice Date | Yes |
+| Reply Due Date | Yes |
+| Client | Yes |
+| Assigned To | Yes |
 
-### 1. Database Schema Enhancement
+### Fields To Make Optional
 
-**Add new columns to `stage_notices`:**
-
-| Column | Type | Purpose |
-|--------|------|---------|
-| `offline_reference_no` | varchar | Offline/Physical reference number |
-| `issuing_authority` | varchar | Authority name |
-| `issuing_designation` | varchar | Designation of issuing officer |
-| `tax_period_start` | date | Start of tax period |
-| `tax_period_end` | date | End of tax period |
-| `financial_year` | varchar | e.g., "2023-24" |
-| `tax_amount` | numeric | Tax component of demand |
-| `interest_amount` | numeric | Interest component |
-| `penalty_amount` | numeric | Penalty component |
-| `tax_applicable` | boolean | Flag for "As Applicable" |
-| `interest_applicable` | boolean | Flag for "As Applicable" |
-| `penalty_applicable` | boolean | Flag for "As Applicable" |
-| `workflow_step` | varchar | Current notice workflow step: 'notice', 'reply', 'hearing', 'closed' |
-
-**Add new column to `stage_replies`:**
-
-| Column | Type | Purpose |
-|--------|------|---------|
-| `filing_mode` | varchar | 'Portal' / 'Physical' / 'Email' |
+| Field | Currently Required | Change To |
+|-------|-------------------|-----------|
+| Office File No | Yes | Optional |
+| Issue Type | Yes | Optional (relabel) |
+| City | Yes | Optional |
 
 ---
 
-### 2. Enhanced AddNoticeModal Form
+## Implementation Changes
 
-Reorganize the modal into logical sections with all required fields:
+### 1. Validation Logic Changes (CaseModal.tsx)
 
-**Section 1: Notice Identification**
-- Online Reference No (existing `notice_number`)
-- Offline Reference No (new)
-- Notice Type (existing - dropdown)
-- Notice Date (existing)
-- Reply Due Date (existing)
-
-**Section 2: Issuing Authority**
-- Authority Name (new dropdown or text)
-- Officer Designation (new)
-
-**Section 3: Legal & Compliance**
-- Section(s) Invoked (existing - multi-select)
-- Tax Period From/To (new date range)
-- Financial Year (new dropdown)
-
-**Section 4: Demand Details**
-Grid layout with "As Applicable" checkboxes:
-- Tax Amount + checkbox
-- Interest Amount + checkbox
-- Penalty Amount + checkbox
-- Total (computed, read-only)
-
-**Section 5: Documents**
-- Drag-drop upload zone for scanned notice
-- Support multiple attachments
-
-**Section 6: Save Options**
-- "Save as Draft" vs "Submit" status
-
----
-
-### 3. Notice Micro-Workflow Tracking
-
-Each notice will track its own 4-step internal workflow status via the new `workflow_step` column:
-
-| Step | Description | Transition Logic |
-|------|-------------|------------------|
-| `notice` | Notice metadata captured | Auto-set on create |
-| `reply` | One or more replies filed | Auto-advance when first reply created |
-| `hearing` | Hearings in progress | Auto-advance when first hearing linked |
-| `closed` | Notice closed with outcome | Manual closure via UI |
-
-**Visual Indicator**: Show mini-stepper or status chip on each notice card
-
----
-
-### 4. Notice Card Enhancements (StageNoticesPanel)
-
-Update each notice card to display:
-
-```text
-┌──────────────────────────────────────────────────────┐
-│ [ASMT-10] ABC/2024/12345                   [Replied] │
-│ ───────────────────────────────────────────────────  │
-│ 📅 15 Jan 2025  ⏰ Due: 15 Feb (28 days)  ₹5,50,000 │
-│ ───────────────────────────────────────────────────  │
-│ Current Step: ● Notice → ○ Reply → ○ Hearing → ○    │
-│ ───────────────────────────────────────────────────  │
-│ [Add Reply]  [Schedule Hearing]  [Close Notice]  ▼  │
-└──────────────────────────────────────────────────────┘
-```
-
-**New CTAs per notice:**
-- "Add Reply" - Opens FileReplyModal
-- "Schedule Hearing" - Opens HearingModal linked to this notice
-- "Close Notice" - Opens NoticeClosureModal (new)
-
----
-
-### 5. Notice Closure Flow (New Component)
-
-Create `NoticeClosureModal.tsx` with selectable outcomes:
-
-| Outcome | Description | Next Action |
-|---------|-------------|-------------|
-| Order Passed | Authority issued an order | Show appeal limitation timer |
-| Notice Dropped | Authority dropped the notice | Close without action |
-| Time-barred | Limitation period expired | Close without action |
-| Moved to Next Stage | Case promoted to appeal stage | Trigger stage advancement |
-
-On closure:
-- Update notice `status` to 'Closed'
-- Update notice `workflow_step` to 'closed'
-- If "Order Passed" → populate order metadata and show appeal deadline
-- If "Moved to Next Stage" → prompt for stage advancement
-
----
-
-### 6. FileReplyModal Enhancement
-
-Add "Filing Mode" field:
+**Remove blocking validation for:**
 
 ```typescript
-const FILING_MODES = [
-  { value: 'Portal', label: 'Online Portal', description: 'Filed via GST portal' },
-  { value: 'Physical', label: 'Physical', description: 'Submitted in person/by post' },
-  { value: 'Email', label: 'Email', description: 'Filed via email' }
-];
+// REMOVE these validations:
+// - officeFileNo (was required)
+// - issueType (was required)  
+// - city (was required)
+```
+
+**Keep required:**
+
+```typescript
+// KEEP these validations:
+// - clientId (ownership)
+// - assignedToId (ownership)
+// - noticeNo or notice_no (notice snapshot)
+// - form_type (notice type - add this)
+// - notice_date (compliance)
+// - reply_due_date (compliance)
+```
+
+**Updated validation block:**
+
+```typescript
+// Validation - Minimal required for case creation
+if (mode === 'create') {
+  // Notice snapshot - bare minimum
+  if (!formData.noticeNo && !formData.notice_no) {
+    showValidationError("Notice No / Reference No is required.");
+    return;
+  }
+  if (!formData.form_type) {
+    showValidationError("Notice Type (Form Type) is required to categorize the case.");
+    return;
+  }
+  if (!formData.notice_date) {
+    showValidationError("Notice Date is required for deadline tracking.");
+    return;
+  }
+  if (!formData.reply_due_date) {
+    showValidationError("Reply Due Date is required for compliance tracking.");
+    return;
+  }
+}
+
+// Ownership - always required
+if (!formData.clientId) {
+  showValidationError("Client is required.");
+  return;
+}
+if (!formData.assignedToId && mode === 'create') {
+  showValidationError("Case Owner is required for assignment.");
+  return;
+}
 ```
 
 ---
 
-### 7. Hearing-Notice Linkage
+### 2. Form Field Label and UI Changes (CaseForm.tsx)
 
-Update `HearingModal` and `hearingsService` to support optional `notice_id` foreign key:
+**Section 1: Case Identification**
 
-- When scheduling hearing from a notice card, pass `notice_id`
-- Display linked notice reference in hearing details
-- Track hearing purpose and outcomes:
-  - Purpose: Initial / Adjourned / Final
-  - Outcome: Adjourned / Heard / Order Reserved
+| Field | Current Label | New Label | Required Indicator |
+|-------|--------------|-----------|-------------------|
+| Office File No | Office File No * | Office File No | Remove asterisk |
+| Notice No | Notice No * | Notice / Reference No * | Keep asterisk |
+
+**Section 2: Case Details**
+
+| Field | Current Label | New Label | Required Indicator |
+|-------|--------------|-----------|-------------------|
+| Issue Type | Issue Type * | Primary Issue (if known) | Remove asterisk |
+
+**GST Notice Details Section**
+
+| Field | Current Label | New Label | Required Indicator |
+|-------|--------------|-----------|-------------------|
+| Form Type | Form Type | Notice Type * | Add asterisk |
+
+**Section 5 (Legal Stage)**
+
+| Field | Current Label | Change |
+|-------|--------------|--------|
+| City | City * | City (remove asterisk) |
 
 ---
 
-### 8. Stage Closure Integration
+### 3. Add Helper Text / Section Captions
 
-**Validation Rule (configurable warning, not hard block):**
-- Show warning if open notices exist when attempting stage closure
-- Allow override with confirmation
+**Add to Section 1 (Case Identification):**
+```tsx
+<p className="text-xs text-muted-foreground mt-1">
+  Minimal notice details required to start tracking this case
+</p>
+```
 
-**Visibility Rule:**
-- Original notice data visible in higher stages as read-only reference
-- Query notices by `case_id` regardless of `stage_instance_id`
+**Add to Financial Details Section:**
+```tsx
+<CardHeader className="pb-4">
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-2">
+      <DollarSign className="h-5 w-5 text-primary" />
+      <CardTitle className="text-base">Financial Details</CardTitle>
+    </div>
+    <span className="text-xs text-muted-foreground">Optional – if details are available now</span>
+  </div>
+</CardHeader>
+```
+
+**Add to Authority/Location Section:**
+```tsx
+<span className="text-xs text-muted-foreground">Optional – if details are available now</span>
+```
+
+**Add near submit button (in CaseModal footer):**
+```tsx
+<p className="text-xs text-muted-foreground mr-auto">
+  You can add or verify full notice details later from the notice document.
+</p>
+```
 
 ---
 
-### 9. Backward Compatibility
+### 4. GST Notice Details - Make Form Type Required
 
-**Existing cases:**
-- Cases with single notices (from original `cases` table fields) continue working
-- `stageNoticesService.ensureOriginalNotice()` already handles migration
-- No data migration required
+Update the Form Type field in CaseForm.tsx:
 
-**Field mapping:**
-- `cases.notice_no` → `stage_notices.notice_number` (for original)
-- `cases.notice_date` → `stage_notices.notice_date` (for original)
-- `cases.tax_demand` → `stage_notices.amount_demanded` (for original)
+```tsx
+<div>
+  <div className="flex items-center gap-1 mb-2">
+    <Label htmlFor="form_type">
+      Notice Type <span className="text-destructive">*</span>
+    </Label>
+    <FieldTooltip formId="create-case" fieldId="form_type" />
+  </div>
+  <Select
+    value={formData.form_type}
+    onValueChange={(value) => setFormData(prev => ({ ...prev, form_type: value }))}
+    disabled={isDisabled}
+    required
+  >
+    {/* ... existing options ... */}
+  </Select>
+</div>
+```
 
 ---
 
@@ -197,75 +201,72 @@ Update `HearingModal` and `hearingsService` to support optional `notice_id` fore
 
 | File | Changes |
 |------|---------|
-| **Database** | |
-| SQL Migration | Add new columns to `stage_notices` and `stage_replies` |
-| **Types** | |
-| `src/types/stageWorkflow.ts` | Add new fields to `StageNotice`, `CreateStageNoticeInput`, `StageReply` |
-| **Components** | |
-| `src/components/modals/AddNoticeModal.tsx` | Expand form with new sections and fields |
-| `src/components/modals/FileReplyModal.tsx` | Add filing mode field |
-| `src/components/modals/NoticeClosureModal.tsx` | **New** - Notice-level closure flow |
-| `src/components/lifecycle/StageNoticesPanel.tsx` | Add mini-workflow stepper per notice, new CTAs |
-| `src/components/lifecycle/StageHearingsPanel.tsx` | Add purpose/outcome fields |
-| **Services** | |
-| `src/services/stageNoticesService.ts` | Handle new fields, add workflow step transitions |
-| `src/services/stageRepliesService.ts` | Handle filing mode |
+| `src/components/modals/CaseModal.tsx` | Update validation logic (lines 224-262), add footer helper text |
+| `src/components/cases/CaseForm.tsx` | Update labels, remove asterisks from optional fields, add section helper text |
+| `public/help/inline/create-case.json` | Update tooltip content to reflect optional vs required |
 
 ---
 
-## Implementation Sequence
+## Behavioral Rules Preserved
 
-1. **Database Migration** - Add new columns (non-breaking, nullable)
-2. **Type Updates** - Extend TypeScript interfaces
-3. **Service Updates** - Handle new fields in CRUD operations
-4. **AddNoticeModal Expansion** - Reorganize into sections with new fields
-5. **NoticeClosureModal** - Create new component for notice-level closure
-6. **StageNoticesPanel Updates** - Mini-workflow indicator + new CTAs
-7. **FileReplyModal Enhancement** - Add filing mode
-8. **Integration Testing** - End-to-end workflow validation
+1. **Draft vs Authoritative**: Notice data from Create Case is treated as initial/draft; Add Notice data is authoritative
+2. **No data overwrite**: Add Notice will not overwrite case-level notice fields (they remain separate in stage_notices)
+3. **Case creation without Add Notice**: Cases can be created without adding a formal stage notice
+4. **Backward compatibility**: Existing cases with all fields populated continue to work normally
+
+---
+
+## Fields NOT Modified (Correct as-is)
+
+These fields remain in Create Case but are NOT required:
+- Priority (optional dropdown, defaults to Medium)
+- Description
+- Tax Demand / Interest / Penalty (optional financials)
+- Section Invoked
+- Financial Year
+- Tax Period
+- Specific Officer
+- Jurisdictional Commissionerate
+- Department Location
+- Order/Appeal milestone fields (Phase 5)
+
+---
+
+## Technical Summary
+
+### Removed Validations
+
+```typescript
+// BEFORE (lines 226-245):
+if (!formData.officeFileNo || !formData.noticeNo) { ... }
+if (!formData.issueType) { ... }
+if (!formData.city) { ... }
+
+// AFTER:
+if (!formData.noticeNo && !formData.notice_no) { ... }
+if (!formData.form_type) { ... }
+// notice_date and reply_due_date validations remain
+// city and officeFileNo validations removed
+// issueType validation removed
+```
+
+### Label Changes Summary
+
+| Location | Old Text | New Text |
+|----------|---------|----------|
+| Office File No label | "Office File No *" | "Office File No" |
+| Issue Type label | "Issue Type *" | "Primary Issue (if known)" |
+| Form Type label | "Form Type" | "Notice Type *" |
+| City label | "City *" | "City" |
 
 ---
 
 ## Success Criteria
 
-1. Users can add multiple notices per stage with all required metadata
-2. Each notice shows its current workflow step visually
-3. Users can file replies with mode selection and document upload
-4. Users can schedule hearings linked to specific notices
-5. Notice closure triggers appropriate outcomes including appeal timelines
-6. Stage closure shows warning (not block) for open notices
-7. Original notice data visible as read-only in higher stages
-8. All existing cases continue to function without migration
-
----
-
-## Technical Notes
-
-### Notice Workflow Step Auto-Transitions
-
-```typescript
-// In stageNoticesService after reply creation:
-async autoAdvanceWorkflowStep(noticeId: string, toStep: 'reply' | 'hearing') {
-  const notice = await this.getNotice(noticeId);
-  if (!notice) return;
-  
-  // Only advance if currently at earlier step
-  const stepOrder = ['notice', 'reply', 'hearing', 'closed'];
-  const currentIndex = stepOrder.indexOf(notice.workflow_step || 'notice');
-  const targetIndex = stepOrder.indexOf(toStep);
-  
-  if (targetIndex > currentIndex) {
-    await this.updateNotice(noticeId, { workflow_step: toStep });
-  }
-}
-```
-
-### Demand Breakdown Computation
-
-```typescript
-// Total demand = Tax + Interest + Penalty (only if applicable flags are set)
-const totalDemand = 
-  (formData.tax_applicable ? (formData.tax_amount || 0) : 0) +
-  (formData.interest_applicable ? (formData.interest_amount || 0) : 0) +
-  (formData.penalty_applicable ? (formData.penalty_amount || 0) : 0);
-```
+After implementation:
+1. Case creation possible with only: Client, Assigned To, Notice Type, Notice No, Notice Date, Reply Due Date
+2. All other fields remain available but don't block submission
+3. Missing documents don't block case creation
+4. Compliance deadlines (notice_date, reply_due_date) always captured
+5. Full notice accuracy enforced only in Add Notice workflow
+6. Existing cases continue to work without any data migration
