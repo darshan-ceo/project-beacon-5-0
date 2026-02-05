@@ -582,6 +582,7 @@ export type Database = {
           completion_notes: string | null
           completion_reason: string | null
           created_at: string | null
+          demo_batch_id: string | null
           description: string | null
           financial_year: string | null
           form_type: string | null
@@ -591,6 +592,7 @@ export type Database = {
           impugned_order_date: string | null
           impugned_order_no: string | null
           interest_amount: number | null
+          is_demo: boolean | null
           is_read_only: boolean | null
           issue_type: string | null
           next_hearing_date: string | null
@@ -630,6 +632,7 @@ export type Database = {
           completion_notes?: string | null
           completion_reason?: string | null
           created_at?: string | null
+          demo_batch_id?: string | null
           description?: string | null
           financial_year?: string | null
           form_type?: string | null
@@ -639,6 +642,7 @@ export type Database = {
           impugned_order_date?: string | null
           impugned_order_no?: string | null
           interest_amount?: number | null
+          is_demo?: boolean | null
           is_read_only?: boolean | null
           issue_type?: string | null
           next_hearing_date?: string | null
@@ -678,6 +682,7 @@ export type Database = {
           completion_notes?: string | null
           completion_reason?: string | null
           created_at?: string | null
+          demo_batch_id?: string | null
           description?: string | null
           financial_year?: string | null
           form_type?: string | null
@@ -687,6 +692,7 @@ export type Database = {
           impugned_order_date?: string | null
           impugned_order_no?: string | null
           interest_amount?: number | null
+          is_demo?: boolean | null
           is_read_only?: boolean | null
           issue_type?: string | null
           next_hearing_date?: string | null
@@ -1149,9 +1155,11 @@ export type Database = {
           client_id: string | null
           created_at: string | null
           delivered_at: string | null
+          demo_batch_id: string | null
           direction: string
           failure_reason: string | null
           id: string
+          is_demo: boolean | null
           message: string
           message_id: string | null
           read_at: string | null
@@ -1171,9 +1179,11 @@ export type Database = {
           client_id?: string | null
           created_at?: string | null
           delivered_at?: string | null
+          demo_batch_id?: string | null
           direction?: string
           failure_reason?: string | null
           id?: string
+          is_demo?: boolean | null
           message: string
           message_id?: string | null
           read_at?: string | null
@@ -1193,9 +1203,11 @@ export type Database = {
           client_id?: string | null
           created_at?: string | null
           delivered_at?: string | null
+          demo_batch_id?: string | null
           direction?: string
           failure_reason?: string | null
           id?: string
+          is_demo?: boolean | null
           message?: string
           message_id?: string | null
           read_at?: string | null
@@ -1750,6 +1762,7 @@ export type Database = {
           category: string | null
           client_id: string | null
           created_at: string | null
+          demo_batch_id: string | null
           document_status: string | null
           file_name: string
           file_path: string
@@ -1758,6 +1771,7 @@ export type Database = {
           folder_id: string | null
           hearing_id: string | null
           id: string
+          is_demo: boolean | null
           is_latest_version: boolean | null
           mime_type: string | null
           parent_document_id: string | null
@@ -1779,6 +1793,7 @@ export type Database = {
           category?: string | null
           client_id?: string | null
           created_at?: string | null
+          demo_batch_id?: string | null
           document_status?: string | null
           file_name: string
           file_path: string
@@ -1787,6 +1802,7 @@ export type Database = {
           folder_id?: string | null
           hearing_id?: string | null
           id?: string
+          is_demo?: boolean | null
           is_latest_version?: boolean | null
           mime_type?: string | null
           parent_document_id?: string | null
@@ -1808,6 +1824,7 @@ export type Database = {
           category?: string | null
           client_id?: string | null
           created_at?: string | null
+          demo_batch_id?: string | null
           document_status?: string | null
           file_name?: string
           file_path?: string
@@ -1816,6 +1833,7 @@ export type Database = {
           folder_id?: string | null
           hearing_id?: string | null
           id?: string
+          is_demo?: boolean | null
           is_latest_version?: boolean | null
           mime_type?: string | null
           parent_document_id?: string | null
@@ -2594,9 +2612,11 @@ export type Database = {
           court_id: string | null
           court_name: string | null
           created_at: string | null
+          demo_batch_id: string | null
           forum_id: string | null
           hearing_date: string
           id: string
+          is_demo: boolean | null
           judge_name: string | null
           next_hearing_date: string | null
           notes: string | null
@@ -2614,9 +2634,11 @@ export type Database = {
           court_id?: string | null
           court_name?: string | null
           created_at?: string | null
+          demo_batch_id?: string | null
           forum_id?: string | null
           hearing_date: string
           id?: string
+          is_demo?: boolean | null
           judge_name?: string | null
           next_hearing_date?: string | null
           notes?: string | null
@@ -2634,9 +2656,11 @@ export type Database = {
           court_id?: string | null
           court_name?: string | null
           created_at?: string | null
+          demo_batch_id?: string | null
           forum_id?: string | null
           hearing_date?: string
           id?: string
+          is_demo?: boolean | null
           judge_name?: string | null
           next_hearing_date?: string | null
           notes?: string | null
@@ -3944,9 +3968,11 @@ export type Database = {
           comments: string | null
           created_at: string | null
           created_by: string
+          demo_batch_id: string | null
           from_stage: string | null
           id: string
           is_confirmed: boolean | null
+          is_demo: boolean | null
           order_date: string | null
           order_document_id: string | null
           order_number: string | null
@@ -3974,9 +4000,11 @@ export type Database = {
           comments?: string | null
           created_at?: string | null
           created_by: string
+          demo_batch_id?: string | null
           from_stage?: string | null
           id?: string
           is_confirmed?: boolean | null
+          is_demo?: boolean | null
           order_date?: string | null
           order_document_id?: string | null
           order_number?: string | null
@@ -4004,9 +4032,11 @@ export type Database = {
           comments?: string | null
           created_at?: string | null
           created_by?: string
+          demo_batch_id?: string | null
           from_stage?: string | null
           id?: string
           is_confirmed?: boolean | null
+          is_demo?: boolean | null
           order_date?: string | null
           order_document_id?: string | null
           order_number?: string | null
@@ -4421,10 +4451,12 @@ export type Database = {
           created_at: string
           created_by: string
           created_by_name: string
+          demo_batch_id: string | null
           escalation_requested: boolean | null
           hours_logged: number | null
           id: string
           internal_review: boolean | null
+          is_demo: boolean | null
           next_actions: string | null
           next_follow_up_date: string | null
           outcome: string | null
@@ -4442,10 +4474,12 @@ export type Database = {
           created_at?: string
           created_by: string
           created_by_name: string
+          demo_batch_id?: string | null
           escalation_requested?: boolean | null
           hours_logged?: number | null
           id?: string
           internal_review?: boolean | null
+          is_demo?: boolean | null
           next_actions?: string | null
           next_follow_up_date?: string | null
           outcome?: string | null
@@ -4463,10 +4497,12 @@ export type Database = {
           created_at?: string
           created_by?: string
           created_by_name?: string
+          demo_batch_id?: string | null
           escalation_requested?: boolean | null
           hours_logged?: number | null
           id?: string
           internal_review?: boolean | null
+          is_demo?: boolean | null
           next_actions?: string | null
           next_follow_up_date?: string | null
           outcome?: string | null
@@ -4668,6 +4704,7 @@ export type Database = {
           created_by: string | null
           creation_reason: string | null
           creation_stage_code: string | null
+          demo_batch_id: string | null
           description: string | null
           due_date: string | null
           due_date_validated: boolean | null
@@ -4676,6 +4713,7 @@ export type Database = {
           hearing_id: string | null
           id: string
           is_auto_generated: boolean | null
+          is_demo: boolean | null
           priority: string | null
           sla_hours: number | null
           stage: string | null
@@ -4701,6 +4739,7 @@ export type Database = {
           created_by?: string | null
           creation_reason?: string | null
           creation_stage_code?: string | null
+          demo_batch_id?: string | null
           description?: string | null
           due_date?: string | null
           due_date_validated?: boolean | null
@@ -4709,6 +4748,7 @@ export type Database = {
           hearing_id?: string | null
           id?: string
           is_auto_generated?: boolean | null
+          is_demo?: boolean | null
           priority?: string | null
           sla_hours?: number | null
           stage?: string | null
@@ -4734,6 +4774,7 @@ export type Database = {
           created_by?: string | null
           creation_reason?: string | null
           creation_stage_code?: string | null
+          demo_batch_id?: string | null
           description?: string | null
           due_date?: string | null
           due_date_validated?: boolean | null
@@ -4742,6 +4783,7 @@ export type Database = {
           hearing_id?: string | null
           id?: string
           is_auto_generated?: boolean | null
+          is_demo?: boolean | null
           priority?: string | null
           sla_hours?: number | null
           stage?: string | null
@@ -4874,8 +4916,10 @@ export type Database = {
           created_at: string | null
           created_by: string
           created_by_name: string | null
+          demo_batch_id: string | null
           description: string
           id: string
+          is_demo: boolean | null
           metadata: Json | null
           tenant_id: string
           title: string
@@ -4886,8 +4930,10 @@ export type Database = {
           created_at?: string | null
           created_by: string
           created_by_name?: string | null
+          demo_batch_id?: string | null
           description: string
           id: string
+          is_demo?: boolean | null
           metadata?: Json | null
           tenant_id: string
           title: string
@@ -4898,8 +4944,10 @@ export type Database = {
           created_at?: string | null
           created_by?: string
           created_by_name?: string | null
+          demo_batch_id?: string | null
           description?: string
           id?: string
+          is_demo?: boolean | null
           metadata?: Json | null
           tenant_id?: string
           title?: string
