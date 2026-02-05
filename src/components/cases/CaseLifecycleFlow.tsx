@@ -136,6 +136,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   const [showFileReplyModal, setShowFileReplyModal] = useState(false);
   const [selectedNotice, setSelectedNotice] = useState<StageNotice | null>(null);
   const [editingNotice, setEditingNotice] = useState<StageNotice | null>(null);
+  const [viewingNotice, setViewingNotice] = useState<StageNotice | null>(null);
   const [stageInstanceId, setStageInstanceId] = useState<string | null>(null);
   const [isClosingStage, setIsClosingStage] = useState(false);
 
@@ -294,8 +295,8 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   }, [deleteNotice, toast]);
 
   const handleViewNotice = useCallback((notice: StageNotice) => {
-    // Could open a detail view modal - for now, expand in panel
-    console.log('[CaseLifecycleFlow] View notice:', notice.id);
+    setViewingNotice(notice);
+    setShowAddNoticeModal(true);
   }, []);
 
   const handleFileReply = useCallback((notice: StageNotice) => {
@@ -1240,11 +1241,13 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         onClose={() => {
           setShowAddNoticeModal(false);
           setEditingNotice(null);
+          setViewingNotice(null);
         }}
         onSave={handleSaveNotice}
         caseId={selectedCase?.id || ''}
         stageInstanceId={stageInstanceId}
-        editNotice={editingNotice}
+        editNotice={viewingNotice || editingNotice}
+        mode={viewingNotice ? 'view' : editingNotice ? 'edit' : 'add'}
       />
 
       <FileReplyModal
