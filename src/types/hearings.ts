@@ -52,6 +52,7 @@ export interface Hearing {
   bench_details?: string; // Judge.bench
   
   // Legacy support - maintain compatibility
+  caseId?: string;  // Legacy alias for case_id, used in some filtering logic
   clientId?: string;
   judgeId?: string;
   time?: string;

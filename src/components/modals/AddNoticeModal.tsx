@@ -1,15 +1,15 @@
 /**
  * Add Notice Modal
- * Form for adding/editing stage notices
+ * Form for adding/editing stage notices with improved UI/UX
  */
 
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { ModalLayout } from '@/components/ui/modal-layout';
 import { FileText, Calendar, IndianRupee } from 'lucide-react';
 import { StageNotice, CreateStageNoticeInput, NoticeStatus } from '@/types/stageWorkflow';
 
@@ -103,142 +103,140 @@ export const AddNoticeModal: React.FC<AddNoticeModalProps> = ({
     onClose();
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            {isEdit ? 'Edit Notice' : 'Add Notice'}
-          </DialogTitle>
-          <DialogDescription>
-            {isEdit 
-              ? 'Update the notice details below'
-              : 'Record a new notice for this stage'
-            }
-          </DialogDescription>
-        </DialogHeader>
+  const footerContent = (
+    <>
+      <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+        Cancel
+      </Button>
+      <Button type="submit" form="add-notice-form" disabled={isLoading}>
+        {isLoading ? 'Saving...' : isEdit ? 'Update Notice' : 'Add Notice'}
+      </Button>
+    </>
+  );
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Notice Type */}
+  return (
+    <ModalLayout
+      open={isOpen}
+      onOpenChange={(open) => !open && onClose()}
+      title={isEdit ? 'Edit Notice' : 'Add Notice'}
+      description={isEdit 
+        ? 'Update the notice details below'
+        : 'Record a new notice for this stage'
+      }
+      icon={<FileText className="h-5 w-5 text-primary" />}
+      footer={footerContent}
+      maxWidth="max-w-[500px]"
+    >
+      <form id="add-notice-form" onSubmit={handleSubmit} className="space-y-4">
+        {/* Notice Type */}
+        <div className="space-y-1.5">
+          <Label htmlFor="notice_type">Notice Type</Label>
+          <Select
+            value={formData.notice_type}
+            onValueChange={(value) => setFormData(prev => ({ ...prev, notice_type: value }))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select notice type" />
+            </SelectTrigger>
+            <SelectContent>
+              {NOTICE_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Notice Number */}
+        <div className="space-y-1.5">
+          <Label htmlFor="notice_number">Notice Number</Label>
+          <Input
+            id="notice_number"
+            placeholder="e.g., ASMT-10/2026/001234"
+            value={formData.notice_number}
+            onChange={(e) => setFormData(prev => ({ ...prev, notice_number: e.target.value }))}
+          />
+        </div>
+
+        {/* Date Row */}
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label htmlFor="notice_type">Notice Type</Label>
+            <Label htmlFor="notice_date">Notice Date</Label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="notice_date"
+                type="date"
+                value={formData.notice_date}
+                onChange={(e) => setFormData(prev => ({ ...prev, notice_date: e.target.value }))}
+                className="pl-10"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="due_date">Reply Due Date</Label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="due_date"
+                type="date"
+                value={formData.due_date}
+                onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+                className="pl-10"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Amount and Section Row */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="amount_demanded">Demand Amount (₹)</Label>
+            <div className="relative">
+              <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="amount_demanded"
+                type="number"
+                placeholder="0"
+                value={formData.amount_demanded}
+                onChange={(e) => setFormData(prev => ({ ...prev, amount_demanded: e.target.value }))}
+                className="pl-10"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="section_invoked">Section Invoked</Label>
             <Select
-              value={formData.notice_type}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, notice_type: value }))}
+              value={formData.section_invoked}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, section_invoked: value }))}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select notice type" />
+                <SelectValue placeholder="Select section" />
               </SelectTrigger>
               <SelectContent>
-                {NOTICE_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
+                {SECTIONS.map((section) => (
+                  <SelectItem key={section} value={section}>
+                    Section {section}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+        </div>
 
-          {/* Notice Number */}
-          <div className="space-y-1.5">
-            <Label htmlFor="notice_number">Notice Number</Label>
-            <Input
-              id="notice_number"
-              placeholder="e.g., ASMT-10/2026/001234"
-              value={formData.notice_number}
-              onChange={(e) => setFormData(prev => ({ ...prev, notice_number: e.target.value }))}
-            />
-          </div>
-
-          {/* Date Row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="notice_date">Notice Date</Label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="notice_date"
-                  type="date"
-                  value={formData.notice_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notice_date: e.target.value }))}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="due_date">Reply Due Date</Label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="due_date"
-                  type="date"
-                  value={formData.due_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Amount and Section Row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="amount_demanded">Demand Amount (₹)</Label>
-              <div className="relative">
-                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="amount_demanded"
-                  type="number"
-                  placeholder="0"
-                  value={formData.amount_demanded}
-                  onChange={(e) => setFormData(prev => ({ ...prev, amount_demanded: e.target.value }))}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="section_invoked">Section Invoked</Label>
-              <Select
-                value={formData.section_invoked}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, section_invoked: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select section" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SECTIONS.map((section) => (
-                    <SelectItem key={section} value={section}>
-                      Section {section}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-1.5">
-            <Label htmlFor="notes">Notes (Optional)</Label>
-            <Textarea
-              id="notes"
-              placeholder="Any additional notes about this notice..."
-              value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              rows={2}
-            />
-          </div>
-
-          <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Saving...' : isEdit ? 'Update Notice' : 'Add Notice'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        {/* Notes */}
+        <div className="space-y-1.5">
+          <Label htmlFor="notes">Notes (Optional)</Label>
+          <Textarea
+            id="notes"
+            placeholder="Any additional notes about this notice..."
+            value={formData.notes}
+            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+            rows={2}
+          />
+        </div>
+      </form>
+    </ModalLayout>
   );
 };

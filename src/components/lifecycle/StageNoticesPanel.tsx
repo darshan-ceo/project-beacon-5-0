@@ -1,9 +1,9 @@
 /**
  * Stage Notices Panel Component
- * Displays and manages notices for a stage instance
+ * Displays and manages notices for a stage instance with inline replies display
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,9 +22,11 @@ import {
   Eye,
   Pencil,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  MessageSquare,
+  Paperclip
 } from 'lucide-react';
-import { StageNotice, NoticeStatus } from '@/types/stageWorkflow';
+import { StageNotice, NoticeStatus, StageReply } from '@/types/stageWorkflow';
 import { stageNoticesService } from '@/services/stageNoticesService';
 import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -39,6 +41,9 @@ interface StageNoticesPanelProps {
   onViewNotice: (notice: StageNotice) => void;
   onFileReply: (notice: StageNotice) => void;
   isLoading?: boolean;
+  // Replies support
+  noticeReplies?: Map<string, StageReply[]>;
+  onLoadReplies?: (noticeId: string) => void;
 }
 
 function getStatusColor(status: NoticeStatus): string {
@@ -76,6 +81,19 @@ function formatCurrency(amount: number | null): string {
   }).format(amount);
 }
 
+function getFilingStatusBadge(status: string) {
+  switch (status) {
+    case 'Draft':
+      return 'bg-muted text-muted-foreground';
+    case 'Filed':
+      return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
+    case 'Acknowledged':
+      return 'bg-success/20 text-success';
+    default:
+      return 'bg-muted text-muted-foreground';
+  }
+}
+
 export const StageNoticesPanel: React.FC<StageNoticesPanelProps> = ({
   notices,
   stageInstanceId,
@@ -85,9 +103,22 @@ export const StageNoticesPanel: React.FC<StageNoticesPanelProps> = ({
   onDeleteNotice,
   onViewNotice,
   onFileReply,
-  isLoading = false
+  isLoading = false,
+  noticeReplies,
+  onLoadReplies
 }) => {
   const [expandedNoticeId, setExpandedNoticeId] = useState<string | null>(null);
+
+  // Load replies when notice is expanded
+  useEffect(() => {
+    if (expandedNoticeId && onLoadReplies) {
+      onLoadReplies(expandedNoticeId);
+    }
+  }, [expandedNoticeId, onLoadReplies]);
+
+  const getRepliesForNotice = (noticeId: string): StageReply[] => {
+    return noticeReplies?.get(noticeId) || [];
+  };
 
   return (
     <Card>
@@ -121,6 +152,7 @@ export const StageNoticesPanel: React.FC<StageNoticesPanelProps> = ({
             {notices.map((notice, index) => {
               const dueDateStatus = stageNoticesService.getDueDateStatus(notice.due_date);
               const isExpanded = expandedNoticeId === notice.id;
+              const replies = getRepliesForNotice(notice.id);
               
               return (
                 <motion.div
@@ -242,6 +274,51 @@ export const StageNoticesPanel: React.FC<StageNoticesPanelProps> = ({
                               </div>
                             )}
                           </div>
+                          
+                          {/* Filed Replies Section */}
+                          {replies.length > 0 && (
+                            <div className="mt-3 pt-3 border-t">
+                              <div className="flex items-center gap-2 mb-2">
+                                <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                                <p className="text-xs font-medium text-muted-foreground">
+                                  Filed Replies ({replies.length})
+                                </p>
+                              </div>
+                              <div className="space-y-1.5">
+                                {replies.map(reply => (
+                                  <div 
+                                    key={reply.id} 
+                                    className="flex items-center justify-between p-2 bg-muted/50 rounded-md"
+                                  >
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                      <Send className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                      <div className="min-w-0">
+                                        <span className="text-xs font-medium truncate block">
+                                          {reply.reply_reference || 'Reply'}
+                                        </span>
+                                        {reply.reply_date && (
+                                          <span className="text-[10px] text-muted-foreground">
+                                            {formatDate(reply.reply_date)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                                      <Badge className={cn("text-[10px]", getFilingStatusBadge(reply.filing_status))}>
+                                        {reply.filing_status}
+                                      </Badge>
+                                      {reply.documents && reply.documents.length > 0 && (
+                                        <Badge variant="secondary" className="text-[10px]">
+                                          <Paperclip className="h-2.5 w-2.5 mr-0.5" />
+                                          {reply.documents.length}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           
                           {/* Action Bar */}
                           <div className="flex items-center gap-2 mt-3 pt-3 border-t">

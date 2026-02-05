@@ -122,9 +122,12 @@ export const hearingsService = {
       const savedHearing = await storage.create<any>('hearings', hearingData);
 
       // Convert to app format with backward compatibility
+      // Ensure BOTH caseId and case_id are set for consistent filtering across components
       const newHearing: Hearing = {
         id: savedHearing.id,
         case_id: savedHearing.case_id,
+        caseId: savedHearing.case_id, // Ensure legacy field is also set
+        stage_instance_id: savedHearing.stage_instance_id || data.stage_instance_id, // Include stage linkage
         date: data.date,
         start_time: data.start_time || '10:00',
         time: data.start_time || '10:00', // Legacy field
