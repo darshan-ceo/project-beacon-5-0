@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ModalLayout } from '@/components/ui/modal-layout';
 import { FileText, Calendar, IndianRupee } from 'lucide-react';
 import { StageNotice, CreateStageNoticeInput, NoticeStatus } from '@/types/stageWorkflow';
+import { format, parseISO, isValid } from 'date-fns';
 
 interface AddNoticeModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ interface AddNoticeModalProps {
   stageInstanceId?: string | null;
   editNotice?: StageNotice | null;
   isLoading?: boolean;
+  mode?: 'add' | 'edit' | 'view';
 }
 
 const NOTICE_TYPES = [
@@ -45,7 +47,8 @@ export const AddNoticeModal: React.FC<AddNoticeModalProps> = ({
   caseId,
   stageInstanceId,
   editNotice,
-  isLoading = false
+  isLoading = false,
+  mode = 'add'
 }) => {
   const [formData, setFormData] = useState({
     notice_type: '',
@@ -57,7 +60,8 @@ export const AddNoticeModal: React.FC<AddNoticeModalProps> = ({
     notes: ''
   });
 
-  const isEdit = !!editNotice;
+  const isEdit = mode === 'edit' || (!!editNotice && mode !== 'view');
+  const isViewOnly = mode === 'view';
 
   // Reset form when modal opens/closes or editNotice changes
   useEffect(() => {
@@ -103,7 +107,21 @@ export const AddNoticeModal: React.FC<AddNoticeModalProps> = ({
     onClose();
   };
 
-  const footerContent = (
+  const getTitle = () => {
+    if (isViewOnly) return 'View Notice';
+    return isEdit ? 'Edit Notice' : 'Add Notice';
+  };
+
+  const getDescription = () => {
+    if (isViewOnly) return 'Notice details';
+    return isEdit ? 'Update the notice details below' : 'Record a new notice for this stage';
+  };
+
+  const footerContent = isViewOnly ? (
+    <Button type="button" onClick={onClose}>
+      Close
+    </Button>
+  ) : (
     <>
       <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
         Cancel
@@ -118,11 +136,8 @@ export const AddNoticeModal: React.FC<AddNoticeModalProps> = ({
     <ModalLayout
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
-      title={isEdit ? 'Edit Notice' : 'Add Notice'}
-      description={isEdit 
-        ? 'Update the notice details below'
-        : 'Record a new notice for this stage'
-      }
+      title={getTitle()}
+      description={getDescription()}
       icon={<FileText className="h-5 w-5 text-primary" />}
       footer={footerContent}
       maxWidth="max-w-[500px]"
@@ -131,61 +146,87 @@ export const AddNoticeModal: React.FC<AddNoticeModalProps> = ({
         {/* Notice Type */}
         <div className="space-y-1.5">
           <Label htmlFor="notice_type">Notice Type</Label>
-          <Select
-            value={formData.notice_type}
-            onValueChange={(value) => setFormData(prev => ({ ...prev, notice_type: value }))}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select notice type" />
-            </SelectTrigger>
-            <SelectContent>
-              {NOTICE_TYPES.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
-                  {type.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isViewOnly ? (
+            <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
+              {NOTICE_TYPES.find(t => t.value === formData.notice_type)?.label || formData.notice_type || '—'}
+            </p>
+          ) : (
+            <Select
+              value={formData.notice_type}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, notice_type: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select notice type" />
+              </SelectTrigger>
+              <SelectContent>
+                {NOTICE_TYPES.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         {/* Notice Number */}
         <div className="space-y-1.5">
           <Label htmlFor="notice_number">Notice Number</Label>
-          <Input
-            id="notice_number"
-            placeholder="e.g., ASMT-10/2026/001234"
-            value={formData.notice_number}
-            onChange={(e) => setFormData(prev => ({ ...prev, notice_number: e.target.value }))}
-          />
+          {isViewOnly ? (
+            <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
+              {formData.notice_number || '—'}
+            </p>
+          ) : (
+            <Input
+              id="notice_number"
+              placeholder="e.g., ASMT-10/2026/001234"
+              value={formData.notice_number}
+              onChange={(e) => setFormData(prev => ({ ...prev, notice_number: e.target.value }))}
+            />
+          )}
         </div>
 
         {/* Date Row */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="notice_date">Notice Date</Label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="notice_date"
-                type="date"
-                value={formData.notice_date}
-                onChange={(e) => setFormData(prev => ({ ...prev, notice_date: e.target.value }))}
-                className="pl-10"
-              />
-            </div>
+            {isViewOnly ? (
+              <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                {formData.notice_date ? format(parseISO(formData.notice_date), 'dd MMM yyyy') : '—'}
+              </p>
+            ) : (
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="notice_date"
+                  type="date"
+                  value={formData.notice_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, notice_date: e.target.value }))}
+                  className="pl-10"
+                />
+              </div>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="due_date">Reply Due Date</Label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="due_date"
-                type="date"
-                value={formData.due_date}
-                onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
-                className="pl-10"
-              />
-            </div>
+            {isViewOnly ? (
+              <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                {formData.due_date ? format(parseISO(formData.due_date), 'dd MMM yyyy') : '—'}
+              </p>
+            ) : (
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="due_date"
+                  type="date"
+                  value={formData.due_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+                  className="pl-10"
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -193,48 +234,67 @@ export const AddNoticeModal: React.FC<AddNoticeModalProps> = ({
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="amount_demanded">Demand Amount (₹)</Label>
-            <div className="relative">
-              <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="amount_demanded"
-                type="number"
-                placeholder="0"
-                value={formData.amount_demanded}
-                onChange={(e) => setFormData(prev => ({ ...prev, amount_demanded: e.target.value }))}
-                className="pl-10"
-              />
-            </div>
+            {isViewOnly ? (
+              <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md flex items-center gap-2">
+                <IndianRupee className="h-4 w-4 text-muted-foreground" />
+                {formData.amount_demanded ? new Intl.NumberFormat('en-IN').format(parseFloat(formData.amount_demanded)) : '—'}
+              </p>
+            ) : (
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="amount_demanded"
+                  type="number"
+                  placeholder="0"
+                  value={formData.amount_demanded}
+                  onChange={(e) => setFormData(prev => ({ ...prev, amount_demanded: e.target.value }))}
+                  className="pl-10"
+                />
+              </div>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="section_invoked">Section Invoked</Label>
-            <Select
-              value={formData.section_invoked}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, section_invoked: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select section" />
-              </SelectTrigger>
-              <SelectContent>
-                {SECTIONS.map((section) => (
-                  <SelectItem key={section} value={section}>
-                    Section {section}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isViewOnly ? (
+              <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-md">
+                {formData.section_invoked ? `Section ${formData.section_invoked}` : '—'}
+              </p>
+            ) : (
+              <Select
+                value={formData.section_invoked}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, section_invoked: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select section" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SECTIONS.map((section) => (
+                    <SelectItem key={section} value={section}>
+                      Section {section}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
 
         {/* Notes */}
         <div className="space-y-1.5">
-          <Label htmlFor="notes">Notes (Optional)</Label>
-          <Textarea
-            id="notes"
-            placeholder="Any additional notes about this notice..."
-            value={formData.notes}
-            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-            rows={2}
-          />
+          <Label htmlFor="notes">Notes</Label>
+          {isViewOnly ? (
+            <p className="text-sm py-2 px-3 bg-muted/50 rounded-md min-h-[60px]">
+              {formData.notes || 'No notes'}
+            </p>
+          ) : (
+            <Textarea
+              id="notes"
+              placeholder="Any additional notes about this notice..."
+              value={formData.notes}
+              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              rows={2}
+            />
+          )}
         </div>
       </form>
     </ModalLayout>
