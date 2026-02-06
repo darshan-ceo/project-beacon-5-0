@@ -53,7 +53,16 @@ const FIELD_DEFINITIONS: Record<string, { label: string; type: DataGap['type']; 
     type: 'enum',
     enumOptions: ['ASMT-10', 'ASMT-11', 'ASMT-12', 'DRC-01', 'DRC-01A', 'DRC-03', 'DRC-07', 'Other']
   },
-  '/issuing_authority_office': { label: 'Issuing Authority Office', type: 'text' }
+  '/issuing_authority_office': { label: 'Issuing Authority Office', type: 'text' },
+  // V2 additions
+  '/offline_reference_no': { label: 'Offline Reference No', type: 'text' },
+  '/issuing_designation': { label: 'Officer Designation', type: 'text' },
+  '/tax_period_start': { label: 'Tax Period Start', type: 'date' },
+  '/tax_period_end': { label: 'Tax Period End', type: 'date' },
+  '/financial_year': { label: 'Financial Year', type: 'text' },
+  '/tax_amount': { label: 'Tax Amount', type: 'number' },
+  '/interest_amount': { label: 'Interest Amount', type: 'number' },
+  '/penalty_amount': { label: 'Penalty Amount', type: 'number' }
 };
 
 function getNestedValue(obj: any, path: string): any {
