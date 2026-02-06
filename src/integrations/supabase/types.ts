@@ -766,13 +766,21 @@ export type Database = {
         Row: {
           address: Json | null
           client_id: string | null
+          converted_at: string | null
           created_at: string | null
           data_scope: Database["public"]["Enums"]["entity_data_scope"] | null
           designation: string | null
           emails: Json | null
+          expected_close_date: string | null
+          expected_value: number | null
           id: string
           is_active: boolean | null
           is_primary: boolean | null
+          last_activity_at: string | null
+          lead_score: number | null
+          lead_source: string | null
+          lead_status: string | null
+          lost_reason: string | null
           name: string
           notes: string | null
           owner_user_id: string | null
@@ -785,13 +793,21 @@ export type Database = {
         Insert: {
           address?: Json | null
           client_id?: string | null
+          converted_at?: string | null
           created_at?: string | null
           data_scope?: Database["public"]["Enums"]["entity_data_scope"] | null
           designation?: string | null
           emails?: Json | null
+          expected_close_date?: string | null
+          expected_value?: number | null
           id?: string
           is_active?: boolean | null
           is_primary?: boolean | null
+          last_activity_at?: string | null
+          lead_score?: number | null
+          lead_source?: string | null
+          lead_status?: string | null
+          lost_reason?: string | null
           name: string
           notes?: string | null
           owner_user_id?: string | null
@@ -804,13 +820,21 @@ export type Database = {
         Update: {
           address?: Json | null
           client_id?: string | null
+          converted_at?: string | null
           created_at?: string | null
           data_scope?: Database["public"]["Enums"]["entity_data_scope"] | null
           designation?: string | null
           emails?: Json | null
+          expected_close_date?: string | null
+          expected_value?: number | null
           id?: string
           is_active?: boolean | null
           is_primary?: boolean | null
+          last_activity_at?: string | null
+          lead_score?: number | null
+          lead_source?: string | null
+          lead_status?: string | null
+          lost_reason?: string | null
           name?: string
           notes?: string | null
           owner_user_id?: string | null
@@ -2961,6 +2985,77 @@ export type Database = {
           },
           {
             foreignKeyName: "judges_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_activities: {
+        Row: {
+          activity_type: string
+          contact_id: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          next_action: string | null
+          next_action_date: string | null
+          outcome: string | null
+          subject: string | null
+          tenant_id: string
+        }
+        Insert: {
+          activity_type: string
+          contact_id: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          next_action?: string | null
+          next_action_date?: string | null
+          outcome?: string | null
+          subject?: string | null
+          tenant_id: string
+        }
+        Update: {
+          activity_type?: string
+          contact_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          next_action?: string | null
+          next_action_date?: string | null
+          outcome?: string | null
+          subject?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "client_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_activities_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_activities_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "lead_activities_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
