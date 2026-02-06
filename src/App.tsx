@@ -66,6 +66,7 @@ import { OAuthCallback } from "@/pages/OAuthCallback";
 import { DocViewerPage } from "@/pages/DocViewerPage";
 import { ComplianceDashboard } from "@/pages/ComplianceDashboard";
 import { AccessDetailsPage } from "@/pages/AccessDetailsPage";
+import { LeadsPage } from "@/pages/LeadsPage";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { SignupPage } from "@/pages/auth/SignupPage";
 import ForgotPassword from "@/pages/ForgotPassword";
@@ -187,6 +188,13 @@ const AppContent = () => {
                 <ProtectedRoute>
                   <AdminLayout>
                     <ContactsPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/leads" element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <LeadsPage />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
