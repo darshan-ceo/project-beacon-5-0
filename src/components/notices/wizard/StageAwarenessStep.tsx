@@ -132,13 +132,13 @@ export const StageAwarenessStep: React.FC<StageAwarenessStepProps> = ({
               {selectedOption.tasks.map((task, index) => (
                 <div 
                   key={index}
-                  className="flex items-center gap-3 p-2 rounded bg-secondary/30"
+                  className="flex items-center gap-3 p-2 rounded bg-muted border border-border"
                 >
-                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
+                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
                     {index + 1}
                   </div>
-                  <span className="text-sm">{task}</span>
-                  <Badge variant="outline" className="ml-auto text-xs">
+                  <span className="text-sm text-foreground">{task}</span>
+                  <Badge variant="outline" className="ml-auto text-xs bg-background">
                     Auto
                   </Badge>
                 </div>
