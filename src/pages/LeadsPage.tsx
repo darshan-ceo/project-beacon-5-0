@@ -13,6 +13,8 @@ import { LeadFilters as LeadFiltersType, Lead, LeadStatus } from '@/types/lead';
 import { LeadStats } from '@/components/crm/LeadStats';
 import { LeadFilters } from '@/components/crm/LeadFilters';
 import { LeadPipeline } from '@/components/crm/LeadPipeline';
+import { LeadDetailDrawer } from '@/components/crm/LeadDetailDrawer';
+import { ConvertToClientModal } from '@/components/crm/ConvertToClientModal';
 import { toast } from 'sonner';
 
 type ViewMode = 'pipeline' | 'table';
@@ -21,6 +23,12 @@ export const LeadsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<ViewMode>('pipeline');
   const [filters, setFilters] = useState<LeadFiltersType>({});
+  
+  // Drawer and modal state
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
+  const [convertingLead, setConvertingLead] = useState<Lead | null>(null);
 
   // Fetch leads
   const { data: leadsResponse, isLoading: isLoadingLeads, refetch: refetchLeads } = useQuery({
@@ -58,15 +66,22 @@ export const LeadsPage: React.FC = () => {
   };
 
   const handleViewLead = (lead: Lead) => {
-    // TODO: Open lead detail drawer (Phase 3)
-    console.log('View lead:', lead);
-    toast.info(`Viewing ${lead.name} - Detail drawer coming in Phase 3`);
+    setSelectedLead(lead);
+    setIsDrawerOpen(true);
   };
 
   const handleConvertLead = (lead: Lead) => {
-    // TODO: Open conversion modal (Phase 3)
-    console.log('Convert lead:', lead);
-    toast.info(`Converting ${lead.name} - Conversion modal coming in Phase 3`);
+    setConvertingLead(lead);
+    setIsConvertModalOpen(true);
+  };
+
+  const handleConversionSuccess = () => {
+    refetchLeads();
+    refetchStats();
+    setIsConvertModalOpen(false);
+    setIsDrawerOpen(false);
+    setConvertingLead(null);
+    setSelectedLead(null);
   };
 
   const handleNewLead = () => {
@@ -130,6 +145,29 @@ export const LeadsPage: React.FC = () => {
           Table view coming soon. Use the Pipeline view for now.
         </div>
       )}
+
+      {/* Lead Detail Drawer */}
+      <LeadDetailDrawer
+        lead={selectedLead}
+        isOpen={isDrawerOpen}
+        onClose={() => {
+          setIsDrawerOpen(false);
+          setSelectedLead(null);
+        }}
+        onConvert={handleConvertLead}
+        onRefresh={handleRefresh}
+      />
+
+      {/* Convert to Client Modal */}
+      <ConvertToClientModal
+        lead={convertingLead}
+        isOpen={isConvertModalOpen}
+        onClose={() => {
+          setIsConvertModalOpen(false);
+          setConvertingLead(null);
+        }}
+        onSuccess={handleConversionSuccess}
+      />
     </div>
   );
 };
