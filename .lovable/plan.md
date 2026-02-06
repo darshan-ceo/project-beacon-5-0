@@ -1,321 +1,203 @@
 
 
-# Phase 3: Lead Detail Drawer & Conversion Modal
+# CRM Module QC Report - Phases 1, 2 & 3
 
-## Overview
+## Executive Summary
 
-This phase completes the CRM module by adding:
-1. **LeadDetailDrawer** - A comprehensive slide-over for viewing/editing lead details and activities
-2. **LeadActivityTimeline** - Chronological activity feed with inline add capability  
-3. **ConvertToClientModal** - Full conversion workflow using the existing `leadConversionService`
+After thorough review of all three phases, the CRM implementation is **substantially complete** with a few gaps and enhancement opportunities identified. Below is a detailed breakdown by phase.
 
 ---
 
-## Components to Create
+## Phase 1B: Contacts Module Enhancement
 
-| Component | Description |
-|-----------|-------------|
-| `LeadDetailDrawer.tsx` | Main detail view using `LargeSlideOver` pattern |
-| `LeadActivityTimeline.tsx` | Activity feed with type icons |
-| `AddActivityModal.tsx` | Modal for logging new activities |
-| `ConvertToClientModal.tsx` | Conversion workflow with client form |
+### Completed Features
 
----
+| Feature | Status | Location |
+|---------|--------|----------|
+| Lead Status column in contacts table | Done | `ContactsMasters.tsx` lines 531-545 |
+| Lead Status badge with color coding | Done | Uses `LEAD_STATUS_CONFIG` |
+| "Mark as Lead" row action for standalone contacts | Done | Lines 624-635 |
+| "Remove Lead Status" row action | Done | Lines 636-643 |
+| MarkAsLeadModal with source/status/value fields | Done | `MarkAsLeadModal.tsx` |
+| Active Leads stat card | Done | Lines 336-345 |
+| Lead Status filter in UnifiedContactSearch | Done | Lines 83-88 |
+| Lead Source filter in UnifiedContactSearch | Done | Lines 89-94 |
+| Lead filtering in filteredContacts memo | Done | Lines 205-211 |
 
-## Step 1: LeadActivityTimeline Component
+### Issues Found
 
-**File:** `src/components/crm/LeadActivityTimeline.tsx`
+| Issue | Severity | Description |
+|-------|----------|-------------|
+| Missing lead fields in toClientContact() | High | `clientContactsService.ts` line 107-128 doesn't map `lead_status`, `lead_source`, `lead_score`, `expected_value`, `expected_close_date`, `last_activity_at`, `lost_reason`, `converted_at` from database rows. This means the Contacts table relies on raw DB response, which works, but the typed `ClientContact` interface doesn't include these fields. |
+| Interface mismatch | Medium | `ContactWithClient` extends `ClientContact` and adds `lead_status?` and `lead_source?` locally (lines 57-61), but other lead fields like `lead_score`, `expected_value` are not included. |
 
-A chronological activity feed displaying all interactions:
+### Recommendation
 
-- Activity type icon mapping (Phone for call, Mail for email, Users for meeting, StickyNote for note, CheckSquare for task, ArrowRightCircle for status_change, UserCheck for conversion)
-- Timestamp formatting using `date-fns`
-- Creator name display (from joined `profiles.full_name`)
-- Subject and description display
-- Next action indicator if present
-- Uses `leadService.getActivities(contactId)` for data
-
-```text
-┌──────────────────────────────────────┐
-│ ○ Call - Discussed pricing           │
-│   Yesterday · John Doe               │
-│   "Client interested in tax..."      │
-│   Next: Send proposal by Feb 10      │
-├──────────────────────────────────────┤
-│ ○ Status changed to Contacted        │
-│   3 days ago · System                │
-└──────────────────────────────────────┘
-```
+Update `toClientContact()` helper in `clientContactsService.ts` to include lead fields OR ensure the raw data passes through correctly (current behavior). The current implementation works because `getAllContacts()` returns raw DB rows that include these fields, but type safety is incomplete.
 
 ---
 
-## Step 2: AddActivityModal Component
+## Phase 2: Lead Pipeline Page
 
-**File:** `src/components/crm/AddActivityModal.tsx`
+### Completed Features
 
-Simple dialog for logging new activities:
+| Feature | Status | Location |
+|---------|--------|----------|
+| LeadsPage main container | Done | `src/pages/LeadsPage.tsx` |
+| LeadPipeline Kanban board | Done | `LeadPipeline.tsx` |
+| 7-column pipeline (New → Won → Lost) | Done | `PIPELINE_STATUSES` array |
+| HTML5 drag-and-drop between columns | Done | Lines 87-117 |
+| LeadCard with score color coding | Done | `LeadCard.tsx` lines 31-35 |
+| Lead source badge on cards | Done | Lines 104-106 |
+| Expected value display | Done | Lines 114-117 |
+| Last activity indicator | Done | Lines 118-121 |
+| Quick actions dropdown (View, Convert) | Done | Lines 80-99 |
+| LeadFilters (search, source, owner) | Done | `LeadFilters.tsx` |
+| LeadStats (4 metric cards) | Done | `LeadStats.tsx` |
+| Pipeline view toggle (Kanban/Table) | Done | `LeadsPage.tsx` lines 98-113 |
+| /leads route in App.tsx | Done | Confirmed |
+| Leads nav item in Sidebar | Done | Under CLIENTS section |
 
-- Activity type selector (call, email, meeting, note, task)
-- Subject input (required)
-- Description textarea
-- Outcome input (optional)
-- Next action with date picker (optional)
-- Calls `leadService.addActivity()` on submit
+### Issues Found
 
----
+| Issue | Severity | Description |
+|-------|----------|-------------|
+| Table view not implemented | Low | Shows placeholder "Table view coming soon" (lines 131-133). This was expected per plan but worth noting. |
+| Owner filter has no data source | Low | `LeadFilters.tsx` accepts `owners` prop but `LeadsPage.tsx` doesn't pass it (lines 119-124 in LeadsPage). Owners filter won't appear. |
+| No score range filter | Low | Plan mentioned optional score range slider, not implemented. |
 
-## Step 3: LeadDetailDrawer Component
+### Recommendation
 
-**File:** `src/components/crm/LeadDetailDrawer.tsx`
-
-Using the `LargeSlideOver` pattern for a rich detail view:
-
-**Structure:**
-```text
-┌─────────────────────────────────────────────────┐
-│ [X]  Lead Details                               │ ← Header
-├─────────────────────────────────────────────────┤
-│ ┌─────────────────────────────────────────────┐ │
-│ │ Overview Card                               │ │
-│ │ Name: John Smith                            │ │
-│ │ Designation: CFO                            │ │
-│ │ Email: john@example.com                     │ │
-│ │ Phone: +91 98765 43210                      │ │
-│ │                                             │ │
-│ │ Lead Source: Referral    Score: 75 (Warm)   │ │
-│ │ Expected Value: ₹5L      Close: Feb 28     │ │
-│ └─────────────────────────────────────────────┘ │
-│                                                 │
-│ ┌─────────────────────────────────────────────┐ │
-│ │ Status & Actions                            │ │
-│ │ [New] [Contacted] [Qualified] ...           │ │ ← Quick status buttons
-│ │                                             │ │
-│ │ [Log Activity]  [Edit Lead]  [Convert ▶]   │ │
-│ └─────────────────────────────────────────────┘ │
-│                                                 │
-│ ┌─────────────────────────────────────────────┐ │
-│ │ Activity Timeline                           │ │
-│ │ ○ Call - Discussed pricing                  │ │
-│ │ ○ Email - Sent intro materials              │ │
-│ │ ○ Status changed to Contacted               │ │
-│ └─────────────────────────────────────────────┘ │
-├─────────────────────────────────────────────────┤
-│ [Mark as Lost]                    [Close]       │ ← Footer
-└─────────────────────────────────────────────────┘
-```
-
-**Features:**
-- Overview card with contact details, email/phone display
-- Lead metadata: source, score (with color badge), expected value, close date
-- Status quick-change buttons (row of status badges, click to change)
-- Action buttons: Log Activity, Edit Lead, Convert to Client
-- Embedded `LeadActivityTimeline` component
-- Footer: Mark as Lost (triggers `leadService.updateLeadStatus(id, 'lost')`) and Close
-
-**Data Fetching:**
-- Uses `leadService.getLead(contactId)` for lead data
-- Uses `leadService.getActivities(contactId)` for timeline
-- TanStack Query for caching and refetch on mutation
+- Add owner data fetching to LeadsPage and pass to LeadFilters
+- Table view can be a future enhancement
+- Score filter is optional per plan, acceptable to omit
 
 ---
 
-## Step 4: ConvertToClientModal Component
+## Phase 3: Lead Detail Drawer & Conversion Modal
 
-**File:** `src/components/crm/ConvertToClientModal.tsx`
+### Completed Features
 
-A focused conversion workflow using `AdaptiveFormShell`:
+| Feature | Status | Location |
+|---------|--------|----------|
+| LeadDetailDrawer using LargeSlideOver | Done | `LeadDetailDrawer.tsx` |
+| Overview card with contact info | Done | Lines 163-248 |
+| Lead metadata (source, score, value, close date) | Done | Lines 192-230 |
+| Score badge with Hot/Warm/Cool/Cold | Done | Lines 43-48, 103 |
+| Status quick-change buttons | Done | Lines 260-283 |
+| "Log Activity" button | Done | Lines 287-294 |
+| "Convert to Client" button (conditional) | Done | Lines 295-304 |
+| "Mark as Lost" footer action | Done | Lines 125-144 |
+| Converted badge for won leads | Done | Lines 305-310 |
+| Lost reason display | Done | Lines 241-246 |
+| Notes display | Done | Lines 233-238 |
+| LeadActivityTimeline component | Done | `LeadActivityTimeline.tsx` |
+| Activity type icons (Phone, Mail, Users, etc.) | Done | Lines 21-38 |
+| Timestamp formatting with date-fns | Done | Uses `formatDistanceToNow` |
+| Creator name from joined profiles | Done | Line 97 |
+| Next action indicator | Done | Lines 95-103 |
+| AddActivityModal | Done | `AddActivityModal.tsx` |
+| Activity type selector (5 types) | Done | Lines 31-37 |
+| Subject, description, outcome fields | Done | Lines 123-155 |
+| Next action with date picker | Done | Lines 158-181 |
+| ConvertToClientModal | Done | `ConvertToClientModal.tsx` |
+| Eligibility check on mount | Done | Lines 79-83 |
+| Error display for ineligible leads | Done | Lines 187-193 |
+| Pre-fill from conversion preview | Done | Lines 93-99 |
+| Client form (name, type, GSTIN, PAN, email, phone) | Done | Lines 209-287 |
+| Optional first case creation | Done | Lines 290-330 |
+| Summary panel | Done | Lines 333-349 |
+| Integration with LeadsPage | Done | LeadsPage.tsx lines 25-80 |
 
-**Step 1: Eligibility Check**
-- On mount, calls `leadConversionService.checkConversionEligibility(contactId)`
-- If not eligible, shows reason and disables form
-- If eligible, pre-fills form from `leadConversionService.getConversionPreview()`
+### Issues Found
 
-**Step 2: Client Form**
-Pre-filled from contact data:
-- Client Name (from `lead.name`, editable)
-- Client Type selector (Individual/Company/Proprietorship/etc.)
-- GSTIN input (optional)
-- PAN input (optional)
-- Email (from primary email)
-- Phone (from primary phone)
-- State/City selectors
+| Issue | Severity | Description |
+|-------|----------|-------------|
+| Missing "Edit Lead" button | Medium | Plan specified an "Edit Lead" button in the drawer's action section (alongside Log Activity and Convert). The drawer only has Log Activity and Convert buttons. There's no way to edit lead score, expected value, or close date inline. |
+| No inline lead metadata editing | Medium | The LeadDetailDrawer displays lead metadata (score, value, close date) but doesn't allow editing. Plan mentioned "View/edit lead score, expected value, close date" but only view is implemented. |
+| Lost reason uses window.prompt | Low | Lines 111-116 and 119-123 use `window.prompt()` for lost reason input. Should use a proper modal for better UX. |
+| State/City selectors not implemented | Low | ConvertToClientModal plan mentioned State/City selectors but only text inputs exist. |
 
-**Step 3: Optional First Case**
-- Checkbox: "Create first case for this client"
-- If checked, show:
-  - Case Title input (required)
-  - Case Description textarea (optional)
+### Recommendation
 
-**Step 4: Confirmation & Submit**
-- Summary panel showing:
-  - Lead name → Client name
-  - Email, Phone
-  - Will create case: Yes/No
-- Submit button calls `leadConversionService.convertToClient()`
+1. Create an "EditLeadModal" component OR add inline editing to LeadDetailDrawer for:
+   - Lead score (slider or number input)
+   - Expected value
+   - Expected close date
+   - Lead source
+   - Notes
 
-**On Success:**
-- Toast: "Lead converted successfully"
-- Navigate to new client view OR refresh leads list
-- Close drawer and modal
-
----
-
-## Step 5: Integrate with LeadsPage
-
-**Modifications to:** `src/pages/LeadsPage.tsx`
-
-1. Import new components:
-   - `LeadDetailDrawer`
-   - `ConvertToClientModal`
-
-2. Add state:
-   ```tsx
-   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-   const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
-   const [convertingLead, setConvertingLead] = useState<Lead | null>(null);
-   ```
-
-3. Update handlers:
-   ```tsx
-   const handleViewLead = (lead: Lead) => {
-     setSelectedLead(lead);
-     setIsDrawerOpen(true);
-   };
-
-   const handleConvertLead = (lead: Lead) => {
-     setConvertingLead(lead);
-     setIsConvertModalOpen(true);
-   };
-   ```
-
-4. Render modals at page bottom:
-   ```tsx
-   <LeadDetailDrawer
-     lead={selectedLead}
-     isOpen={isDrawerOpen}
-     onClose={() => setIsDrawerOpen(false)}
-     onConvert={handleConvertLead}
-   />
-   
-   <ConvertToClientModal
-     lead={convertingLead}
-     isOpen={isConvertModalOpen}
-     onClose={() => setIsConvertModalOpen(false)}
-     onSuccess={() => {
-       refetchLeads();
-       refetchStats();
-       setIsConvertModalOpen(false);
-       setIsDrawerOpen(false);
-     }}
-   />
-   ```
+2. Replace `window.prompt()` with a proper dialog for "Mark as Lost" reason
 
 ---
 
-## Step 6: Enable "Convert" from LeadCard
+## Service Layer QC
 
-**Modifications to:** `src/components/crm/LeadCard.tsx`
+### leadService.ts - Complete
 
-The `onConvert` callback is already wired - no changes needed. It will now open the real conversion modal.
+| Method | Status |
+|--------|--------|
+| getLeads(filters) | Done |
+| getLead(id) | Done |
+| markAsLead(id, data) | Done |
+| updateLeadStatus(id, status, notes) | Done |
+| updateLeadScore(id, score) | Done |
+| updateLead(id, updates) | Done |
+| getActivities(contactId) | Done |
+| addActivity(contactId, activity) | Done |
+| getPipelineStats() | Done |
+| unmarkAsLead(id) | Done |
 
----
+### leadConversionService.ts - Complete
 
-## Technical Details
-
-### Data Flow
-
-```text
-LeadsPage
-├── LeadPipeline
-│   └── LeadCard
-│       ├── onView → opens LeadDetailDrawer
-│       └── onConvert → opens ConvertToClientModal
-│
-├── LeadDetailDrawer
-│   ├── useQuery → leadService.getLead(id)
-│   ├── LeadActivityTimeline
-│   │   └── useQuery → leadService.getActivities(id)
-│   ├── AddActivityModal
-│   │   └── useMutation → leadService.addActivity()
-│   └── [Convert] button → opens ConvertToClientModal
-│
-└── ConvertToClientModal
-    ├── useQuery → leadConversionService.getConversionPreview()
-    └── useMutation → leadConversionService.convertToClient()
-```
-
-### Patterns Reused
-
-| Pattern | Source | Usage |
-|---------|--------|-------|
-| LargeSlideOver | `src/components/ui/large-slide-over.tsx` | LeadDetailDrawer container |
-| Card sections | `ClientModal.tsx` | Overview, Status, Timeline cards |
-| Timeline styling | `StageWorkflowTimeline.tsx` | Activity feed layout |
-| Form validation | `ClientModal.tsx` | Conversion form validation |
-| Service + TanStack Query | `LeadsPage.tsx` | Data fetching pattern |
-
-### Activity Type Icons
-
-```tsx
-const ACTIVITY_ICONS: Record<ActivityType, LucideIcon> = {
-  call: Phone,
-  email: Mail,
-  meeting: Users,
-  note: StickyNote,
-  task: CheckSquare,
-  status_change: ArrowRightCircle,
-  conversion: UserCheck,
-};
-```
+| Method | Status |
+|--------|--------|
+| convertToClient(id, options) | Done |
+| checkConversionEligibility(id) | Done |
+| getConversionPreview(id) | Done |
 
 ---
 
-## Files to Create
+## Type Definitions QC
 
-| File | Description | Est. Lines |
-|------|-------------|------------|
-| `src/components/crm/LeadActivityTimeline.tsx` | Activity feed component | ~120 |
-| `src/components/crm/AddActivityModal.tsx` | Log activity dialog | ~150 |
-| `src/components/crm/LeadDetailDrawer.tsx` | Main detail drawer | ~350 |
-| `src/components/crm/ConvertToClientModal.tsx` | Conversion workflow | ~400 |
+### src/types/lead.ts - Complete
 
-## Files to Modify
-
-| File | Change |
+| Type | Status |
 |------|--------|
-| `src/pages/LeadsPage.tsx` | Add drawer/modal state and render |
+| LeadStatus | Done (7 values) |
+| LeadSource | Done (8 values) |
+| ActivityType | Done (7 values) |
+| Lead | Done |
+| EmailEntry, PhoneEntry | Done |
+| LeadActivity | Done |
+| LeadFilters | Done |
+| PipelineStats | Done |
+| ConversionOptions | Done |
+| ConversionResult | Done |
+| LEAD_STATUS_CONFIG | Done |
+| LEAD_SOURCE_OPTIONS | Done |
 
 ---
 
-## Implementation Sequence
+## Summary of Gaps
 
-1. **Create LeadActivityTimeline** - Standalone component for activity display
-2. **Create AddActivityModal** - Dialog for logging new activities  
-3. **Create LeadDetailDrawer** - Combines overview, status controls, and timeline
-4. **Create ConvertToClientModal** - Complete conversion workflow
-5. **Update LeadsPage** - Wire everything together
-
----
-
-## Edge Cases Handled
-
-1. **Already converted leads**: ConvertToClientModal checks eligibility and shows error
-2. **Lost leads**: Convert button hidden, can be reopened via status change
-3. **Empty activities**: Show "No activities yet" with prompt to log first activity
-4. **Conversion rollback**: If contact update fails, client creation is rolled back (already in service)
-5. **First case optional**: Checkbox controls whether case is created
+| Gap | Phase | Severity | Effort to Fix |
+|-----|-------|----------|---------------|
+| Edit Lead functionality missing | Phase 3 | Medium | New modal ~150 lines |
+| Owner filter not wired in LeadsPage | Phase 2 | Low | ~20 lines |
+| toClientContact() missing lead fields | Phase 1B | High (type safety) | ~10 lines |
+| window.prompt for lost reason | Phase 3 | Low | New dialog ~50 lines |
+| Table view for leads (placeholder) | Phase 2 | Low | Future enhancement |
 
 ---
 
-## Outcome
+## Recommended Next Steps
 
-After implementation:
-1. Click any lead card → Opens detailed drawer with full info
-2. View/edit lead score, expected value, close date
-3. Log activities (calls, emails, meetings, notes)
-4. One-click status changes from within drawer
-5. "Convert to Client" opens guided conversion flow
-6. Optional first case creation during conversion
-7. Seamless lead → client → case lifecycle
+1. **Create EditLeadModal** - Allow editing of lead score, expected value, close date, and notes from within LeadDetailDrawer
+
+2. **Wire owner filter** - Fetch employees in LeadsPage and pass to LeadFilters
+
+3. **Update toClientContact()** - Add lead fields for type safety (optional, current implementation works)
+
+4. **Replace window.prompt** - Create a proper "Mark as Lost" dialog with reason input
 
