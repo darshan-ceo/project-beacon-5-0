@@ -30,8 +30,8 @@ export const EntryDecisionStep: React.FC<EntryDecisionStepProps> = ({
       >
         {/* New Case Option */}
         <Card 
-          className={`cursor-pointer transition-all hover:border-primary ${
-            selectedMode === 'new_case' ? 'border-primary ring-2 ring-primary/20' : ''
+          className={`cursor-pointer transition-all duration-200 hover:border-primary hover:bg-primary/5 ${
+            selectedMode === 'new_case' ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : ''
           }`}
           onClick={() => onModeSelect('new_case')}
         >
@@ -51,14 +51,14 @@ export const EntryDecisionStep: React.FC<EntryDecisionStepProps> = ({
                   Start a new legal case by uploading a notice. The wizard will guide you through 
                   extracting data, creating the case, and setting up compliance tracking.
                 </p>
-                <div className="flex items-center gap-2 mt-3 ml-11 text-xs text-muted-foreground">
-                  <span className="px-2 py-1 rounded bg-secondary">Upload</span>
-                  <ArrowRight className="h-3 w-3" />
-                  <span className="px-2 py-1 rounded bg-secondary">Extract</span>
-                  <ArrowRight className="h-3 w-3" />
-                  <span className="px-2 py-1 rounded bg-secondary">Create Case</span>
-                  <ArrowRight className="h-3 w-3" />
-                  <span className="px-2 py-1 rounded bg-secondary">Tasks</span>
+                <div className="flex items-center gap-2 mt-3 ml-11 text-xs">
+                  <span className="px-2 py-1 rounded bg-muted text-foreground font-medium border border-border">Upload</span>
+                  <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                  <span className="px-2 py-1 rounded bg-muted text-foreground font-medium border border-border">Extract</span>
+                  <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                  <span className="px-2 py-1 rounded bg-muted text-foreground font-medium border border-border">Create Case</span>
+                  <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                  <span className="px-2 py-1 rounded bg-muted text-foreground font-medium border border-border">Tasks</span>
                 </div>
               </div>
             </div>
@@ -67,8 +67,8 @@ export const EntryDecisionStep: React.FC<EntryDecisionStepProps> = ({
 
         {/* Existing Case Option */}
         <Card 
-          className={`cursor-pointer transition-all hover:border-primary ${
-            selectedMode === 'existing_case' ? 'border-primary ring-2 ring-primary/20' : ''
+          className={`cursor-pointer transition-all duration-200 hover:border-primary hover:bg-primary/5 ${
+            selectedMode === 'existing_case' ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : ''
           }`}
           onClick={() => onModeSelect('existing_case')}
         >
@@ -77,8 +77,8 @@ export const EntryDecisionStep: React.FC<EntryDecisionStepProps> = ({
               <RadioGroupItem value="existing_case" id="existing_case" className="mt-1" />
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 rounded-lg bg-secondary">
-                    <FolderOpen className="h-5 w-5 text-foreground" />
+                  <div className="p-2 rounded-lg bg-muted">
+                    <FolderOpen className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <Label htmlFor="existing_case" className="text-base font-semibold cursor-pointer">
                     Add this Notice to an Existing Case
@@ -88,14 +88,14 @@ export const EntryDecisionStep: React.FC<EntryDecisionStepProps> = ({
                   Link a new notice (reminder, additional SCN, hearing notice) to a case that 
                   already exists in the system.
                 </p>
-                <div className="flex items-center gap-2 mt-3 ml-11 text-xs text-muted-foreground">
-                  <span className="px-2 py-1 rounded bg-secondary">Upload</span>
-                  <ArrowRight className="h-3 w-3" />
-                  <span className="px-2 py-1 rounded bg-secondary">Extract</span>
-                  <ArrowRight className="h-3 w-3" />
-                  <span className="px-2 py-1 rounded bg-secondary">Select Case</span>
-                  <ArrowRight className="h-3 w-3" />
-                  <span className="px-2 py-1 rounded bg-secondary">Link Notice</span>
+                <div className="flex items-center gap-2 mt-3 ml-11 text-xs">
+                  <span className="px-2 py-1 rounded bg-muted text-foreground font-medium border border-border">Upload</span>
+                  <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                  <span className="px-2 py-1 rounded bg-muted text-foreground font-medium border border-border">Extract</span>
+                  <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                  <span className="px-2 py-1 rounded bg-muted text-foreground font-medium border border-border">Select Case</span>
+                  <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                  <span className="px-2 py-1 rounded bg-muted text-foreground font-medium border border-border">Link Notice</span>
                 </div>
               </div>
             </div>

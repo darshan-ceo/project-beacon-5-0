@@ -569,7 +569,7 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
                 
                 {apiKeyInfo.hasKeys && (
                   <div className="flex items-center justify-between">
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
                       <CheckCircle className="w-3 h-3 mr-1" />
                       OpenAI Vision Active
                     </Badge>
