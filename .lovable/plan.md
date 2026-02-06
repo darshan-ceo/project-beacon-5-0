@@ -1,205 +1,234 @@
 
-# CRM Module Implementation: Next Steps
 
-## Current State Summary
+# Phase 2: Lead Pipeline Page Implementation
 
-### Completed (Phase 1 Foundation - Partial)
+## Overview
 
-| Component | Status |
-|-----------|--------|
-| Database migration (CRM columns + lead_activities table) | Done |
-| Type definitions (`src/types/lead.ts`) | Done |
-| Lead Service (`src/services/leadService.ts`) | Done |
-| Lead Conversion Service (`src/services/leadConversionService.ts`) | Done |
-
-### Remaining Work
+This phase creates a dedicated **Lead Pipeline Page** with a Kanban board for visual lead management, table view toggle, and pipeline statistics. We'll reuse existing patterns from `TaskBoard.tsx` and `EnhancedDashboard.tsx` for drag-and-drop functionality.
 
 ---
 
-## Phase 1B: Contacts Module Enhancement (Priority)
+## Implementation Summary
 
-### 1. Add Lead Status Column to Contacts Table
-
-Modify `ContactsMasters.tsx` to display lead status for standalone contacts:
-
-- Add "Lead Status" column to the table (after Roles column)
-- Display status badge with color coding from `LEAD_STATUS_CONFIG`
-- Show "—" for client-linked contacts (not leads)
-
-### 2. Add "Mark as Lead" Action
-
-Add new row action in the contacts dropdown menu:
-
-- Show "Mark as Lead" option for standalone contacts (client_id = null)
-- Show "Remove Lead Status" option for existing leads
-- Trigger `leadService.markAsLead()` with status selector modal
-
-### 3. Add Lead Stats to Dashboard
-
-Update stats cards in `ContactsMasters.tsx`:
-
-- Replace "Active Contacts" card with "Active Leads" showing lead pipeline count
-- Add visual indicator for leads requiring follow-up
-
-### 4. Create MarkAsLeadModal Component
-
-New component: `src/components/crm/MarkAsLeadModal.tsx`
-
-- Lead source selector (referral, website, cold_call, etc.)
-- Initial status (defaults to 'new')
-- Expected value input (optional)
-- Expected close date picker (optional)
+| Component | Description |
+|-----------|-------------|
+| `LeadsPage.tsx` | Main page with view toggle and stats |
+| `LeadPipeline.tsx` | Kanban board container |
+| `LeadCard.tsx` | Individual lead card for pipeline |
+| `LeadFilters.tsx` | Filter bar component |
+| `LeadStats.tsx` | Pipeline metrics header |
+| Route & Sidebar | Navigation integration |
 
 ---
 
-## Phase 2: Lead Pipeline Page
+## Step 1: Create LeadStats Component
 
-### 1. Create LeadsPage
+**File:** `src/components/crm/LeadStats.tsx`
 
-New page: `src/pages/LeadsPage.tsx`
+Pipeline summary cards showing:
+- Total Leads in pipeline
+- Total Pipeline Value (₹)
+- Conversion Rate (%)
+- Average Deal Value
 
-- Kanban pipeline view (reusing patterns from TaskBoard.tsx)
-- Table view toggle
-- Pipeline stats header
-
-### 2. Create Lead Pipeline Components
-
-New files in `src/components/crm/`:
-
-```text
-LeadPipeline.tsx       - Main pipeline container
-LeadCard.tsx           - Individual lead card for Kanban
-LeadFilters.tsx        - Filter bar (status, source, owner)
-LeadStats.tsx          - Pipeline metrics header
-```
-
-### 3. Add Route and Navigation
-
-- Add route `/leads` in `App.tsx`
-- Add "Leads" menu item to Sidebar under CLIENTS section
-- Icon: `Target` from lucide-react
+Uses the existing `leadService.getPipelineStats()` method.
 
 ---
 
-## Phase 3: Lead Detail and Conversion
+## Step 2: Create LeadCard Component
 
-### 1. LeadDetailDrawer
+**File:** `src/components/crm/LeadCard.tsx`
 
-New component: `src/components/crm/LeadDetailDrawer.tsx`
+Individual lead card for Kanban columns:
+- Contact name and designation
+- Lead source badge
+- Expected value display
+- Days since last activity
+- Score indicator (0-100)
+- Quick action dropdown (View, Edit Status, Convert)
 
-- Contact information section (existing data)
-- Lead metadata (source, score, expected value)
-- Status selector with quick change
-- Activity timeline
-- Conversion button (when eligible)
-
-### 2. LeadActivityTimeline
-
-New component: `src/components/crm/LeadActivityTimeline.tsx`
-
-- Chronological activity list
-- Activity type icons (call, email, meeting, note)
-- Add activity form (inline or modal)
-
-### 3. ConvertToClientModal
-
-New component: `src/components/crm/ConvertToClientModal.tsx`
-
-- Pre-filled from contact data
-- Client type selector (individual/company)
-- GSTIN, PAN inputs
-- Optional "Create First Case" checkbox with case title input
-- Confirmation step with audit summary
+Reuses card styling patterns from `TaskBoard.tsx`:
+- Priority color coding → Lead score color coding
+- Drag-and-drop support via native HTML5 drag events
 
 ---
 
-## Implementation Order (Recommended)
+## Step 3: Create LeadFilters Component
 
-### Immediate Next Step: Phase 1B
+**File:** `src/components/crm/LeadFilters.tsx`
 
-```text
-Step 1: Update ContactsMasters.tsx
-        - Add lead_status column display
-        - Add "Mark as Lead" row action
-        - Update stats cards
+Filter bar with:
+- Search input (name, designation)
+- Lead Source dropdown
+- Owner dropdown (assigned employee)
+- Score range slider (optional)
+- Date range picker for expected close date
 
-Step 2: Create MarkAsLeadModal.tsx
-        - Source/status/value form
-        - Connect to leadService.markAsLead()
+Uses `FilterDropdown` component pattern from `src/components/ui/filter-dropdown.tsx`.
 
-Step 3: Add lead filters to UnifiedContactSearch.tsx
-        - Lead status filter dropdown
-        - Lead source filter
-```
+---
 
-### Following Steps: Phase 2
+## Step 4: Create LeadPipeline Component
 
-```text
-Step 4: Create LeadsPage.tsx with basic pipeline
+**File:** `src/components/crm/LeadPipeline.tsx`
 
-Step 5: Create LeadPipeline.tsx (Kanban view)
-        - Reuse DND patterns from TaskBoard.tsx
-        - Status columns with drag-drop
+Kanban board container:
+- Columns for each `LeadStatus`: New → Contacted → Qualified → Proposal Sent → Negotiation → Won → Lost
+- Drag-and-drop between columns (triggers `leadService.updateLeadStatus`)
+- Column headers with count and total value
+- Empty state handling per column
 
-Step 6: Add /leads route and sidebar nav
-```
-
-### Final Steps: Phase 3
+Pattern adapted from `TaskBoard.tsx`:
 
 ```text
-Step 7: Create LeadDetailDrawer.tsx
-
-Step 8: Create LeadActivityTimeline.tsx
-
-Step 9: Create ConvertToClientModal.tsx
-        - Full conversion workflow
-        - Integration with clientsService
+┌─────────┐  ┌──────────┐  ┌───────────┐  ┌──────────┐  ┌────────────┐  ┌─────┐  ┌──────┐
+│   NEW   │  │CONTACTED │  │ QUALIFIED │  │ PROPOSAL │  │NEGOTIATION │  │ WON │  │ LOST │
+│ 5 leads │  │ 3 leads  │  │ 2 leads   │  │ 1 lead   │  │  1 lead    │  │  8  │  │  2   │
+│  ₹10L   │  │   ₹8L    │  │   ₹5L     │  │   ₹2L    │  │   ₹3L      │  │₹15L │  │      │
+├─────────┤  ├──────────┤  ├───────────┤  ├──────────┤  ├────────────┤  ├─────┤  ├──────┤
+│ [Card]  │  │ [Card]   │  │  [Card]   │  │ [Card]   │  │  [Card]    │  │ ... │  │ ...  │
+│ [Card]  │  │ [Card]   │  │           │  │          │  │            │  │     │  │      │
+└─────────┘  └──────────┘  └───────────┘  └──────────┘  └────────────┘  └─────┘  └──────┘
 ```
 
 ---
 
-## Technical Considerations
+## Step 5: Create LeadsPage
 
-### Existing Patterns to Reuse
+**File:** `src/pages/LeadsPage.tsx`
+
+Main page component:
+- Header with title, view toggle (Kanban/Table), and "+ New Lead" button
+- `LeadStats` component for pipeline metrics
+- `LeadFilters` component for filtering
+- Conditional rendering: `LeadPipeline` (Kanban) or table view
+- Integration with `useQuery` for data fetching via `leadService.getLeads()`
+- Refresh functionality
+
+---
+
+## Step 6: Add Route to App.tsx
+
+**Modification:** `src/App.tsx`
+
+Add protected route:
+
+```tsx
+import { LeadsPage } from '@/pages/LeadsPage';
+
+// Inside Routes...
+<Route path="/leads" element={
+  <ProtectedRoute>
+    <AdminLayout>
+      <LeadsPage />
+    </AdminLayout>
+  </ProtectedRoute>
+} />
+```
+
+---
+
+## Step 7: Add Sidebar Navigation
+
+**Modification:** `src/components/layout/Sidebar.tsx`
+
+Add "Leads" menu item under CLIENTS section:
+
+```tsx
+{
+  icon: Target, // from lucide-react
+  label: 'Leads',
+  href: '/leads',
+  roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca']
+}
+```
+
+Position: After "Contacts" in the CLIENTS section.
+
+---
+
+## Technical Details
+
+### Data Flow
+
+```text
+LeadsPage
+├── useQuery → leadService.getLeads(filters)
+├── useQuery → leadService.getPipelineStats()
+│
+├── LeadStats (displays pipeline metrics)
+├── LeadFilters (manages filter state)
+└── LeadPipeline
+    └── LeadCard[] (grouped by status)
+        └── onDrop → leadService.updateLeadStatus()
+```
+
+### State Management
+
+- **Filters**: Local state in `LeadsPage`, passed down to `LeadFilters`
+- **Leads Data**: TanStack Query with `queryKey: ['leads', filters]`
+- **Pipeline Stats**: Separate query with `queryKey: ['lead-pipeline-stats']`
+- **Drag State**: Local state in `LeadPipeline` (like `TaskBoard.tsx`)
+
+### Reused Patterns
 
 | Pattern | Source | Usage |
 |---------|--------|-------|
-| Kanban board | `TaskBoard.tsx` | Lead pipeline columns |
-| DND kit | `EnhancedDashboard.tsx` | Drag-drop lead status |
-| Adaptive forms | `ContactModal.tsx` | Lead detail drawer |
-| Service pattern | `leadService.ts` | Already implemented |
+| Kanban columns | `TaskBoard.tsx` | Lead pipeline structure |
+| Card styling | `TaskBoard.tsx` | Lead card design |
+| Filter bar | `UnifiedTaskSearch.tsx` | Lead filters |
+| Stats cards | `EnhancedDashboard.tsx` | Pipeline metrics |
+| DnD sensors | `EnhancedDashboard.tsx` | Optional dnd-kit upgrade |
 
-### RLS Inheritance
+### Color Coding by Lead Score
 
-Lead data inherits existing `client_contacts` RLS policies:
-
-- Owner sees own leads
-- Team sees team leads (based on data_scope)
-- Admin sees all
-
-No additional RLS migrations needed.
-
-### Type Safety
-
-The `Lead` type extends contact fields with CRM metadata. TypeScript casts (`as unknown as Lead`) are used for Supabase compatibility until types are regenerated.
+| Score Range | Color | Badge |
+|-------------|-------|-------|
+| 80-100 | Green | Hot |
+| 50-79 | Amber | Warm |
+| 25-49 | Blue | Cool |
+| 0-24 | Gray | Cold |
 
 ---
 
-## Files to Create/Modify
+## Files to Create
 
-| File | Action |
+| File | Lines (Est.) |
+|------|--------------|
+| `src/components/crm/LeadStats.tsx` | ~100 |
+| `src/components/crm/LeadCard.tsx` | ~120 |
+| `src/components/crm/LeadFilters.tsx` | ~80 |
+| `src/components/crm/LeadPipeline.tsx` | ~200 |
+| `src/pages/LeadsPage.tsx` | ~180 |
+
+## Files to Modify
+
+| File | Change |
 |------|--------|
-| `src/components/contacts/ContactsMasters.tsx` | Modify - add lead columns |
-| `src/components/contacts/UnifiedContactSearch.tsx` | Modify - add lead filters |
-| `src/components/crm/MarkAsLeadModal.tsx` | Create |
-| `src/components/crm/LeadPipeline.tsx` | Create |
-| `src/components/crm/LeadCard.tsx` | Create |
-| `src/components/crm/LeadFilters.tsx` | Create |
-| `src/components/crm/LeadStats.tsx` | Create |
-| `src/components/crm/LeadDetailDrawer.tsx` | Create |
-| `src/components/crm/LeadActivityTimeline.tsx` | Create |
-| `src/components/crm/ConvertToClientModal.tsx` | Create |
-| `src/pages/LeadsPage.tsx` | Create |
-| `src/App.tsx` | Modify - add /leads route |
-| `src/components/layout/Sidebar.tsx` | Modify - add Leads nav item |
+| `src/App.tsx` | Add `/leads` route |
+| `src/components/layout/Sidebar.tsx` | Add Leads nav item |
+
+---
+
+## RBAC Considerations
+
+The leads page will use existing RBAC patterns:
+- Route mapped to `leads` module (or reuse `contacts` module)
+- `hasPermission('leads', 'read')` for view access
+- `hasPermission('leads', 'update')` for drag-drop status changes
+- `hasPermission('leads', 'create')` for "New Lead" button
+
+If `leads` module isn't configured in RBAC, we can map to `contacts` module since leads are contacts.
+
+---
+
+## Outcome
+
+After implementation:
+1. Users can navigate to `/leads` from sidebar
+2. See Kanban pipeline with all leads organized by status
+3. Drag leads between columns to update status
+4. Filter by source, owner, score
+5. View pipeline metrics (total value, conversion rate)
+6. Click lead cards to open detail drawer (Phase 3)
 
