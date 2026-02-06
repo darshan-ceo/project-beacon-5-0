@@ -73,6 +73,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 import { GlossaryText, GlossaryDescription } from '@/components/ui/glossary-enhanced';
 import { NoticeIntakeWizard } from '@/components/notices/NoticeIntakeWizard';
+import { NoticeIntakeWizardV2 } from '@/components/notices/NoticeIntakeWizardV2';
 import { featureFlagService } from '@/services/featureFlagService';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
@@ -1667,8 +1668,13 @@ export const CaseManagement: React.FC = () => {
         />
       )}
 
-      {/* Notice Intake Wizard */}
-      {featureFlagService.isEnabled('notice_intake_v1') && (
+      {/* Notice Intake Wizard - V2 with dual-path support when enabled */}
+      {featureFlagService.isEnabled('notice_intake_v2') ? (
+        <NoticeIntakeWizardV2
+          isOpen={noticeIntakeModal}
+          onClose={() => setNoticeIntakeModal(false)}
+        />
+      ) : featureFlagService.isEnabled('notice_intake_v1') && (
         <NoticeIntakeWizard
           isOpen={noticeIntakeModal}
           onClose={() => setNoticeIntakeModal(false)}

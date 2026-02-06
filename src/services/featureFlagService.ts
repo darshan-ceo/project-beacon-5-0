@@ -221,6 +221,13 @@ class FeatureFlagService {
       isEnabled: true, // ON in UAT
       version: 'v1'
     });
+
+    // Notice Intake Wizard V2 (UAT enabled for testing)
+    this.flags.set('notice_intake_v2', {
+      key: 'notice_intake_v2',
+      isEnabled: true, // ON in UAT - upgraded wizard with dual-path support
+      version: 'v2'
+    });
   }
 
   /**

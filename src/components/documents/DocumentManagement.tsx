@@ -57,6 +57,7 @@ import { InlineHelp } from '@/components/help/InlineHelp';
 import { ContextualPageHelp } from '@/components/help/ContextualPageHelp';
 
 import { NoticeIntakeWizard } from '@/components/notices/NoticeIntakeWizard';
+import { NoticeIntakeWizardV2 } from '@/components/notices/NoticeIntakeWizardV2';
 import { featureFlagService } from '@/services/featureFlagService';
 import { HelpButton } from '@/components/ui/help-button';
 
@@ -1666,8 +1667,13 @@ export const DocumentManagement: React.FC = () => {
         onCancel={handleDuplicateCancel}
       />
 
-      {/* Notice Intake Wizard */}
-      {featureFlagService.isEnabled('notice_intake_v1') && (
+      {/* Notice Intake Wizard - V2 with dual-path support when enabled */}
+      {featureFlagService.isEnabled('notice_intake_v2') ? (
+        <NoticeIntakeWizardV2
+          isOpen={noticeIntakeModal}
+          onClose={() => setNoticeIntakeModal(false)}
+        />
+      ) : featureFlagService.isEnabled('notice_intake_v1') && (
         <NoticeIntakeWizard
           isOpen={noticeIntakeModal}
           onClose={() => setNoticeIntakeModal(false)}
