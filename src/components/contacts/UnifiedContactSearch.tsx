@@ -1,6 +1,7 @@
 import React from 'react';
 import { Users } from 'lucide-react';
 import { UnifiedModuleSearch, FilterConfig } from '@/components/search/UnifiedModuleSearch';
+import { LEAD_STATUS_CONFIG, LEAD_SOURCE_OPTIONS } from '@/types/lead';
 
 export interface ContactFilters {
   dataScope?: string;
@@ -8,6 +9,8 @@ export interface ContactFilters {
   client?: string;
   role?: string;
   type?: string;
+  leadStatus?: string;
+  leadSource?: string;
 }
 
 interface UnifiedContactSearchProps {
@@ -25,6 +28,12 @@ export const UnifiedContactSearch: React.FC<UnifiedContactSearchProps> = ({
   onFiltersChange,
   clients = []
 }) => {
+  // Build lead status options from config
+  const leadStatusOptions = Object.entries(LEAD_STATUS_CONFIG).map(([value, config]) => ({
+    value,
+    label: config.label
+  }));
+
   const filterConfig: FilterConfig[] = [
     {
       id: 'dataScope',
@@ -70,6 +79,18 @@ export const UnifiedContactSearch: React.FC<UnifiedContactSearchProps> = ({
         { value: 'client-linked', label: 'Client-Linked' },
         { value: 'standalone', label: 'Standalone' }
       ]
+    },
+    {
+      id: 'leadStatus',
+      label: 'Lead Status',
+      type: 'dropdown',
+      options: leadStatusOptions
+    },
+    {
+      id: 'leadSource',
+      label: 'Lead Source',
+      type: 'dropdown',
+      options: LEAD_SOURCE_OPTIONS.map(s => ({ value: s.value, label: s.label }))
     }
   ];
 
