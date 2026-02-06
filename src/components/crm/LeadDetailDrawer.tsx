@@ -29,6 +29,8 @@ import { leadService } from '@/services/leadService';
 import { Lead, LeadStatus, LEAD_STATUS_CONFIG, LEAD_SOURCE_OPTIONS } from '@/types/lead';
 import { LeadActivityTimeline } from './LeadActivityTimeline';
 import { AddActivityModal } from './AddActivityModal';
+import { EditLeadModal } from './EditLeadModal';
+import { MarkAsLostDialog } from './MarkAsLostDialog';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -64,6 +66,9 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isLostDialogOpen, setIsLostDialogOpen] = useState(false);
+  const [pendingLostStatus, setPendingLostStatus] = useState<LeadStatus | null>(null);
 
   // Refetch lead data when drawer opens
   const { data: leadResponse, isLoading } = useQuery({
@@ -85,6 +90,8 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
         queryClient.invalidateQueries({ queryKey: ['lead-activities', currentLead?.id] });
         queryClient.invalidateQueries({ queryKey: ['leads'] });
         queryClient.invalidateQueries({ queryKey: ['lead-pipeline-stats'] });
+        setIsLostDialogOpen(false);
+        setPendingLostStatus(null);
         onRefresh?.();
       } else {
         toast.error(result.error || 'Failed to update status');
@@ -108,17 +115,21 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
 
   const handleStatusChange = (status: LeadStatus) => {
     if (status === 'lost') {
-      const reason = window.prompt('Reason for marking as lost (optional):');
-      updateStatusMutation.mutate({ status, notes: reason || undefined });
+      setPendingLostStatus(status);
+      setIsLostDialogOpen(true);
     } else {
       updateStatusMutation.mutate({ status });
     }
   };
 
   const handleMarkAsLost = () => {
-    const reason = window.prompt('Reason for marking as lost:');
-    if (reason !== null) {
-      updateStatusMutation.mutate({ status: 'lost', notes: reason });
+    setPendingLostStatus('lost');
+    setIsLostDialogOpen(true);
+  };
+
+  const handleLostConfirm = (reason: string) => {
+    if (pendingLostStatus) {
+      updateStatusMutation.mutate({ status: pendingLostStatus, notes: reason || undefined });
     }
   };
 
@@ -292,18 +303,26 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                     <Plus className="h-4 w-4 mr-2" />
                     Log Activity
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditModalOpen(true)}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Lead
+                  </Button>
                   {canConvert && (
                     <Button
                       size="sm"
                       onClick={() => onConvert(currentLead)}
-                      className="bg-green-600 hover:bg-green-700"
+                      className="bg-primary hover:bg-primary/90"
                     >
                       <UserCheck className="h-4 w-4 mr-2" />
                       Convert to Client
                     </Button>
                   )}
                   {currentLead.lead_status === 'won' && currentLead.client_id && (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                       <UserCheck className="h-3 w-3 mr-1" />
                       Converted
                     </Badge>
@@ -343,6 +362,26 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
         contactId={currentLead.id}
         isOpen={isActivityModalOpen}
         onClose={() => setIsActivityModalOpen(false)}
+      />
+
+      {/* Edit Lead Modal */}
+      <EditLeadModal
+        lead={currentLead}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSuccess={onRefresh}
+      />
+
+      {/* Mark as Lost Dialog */}
+      <MarkAsLostDialog
+        isOpen={isLostDialogOpen}
+        onClose={() => {
+          setIsLostDialogOpen(false);
+          setPendingLostStatus(null);
+        }}
+        onConfirm={handleLostConfirm}
+        isSubmitting={updateStatusMutation.isPending}
+        leadName={currentLead.name}
       />
     </>
   );
