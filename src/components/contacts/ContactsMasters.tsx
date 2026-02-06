@@ -11,7 +11,9 @@ import {
   Edit,
   Trash2,
   Users,
-  Filter
+  Filter,
+  Target,
+  X
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,9 +50,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { UnifiedContactSearch, ContactFilters } from './UnifiedContactSearch';
 import { ContactModal } from '@/components/modals/ContactModal';
+import { MarkAsLeadModal } from '@/components/crm/MarkAsLeadModal';
+import { leadService } from '@/services/leadService';
+import { LEAD_STATUS_CONFIG, LeadStatus } from '@/types/lead';
 
 interface ContactWithClient extends ClientContact {
   clientName?: string;
+  lead_status?: string | null;
+  lead_source?: string | null;
 }
 
 export const ContactsMasters: React.FC = () => {
@@ -66,6 +73,13 @@ export const ContactsMasters: React.FC = () => {
     mode: 'create' | 'edit' | 'view';
     contactId?: string;
   }>({ isOpen: false, mode: 'create' });
+
+  // Mark as Lead modal state
+  const [markAsLeadModal, setMarkAsLeadModal] = useState<{
+    isOpen: boolean;
+    contactId: string;
+    contactName: string;
+  }>({ isOpen: false, contactId: '', contactName: '' });
 
   // Delete dialog state
   const [deleteDialog, setDeleteDialog] = useState<{
@@ -143,12 +157,16 @@ export const ContactsMasters: React.FC = () => {
   };
 
   // Stats computed from data
-  const stats = useMemo(() => ({
-    total: contacts.length,
-    clientLinked: contacts.filter(c => c.clientId).length,
-    standalone: contacts.filter(c => !c.clientId).length,
-    active: contacts.filter(c => c.isActive).length
-  }), [contacts]);
+  const stats = useMemo(() => {
+    const leads = contacts.filter(c => c.lead_status);
+    return {
+      total: contacts.length,
+      clientLinked: contacts.filter(c => c.clientId).length,
+      standalone: contacts.filter(c => !c.clientId).length,
+      active: contacts.filter(c => c.isActive).length,
+      totalLeads: leads.length,
+    };
+  }, [contacts]);
 
   // Filtered contacts
   const filteredContacts = useMemo(() => {
@@ -183,9 +201,42 @@ export const ContactsMasters: React.FC = () => {
         (activeFilters.type === 'client-linked' && contact.clientId) ||
         (activeFilters.type === 'standalone' && !contact.clientId);
 
-      return matchesSearch && matchesDataScope && matchesStatus && matchesClient && matchesRole && matchesType;
+      // Lead status filter
+      const matchesLeadStatus = !activeFilters.leadStatus ||
+        contact.lead_status === activeFilters.leadStatus;
+
+      // Lead source filter
+      const matchesLeadSource = !activeFilters.leadSource ||
+        contact.lead_source === activeFilters.leadSource;
+
+      return matchesSearch && matchesDataScope && matchesStatus && matchesClient && matchesRole && matchesType && matchesLeadStatus && matchesLeadSource;
     });
   }, [contacts, searchTerm, activeFilters]);
+
+  const handleRemoveLeadStatus = async (contactId: string, contactName: string) => {
+    try {
+      const result = await leadService.unmarkAsLead(contactId);
+      if (result.success) {
+        toast({
+          title: 'Lead Status Removed',
+          description: `${contactName} is no longer a lead`,
+        });
+        loadContacts();
+      } else {
+        toast({
+          title: 'Error',
+          description: result.error || 'Failed to remove lead status',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to remove lead status',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleteDialog.contactId) return;
@@ -267,7 +318,7 @@ export const ContactsMasters: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-4 gap-6"
+        className="grid grid-cols-1 md:grid-cols-5 gap-6"
       >
         <Card>
           <CardContent className="p-6">
@@ -277,6 +328,18 @@ export const ContactsMasters: React.FC = () => {
                 <p className="text-2xl font-bold text-foreground">{stats.total}</p>
               </div>
               <UserCircle className="h-8 w-8 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Active Leads</p>
+                <p className="text-2xl font-bold text-foreground">{stats.totalLeads}</p>
+              </div>
+              <Target className="h-8 w-8 text-amber-500" />
             </div>
           </CardContent>
         </Card>
@@ -309,7 +372,7 @@ export const ContactsMasters: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Contacts</p>
+                <p className="text-sm font-medium text-muted-foreground">Active</p>
                 <p className="text-2xl font-bold text-foreground">{stats.active}</p>
               </div>
               <Filter className="h-8 w-8 text-orange-500" />
@@ -378,6 +441,7 @@ export const ContactsMasters: React.FC = () => {
                       <TableHead className="w-[200px]">Contact Details</TableHead>
                       <TableHead className="w-[150px]">Client</TableHead>
                       <TableHead className="w-[150px]">Roles</TableHead>
+                      <TableHead className="w-[100px]">Lead Status</TableHead>
                       <TableHead className="w-[100px]">Data Scope</TableHead>
                       <TableHead className="w-[80px]">Status</TableHead>
                       <TableHead className="w-[100px]">Actions</TableHead>
@@ -464,6 +528,22 @@ export const ContactsMasters: React.FC = () => {
                           </div>
                         </TableCell>
 
+                        {/* Lead Status */}
+                        <TableCell>
+                          {contact.lead_status ? (
+                            <Badge 
+                              className={cn(
+                                LEAD_STATUS_CONFIG[contact.lead_status as LeadStatus]?.bgColor,
+                                LEAD_STATUS_CONFIG[contact.lead_status as LeadStatus]?.color
+                              )}
+                            >
+                              {LEAD_STATUS_CONFIG[contact.lead_status as LeadStatus]?.label || contact.lead_status}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">—</span>
+                          )}
+                        </TableCell>
+
                         {/* Data Scope */}
                         <TableCell>
                           <Badge variant={getDataScopeBadgeVariant(contact.dataScope || 'TEAM')}>
@@ -540,6 +620,28 @@ export const ContactsMasters: React.FC = () => {
                                   Edit Contact
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
+                                {/* Lead Actions - only for standalone contacts */}
+                                {!contact.clientId && !contact.lead_status && (
+                                  <DropdownMenuItem
+                                    onClick={() => setMarkAsLeadModal({
+                                      isOpen: true,
+                                      contactId: contact.id,
+                                      contactName: contact.name
+                                    })}
+                                  >
+                                    <Target className="h-4 w-4 mr-2" />
+                                    Mark as Lead
+                                  </DropdownMenuItem>
+                                )}
+                                {contact.lead_status && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleRemoveLeadStatus(contact.id, contact.name)}
+                                  >
+                                    <X className="h-4 w-4 mr-2" />
+                                    Remove Lead Status
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem 
                                   className="text-destructive"
                                   onClick={() => setDeleteDialog({
@@ -571,6 +673,15 @@ export const ContactsMasters: React.FC = () => {
         onClose={() => setContactModal({ isOpen: false, mode: 'create' })}
         mode={contactModal.mode}
         contactId={contactModal.contactId}
+        onSuccess={loadContacts}
+      />
+
+      {/* Mark as Lead Modal */}
+      <MarkAsLeadModal
+        isOpen={markAsLeadModal.isOpen}
+        onClose={() => setMarkAsLeadModal({ isOpen: false, contactId: '', contactName: '' })}
+        contactId={markAsLeadModal.contactId}
+        contactName={markAsLeadModal.contactName}
         onSuccess={loadContacts}
       />
 
