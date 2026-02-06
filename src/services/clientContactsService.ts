@@ -123,7 +123,25 @@ function toClientContact(row: any): ClientContact {
     address: row.address ? parseDbAddress(row.address) : undefined,
     // Dual Access Model fields
     ownerUserId: row.owner_user_id || undefined,
-    dataScope: row.data_scope || 'TEAM'
+    dataScope: row.data_scope || 'TEAM',
+    // CRM Lead fields (pass-through for type safety)
+    lead_status: row.lead_status || undefined,
+    lead_source: row.lead_source || undefined,
+    lead_score: row.lead_score ?? 0,
+    expected_value: row.expected_value ?? undefined,
+    expected_close_date: row.expected_close_date || undefined,
+    last_activity_at: row.last_activity_at || undefined,
+    lost_reason: row.lost_reason || undefined,
+    converted_at: row.converted_at || undefined,
+  } as ClientContact & {
+    lead_status?: string;
+    lead_source?: string;
+    lead_score?: number;
+    expected_value?: number;
+    expected_close_date?: string;
+    last_activity_at?: string;
+    lost_reason?: string;
+    converted_at?: string;
   };
 }
 

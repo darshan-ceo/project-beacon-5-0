@@ -15,6 +15,7 @@ import { LeadFilters } from '@/components/crm/LeadFilters';
 import { LeadPipeline } from '@/components/crm/LeadPipeline';
 import { LeadDetailDrawer } from '@/components/crm/LeadDetailDrawer';
 import { ConvertToClientModal } from '@/components/crm/ConvertToClientModal';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 type ViewMode = 'pipeline' | 'table';
@@ -41,6 +42,24 @@ export const LeadsPage: React.FC = () => {
     queryKey: ['lead-pipeline-stats'],
     queryFn: () => leadService.getPipelineStats(),
   });
+
+  // Fetch team members for owner filter
+  const { data: ownersData } = useQuery({
+    queryKey: ['lead-owners'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .order('full_name');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const owners = (ownersData || []).map((p: { id: string; full_name: string }) => ({
+    id: p.id,
+    name: p.full_name || 'Unknown',
+  }));
 
   // Update lead status mutation
   const updateStatusMutation = useMutation({
@@ -129,7 +148,7 @@ export const LeadsPage: React.FC = () => {
       <LeadStats stats={stats} isLoading={isLoadingStats} />
 
       {/* Filters */}
-      <LeadFilters filters={filters} onFiltersChange={setFilters} />
+      <LeadFilters filters={filters} onFiltersChange={setFilters} owners={owners} />
 
       {/* Content */}
       {viewMode === 'pipeline' ? (
