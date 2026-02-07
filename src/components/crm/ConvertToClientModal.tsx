@@ -1,6 +1,6 @@
 /**
  * ConvertToClientModal
- * Guided workflow for converting a lead to a client
+ * Guided workflow for onboarding an inquiry as a client
  */
 
 import React, { useState, useEffect } from 'react';
@@ -135,17 +135,17 @@ export const ConvertToClientModal: React.FC<ConvertToClientModalProps> = ({
       }),
     onSuccess: (result) => {
       if (result.success) {
-        toast.success('Lead converted to client successfully!');
+        toast.success('Inquiry onboarded as client successfully!');
         queryClient.invalidateQueries({ queryKey: ['leads'] });
         queryClient.invalidateQueries({ queryKey: ['lead-pipeline-stats'] });
         queryClient.invalidateQueries({ queryKey: ['clients'] });
         onSuccess();
       } else {
-        toast.error(result.error || 'Failed to convert lead');
+        toast.error(result.error || 'Failed to onboard inquiry');
       }
     },
     onError: (error: any) => {
-      toast.error(error.message || 'Failed to convert lead');
+      toast.error(error.message || 'Failed to onboard inquiry');
     },
   });
 
@@ -175,7 +175,7 @@ export const ConvertToClientModal: React.FC<ConvertToClientModalProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserCheck className="h-5 w-5 text-green-600" />
-            Convert to Client
+            Onboard as Client
           </DialogTitle>
         </DialogHeader>
 
@@ -188,16 +188,16 @@ export const ConvertToClientModal: React.FC<ConvertToClientModalProps> = ({
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              This lead cannot be converted: {eligibility?.reason}
+              This inquiry cannot be converted: {eligibility?.reason}
             </AlertDescription>
           </Alert>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Lead Info Summary */}
+            {/* Inquiry Info Summary */}
             <Card className="bg-muted/50">
               <CardContent className="py-3">
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">Converting:</span>
+                  <span className="text-muted-foreground">Onboarding:</span>
                   <span className="font-medium">{lead.name}</span>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   <span className="text-green-600 font-medium">New Client</span>
@@ -336,11 +336,11 @@ export const ConvertToClientModal: React.FC<ConvertToClientModalProps> = ({
                 <div className="flex items-start gap-2">
                   <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-medium text-green-800">Ready to convert</p>
+                    <p className="font-medium text-green-800">Ready to onboard</p>
                     <ul className="text-green-700 mt-1 space-y-0.5">
                       <li>• Create client: {clientName || lead.name}</li>
                       <li>• Link contact: {lead.name}</li>
-                      <li>• Mark lead as Won</li>
+                      <li>• Mark inquiry as Converted</li>
                       {createCase && <li>• Create case: {caseTitle}</li>}
                     </ul>
                   </div>
@@ -360,12 +360,12 @@ export const ConvertToClientModal: React.FC<ConvertToClientModalProps> = ({
                 {convertMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Converting...
+                    Onboarding...
                   </>
                 ) : (
                   <>
                     <UserCheck className="h-4 w-4 mr-2" />
-                    Convert to Client
+                    Onboard as Client
                   </>
                 )}
               </Button>

@@ -1,6 +1,6 @@
 /**
- * MarkAsLostDialog
- * Proper dialog for capturing lost reason (replaces window.prompt)
+ * MarkAsLostDialog → Now: MarkAsNotProceedingDialog
+ * Dialog for capturing reason when marking inquiry as not proceeding
  */
 
 import React, { useState } from 'react';
@@ -47,7 +47,7 @@ export const MarkAsLostDialog: React.FC<MarkAsLostDialogProps> = ({
         onClick={handleConfirm}
         disabled={isSubmitting}
       >
-        {isSubmitting ? 'Processing...' : 'Mark as Lost'}
+        {isSubmitting ? 'Processing...' : 'Mark as Not Proceeding'}
       </Button>
     </div>
   );
@@ -56,25 +56,25 @@ export const MarkAsLostDialog: React.FC<MarkAsLostDialogProps> = ({
     <ModalLayout
       open={isOpen}
       onOpenChange={handleClose}
-      title="Mark Lead as Lost"
-      description={leadName ? `Why was "${leadName}" lost?` : 'Provide a reason for losing this lead'}
+      title="Mark as Not Proceeding"
+      description={leadName ? `Why is "${leadName}" not proceeding?` : 'Provide a reason for not proceeding with this inquiry'}
       icon={<XCircle className="h-5 w-5 text-destructive" />}
       footer={footer}
       maxWidth="max-w-md"
     >
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="lostReason">Reason for Loss</Label>
+          <Label htmlFor="notProceedingReason">Reason</Label>
           <Textarea
-            id="lostReason"
-            placeholder="E.g., Budget constraints, Chose competitor, No response..."
+            id="notProceedingReason"
+            placeholder="E.g., Budget constraints, Chose another firm, No response..."
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={4}
             autoFocus
           />
           <p className="text-xs text-muted-foreground">
-            This helps track why leads are lost and improve future conversions.
+            This helps track why inquiries don't proceed and improve future conversions.
           </p>
         </div>
       </div>
