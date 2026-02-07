@@ -1,91 +1,139 @@
 
-## What “Converted” means in the system (and why HTSPL is not visible)
+# Align "New Inquiry" Modal with "New Client" UI/UX
 
-### Intended meaning
-In this app, an Inquiry becoming **Converted** should mean:
-1) A **Client** record is created in the database (e.g., “HTSPL”)  
-2) The original Inquiry-person contact is **linked to that client** (`client_contacts.client_id`)  
-3) The inquiry status is set to **converted** (`lead_status='converted'`) and `converted_at` is set
+## Current State
 
-### What is happening now (your case)
-Your conversion actually worked in the backend:
-- A client **HTSPL** exists in the database
-- The contact **Manan Shah** is linked to that client
-- The inquiry is marked **converted**
+### QuickInquiryModal (New Inquiry)
+- Uses simple `ModalLayout` wrapper
+- Flat layout with direct form fields
+- No card-based sections
+- Custom inline footer buttons
+- Fixed modal size (doesn't adapt to screen size)
 
-But the **Clients Master screen** is driven from the app’s in-memory “master data” store (`state.clients`), which only refreshes on:
-- full page reload, or
-- realtime updates
+### ClientModal (New Client)
+- Uses `AdaptiveFormShell` (AFPA pattern)
+- Card-based sections with icons (General Info, Address, etc.)
+- Uses `FormStickyFooter` for consistent button layout
+- Responsive: full-page on desktop, drawer on tablet, modal on mobile
+- Professional form structure with validation
 
-Right now, **realtime updates for the `clients` table are not enabled**, so the UI won’t auto-add the newly created client to `state.clients` immediately after conversion.
+## Proposed Changes
 
-That’s why you see “successfully converted / onboarded”, but the Clients module still shows the old count (17) and can’t find HTSPL.
+Transform `QuickInquiryModal` to match `ClientModal`'s UI/UX patterns.
 
-## Immediate workaround (until the fix is shipped)
-- Do a browser **hard refresh** (Ctrl+Shift+R) and then search “HTSPL” again on Clients.
-  - This forces a full master-data reload and the client will appear.
+---
 
-## Best approach (recommended fix)
-We’ll implement a 2-layer fix so this never happens again:
+## Implementation Details
 
-### Layer A (instant fix in the same session): Refresh client master data after conversion
-After a successful “Onboard as Client”:
-- programmatically reload clients into the app state (so it appears immediately in Clients Master without refreshing the page)
+### 1. Replace Container Component
 
-Implementation approach:
-- In `LeadsPage.tsx` (inside `handleConversionSuccess`) or in `ConvertToClientModal.tsx` success handler:
-  - call the existing `reloadClients()` helper from `useImportRefresh()`
-  - this fetches clients from the database and dispatches `ADD_CLIENT` for any missing ones
+```text
+Before: <ModalLayout>
+After:  <AdaptiveFormShell complexity="simple">
+```
 
-Why this is safe:
-- `reloadClients()` already deduplicates by ID, so it won’t create duplicates.
+Using "simple" complexity since inquiry has fewer fields than client, so it will render as a large modal on desktop/tablet instead of full-page, while still getting responsive behavior on mobile.
 
-### Layer B (proper long-term fix across tabs/devices): Enable realtime updates for clients
-Enable realtime publication for `public.clients` so that:
-- when any client is created/updated, all open sessions get the update and the UI store updates automatically via `useRealtimeSync`.
+### 2. Add Card-Based Section Layout
 
-Database change:
-- Add a migration to run:
-  - `ALTER PUBLICATION supabase_realtime ADD TABLE public.clients;`
-- Use a safe “if not exists” guard (via `pg_publication_tables`) so the migration is idempotent.
+Organize form into semantic sections:
 
-### Small related bugfix (helps Contacts module dropdowns)
-`ContactsMasters.tsx` currently loads clients using:
-- `.eq('status', 'Active')`
+| Section | Fields | Icon |
+|---------|--------|------|
+| Inquiry Details | Party Name, Inquiry Type | FileText |
+| Contact Information | Phone, Email | Phone |
+| Source & Notes | Source, Notes | MessageSquare |
 
-But the database stores status as lowercase (default is `'active'`), so this query can silently miss clients.
-We’ll update it to:
-- filter using `'active'` (and also add tenant filtering consistent with the rest of the app)
+### 3. Use FormStickyFooter
 
-## Files / changes we will make
+Replace custom footer buttons with standardized footer:
 
-### 1) Frontend: ensure Clients list updates right after conversion
-- **File**: `src/pages/LeadsPage.tsx`
-  - Import and use `useImportRefresh()`
-  - In `handleConversionSuccess`, call `reloadClients()` in addition to refetching inquiries/stats
+```typescript
+<FormStickyFooter
+  mode="create"
+  onCancel={handleClose}
+  onPrimaryAction={handleSubmit}
+  primaryLabel="Create Inquiry"
+  isPrimaryLoading={createMutation.isPending}
+/>
+```
 
-(Alternative/optional enhancement)
-- **File**: `src/components/crm/ConvertToClientModal.tsx`
-  - Also call `reloadClients()` there so any future reuse of the modal still updates client masters.
+### 4. Apply Consistent Styling
 
-### 2) Backend: enable realtime for clients table
-- **File**: new migration under `supabase/migrations/*_enable_realtime_clients.sql`
-  - Add `public.clients` to realtime publication with a catalog-check guard.
+- Card headers with icons matching ClientModal pattern
+- Grid layouts for related fields (phone + email side-by-side)
+- Proper spacing using `space-y-6` between sections
+- Consistent label styling with required field indicators
 
-### 3) Contacts module dropdown reliability
-- **File**: `src/components/contacts/ContactsMasters.tsx`
-  - Fix `loadClients()` to query `status='active'` (and filter by tenant) so newly onboarded clients show up in the “Client” dropdown lists too.
+---
 
-## How we will verify (end-to-end tests)
-1) Go to **Inquiries** → choose an inquiry → **Onboard as Client** → create “HTSPL”
-2) Without refreshing the page, go to **Clients** → search “HTSPL”
-   - Expected: HTSPL appears immediately
-3) Open two tabs:
-   - Tab A: convert an inquiry to a new client
-   - Tab B: stay on Clients list
-   - Expected: Tab B updates automatically (realtime)
-4) Go to **Contacts** and verify the “Client” filter/dropdown includes HTSPL.
+## Visual Comparison (After)
 
-## Notes / risk management
-- This fix does not change your data model; it only ensures the UI store stays in sync.
-- Enabling realtime for `clients` is aligned with the existing `useRealtimeSync` code (it already subscribes to `clients`, but the database wasn’t publishing those events yet).
+```text
++-------------------------------------------+
+| [+] New Inquiry                           |
+| Capture a new business inquiry            |
++-------------------------------------------+
+|                                           |
+| +---------------------------------------+ |
+| | [FileText] Inquiry Details            | |
+| |---------------------------------------| |
+| | Party Name *        [_____________]   | |
+| | Inquiry Type *      [Select...    v]  | |
+| +---------------------------------------+ |
+|                                           |
+| +---------------------------------------+ |
+| | [Phone] Contact Information           | |
+| |---------------------------------------| |
+| | Phone              | Email            | |
+| | [____________]     | [____________]   | |
+| | At least one contact method required  | |
+| +---------------------------------------+ |
+|                                           |
+| +---------------------------------------+ |
+| | [MessageSquare] Source & Notes        | |
+| |---------------------------------------| |
+| | Source             [Select...    v]   | |
+| | Notes              [_______________]  | |
+| +---------------------------------------+ |
+|                                           |
++-------------------------------------------+
+|              [Cancel] [Create Inquiry]    |
++-------------------------------------------+
+```
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/components/crm/QuickInquiryModal.tsx` | Complete UI restructure |
+
+### Key Imports to Add
+```typescript
+import { AdaptiveFormShell } from '@/components/ui/adaptive-form-shell';
+import { FormStickyFooter } from '@/components/ui/form-sticky-footer';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { MessageSquare } from 'lucide-react';
+```
+
+---
+
+## Benefits
+
+1. **Consistency**: Same look and feel as Client creation
+2. **Responsive**: Works well on desktop, tablet, and mobile
+3. **Professional**: Card-based layout with visual hierarchy
+4. **Maintainable**: Uses shared UI components
+5. **Accessible**: Standardized button placement and styling
+
+---
+
+## Success Criteria
+
+1. New Inquiry modal uses `AdaptiveFormShell` with "simple" complexity
+2. Form organized into Card sections with icons
+3. Footer uses `FormStickyFooter` component
+4. Responsive behavior: modal on desktop/tablet, full-screen on mobile
+5. Visual style matches ClientModal (spacing, typography, field arrangement)
