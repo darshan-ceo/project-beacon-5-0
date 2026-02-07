@@ -1,139 +1,157 @@
 
-# Align "New Inquiry" Modal with "New Client" UI/UX
+# Fix LOVABLE_API_KEY Invalid Format Error in Notice Intake Wizard
 
-## Current State
+## Root Cause Analysis
 
-### QuickInquiryModal (New Inquiry)
-- Uses simple `ModalLayout` wrapper
-- Flat layout with direct form fields
-- No card-based sections
-- Custom inline footer buttons
-- Fixed modal size (doesn't adapt to screen size)
+The error message **"LOVABLE_API_KEY has invalid format (must start with sk_)"** originates from the **Lovable AI Gateway** (at `https://ai.gateway.lovable.dev`), not from application code.
 
-### ClientModal (New Client)
-- Uses `AdaptiveFormShell` (AFPA pattern)
-- Card-based sections with icons (General Info, Address, etc.)
-- Uses `FormStickyFooter` for consistent button layout
-- Responsive: full-page on desktop, drawer on tablet, modal on mobile
-- Professional form structure with validation
+### What's Happening
 
-## Proposed Changes
+```text
+User uploads PDF
+       ↓
+Step 1: Try OpenAI Vision API (using user's openai_api_key from localStorage)
+       ↓
+OpenAI extraction fails or throws error
+       ↓
+Step 2: Fallback to Lovable AI via notice-ocr edge function
+       ↓
+Edge function calls: https://ai.gateway.lovable.dev/v1/chat/completions
+       with Authorization: Bearer ${LOVABLE_API_KEY}
+       ↓
+Lovable AI Gateway rejects: 401 Unauthorized
+       "LOVABLE_API_KEY has invalid format (must start with sk_)"
+```
 
-Transform `QuickInquiryModal` to match `ClientModal`'s UI/UX patterns.
+### Why OpenAI Key Doesn't Help
+
+The OpenAI API key you configured is for **direct OpenAI API calls** (Step 1).
+
+When that fails (API issues, rate limits, or errors), the system falls back to **Lovable AI** (Step 2), which uses a completely different authentication mechanism - the `LOVABLE_API_KEY` system secret.
+
+### The Real Problem
+
+The `LOVABLE_API_KEY` secret in this project has an **invalid format**. The Lovable AI Gateway requires keys that start with `sk_` prefix.
+
+Per system constraints: "The LOVABLE_API_KEY is a system-managed project secret provisioned by Lovable Cloud and **cannot be manually generated or modified** by the AI Agent."
 
 ---
 
-## Implementation Details
+## Solution Options
 
-### 1. Replace Container Component
+### Option A: Re-provision LOVABLE_API_KEY (Recommended)
 
-```text
-Before: <ModalLayout>
-After:  <AdaptiveFormShell complexity="simple">
-```
+This requires action in the Lovable platform settings:
 
-Using "simple" complexity since inquiry has fewer fields than client, so it will render as a large modal on desktop/tablet instead of full-page, while still getting responsive behavior on mobile.
+1. Navigate to **Settings → Lovable Cloud**
+2. Look for an option to **regenerate/re-provision** the API key
+3. The new key should automatically have the correct `sk_` prefix
 
-### 2. Add Card-Based Section Layout
+If this option isn't available in the UI, you may need to contact **support@lovable.dev** to re-provision the secret.
 
-Organize form into semantic sections:
+### Option B: Improve Error Handling (Code Fix)
 
-| Section | Fields | Icon |
-|---------|--------|------|
-| Inquiry Details | Party Name, Inquiry Type | FileText |
-| Contact Information | Phone, Email | Phone |
-| Source & Notes | Source, Notes | MessageSquare |
+While the root cause is the invalid API key, we can improve the user experience by:
 
-### 3. Use FormStickyFooter
+1. Better error messaging when Lovable AI fails
+2. More graceful fallback to regex extraction
+3. Not treating Lovable AI failure as a blocking error
 
-Replace custom footer buttons with standardized footer:
+---
+
+## Proposed Code Changes
+
+Even though the root cause is the API key, I recommend improving error handling so users aren't blocked when Lovable AI is unavailable.
+
+### File: `supabase/functions/notice-ocr/index.ts`
+
+Improve error response to distinguish API key format errors:
 
 ```typescript
-<FormStickyFooter
-  mode="create"
-  onCancel={handleClose}
-  onPrimaryAction={handleSubmit}
-  primaryLabel="Create Inquiry"
-  isPrimaryLoading={createMutation.isPending}
-/>
+// After line 124-126
+if (!response.ok) {
+  const errorText = await response.text();
+  console.error('[notice-ocr] Lovable AI error:', response.status, errorText);
+  
+  // Check for API key format error
+  if (response.status === 401 && errorText.includes('invalid format')) {
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: 'AI service configuration issue. Please contact support.',
+        errorCode: 'API_KEY_INVALID'
+      }),
+      { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+  // ... rest of error handling
+}
 ```
 
-### 4. Apply Consistent Styling
+### File: `src/services/noticeExtractionService.ts`
 
-- Card headers with icons matching ClientModal pattern
-- Grid layouts for related fields (phone + email side-by-side)
-- Proper spacing using `space-y-6` between sections
-- Consistent label styling with required field indicators
+Improve fallback handling to not block on Lovable AI errors:
+
+```typescript
+// In extractWithLovableAI method, line ~380-385
+if (!response.ok) {
+  const errorText = await response.text();
+  console.error('Lovable AI edge function error:', response.status, errorText);
+  
+  // Check for configuration issues - fallback gracefully
+  if (response.status === 503 || response.status === 401) {
+    throw { 
+      code: 'LOVABLE_AI_UNAVAILABLE', 
+      message: 'Lovable AI service unavailable, falling back to regex extraction'
+    };
+  }
+  
+  throw new Error(`Lovable AI extraction failed: ${response.status}`);
+}
+```
 
 ---
 
-## Visual Comparison (After)
+## Immediate Resolution Steps
 
-```text
-+-------------------------------------------+
-| [+] New Inquiry                           |
-| Capture a new business inquiry            |
-+-------------------------------------------+
-|                                           |
-| +---------------------------------------+ |
-| | [FileText] Inquiry Details            | |
-| |---------------------------------------| |
-| | Party Name *        [_____________]   | |
-| | Inquiry Type *      [Select...    v]  | |
-| +---------------------------------------+ |
-|                                           |
-| +---------------------------------------+ |
-| | [Phone] Contact Information           | |
-| |---------------------------------------| |
-| | Phone              | Email            | |
-| | [____________]     | [____________]   | |
-| | At least one contact method required  | |
-| +---------------------------------------+ |
-|                                           |
-| +---------------------------------------+ |
-| | [MessageSquare] Source & Notes        | |
-| |---------------------------------------| |
-| | Source             [Select...    v]   | |
-| | Notes              [_______________]  | |
-| +---------------------------------------+ |
-|                                           |
-+-------------------------------------------+
-|              [Cancel] [Create Inquiry]    |
-+-------------------------------------------+
-```
+### For You (User)
+
+1. **Check Lovable Cloud settings** for an option to regenerate the LOVABLE_API_KEY
+2. If no regenerate option exists, **contact support@lovable.dev** with:
+   - Project ID: `myncxddatwvtyiioqekh`
+   - Issue: "LOVABLE_API_KEY has invalid format, needs re-provisioning"
+
+### What the Code Fix Provides
+
+- Users won't see the cryptic "must start with sk_" error
+- Extraction will gracefully fall back to regex when Lovable AI is unavailable
+- Better error messages for debugging
 
 ---
 
 ## Files to Modify
 
-| File | Changes |
+| File | Purpose |
 |------|---------|
-| `src/components/crm/QuickInquiryModal.tsx` | Complete UI restructure |
-
-### Key Imports to Add
-```typescript
-import { AdaptiveFormShell } from '@/components/ui/adaptive-form-shell';
-import { FormStickyFooter } from '@/components/ui/form-sticky-footer';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageSquare } from 'lucide-react';
-```
+| `supabase/functions/notice-ocr/index.ts` | Return clearer error for API key issues |
+| `src/services/noticeExtractionService.ts` | Graceful fallback when Lovable AI unavailable |
 
 ---
 
-## Benefits
+## Expected Behavior After Fix
 
-1. **Consistency**: Same look and feel as Client creation
-2. **Responsive**: Works well on desktop, tablet, and mobile
-3. **Professional**: Card-based layout with visual hierarchy
-4. **Maintainable**: Uses shared UI components
-5. **Accessible**: Standardized button placement and styling
+| Scenario | Before | After |
+|----------|--------|-------|
+| OpenAI works | ✓ Extracts via OpenAI | ✓ Same |
+| OpenAI fails, Lovable AI works | ✓ Falls back to Lovable AI | ✓ Same |
+| OpenAI fails, Lovable AI fails | ❌ Shows cryptic 401 error | ✓ Gracefully uses regex extraction |
 
 ---
 
-## Success Criteria
+## Summary
 
-1. New Inquiry modal uses `AdaptiveFormShell` with "simple" complexity
-2. Form organized into Card sections with icons
-3. Footer uses `FormStickyFooter` component
-4. Responsive behavior: modal on desktop/tablet, full-screen on mobile
-5. Visual style matches ClientModal (spacing, typography, field arrangement)
+The `LOVABLE_API_KEY` system secret has an invalid format. This is a **platform provisioning issue** that requires either:
+- Re-provisioning via Lovable Cloud settings, or
+- Contacting Lovable support
+
+In the meantime, I can implement code fixes to improve error handling and ensure the wizard still works (using regex fallback) when AI services are unavailable.
