@@ -475,6 +475,59 @@ Deno.serve(async (req) => {
         )
       }
 
+      case 'get-calendar-token': {
+        // Retrieve and decrypt calendar OAuth tokens
+        const { provider } = body
+        if (!provider) {
+          return new Response(
+            JSON.stringify({ error: 'Missing provider' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        const { data: tokenData } = await supabaseAdmin
+          .from('system_settings')
+          .select('setting_value')
+          .eq('setting_key', `secret:${tenantId}:calendar_${provider}_tokens`)
+          .maybeSingle()
+
+        if (!tokenData?.setting_value?.encrypted) {
+          return new Response(
+            JSON.stringify({ error: 'No tokens found', code: 'NO_TOKENS' }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        try {
+          const decryptedTokens = await decrypt(tokenData.setting_value.encrypted)
+          const tokens = JSON.parse(decryptedTokens)
+
+          // Check if token is expired
+          if (tokens.expires_at && Date.now() > tokens.expires_at) {
+            // TODO: Implement token refresh logic here
+            return new Response(
+              JSON.stringify({ error: 'Token expired', code: 'TOKEN_EXPIRED' }),
+              { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              access_token: tokens.access_token,
+              expires_at: tokens.expires_at 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        } catch (decryptError) {
+          console.error('[manage-secrets] Token decryption error:', decryptError)
+          return new Response(
+            JSON.stringify({ error: 'Failed to decrypt tokens' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Unknown action' }),
