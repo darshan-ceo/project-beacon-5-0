@@ -380,6 +380,16 @@ Return the data as JSON with this structure:
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Lovable AI edge function error:', response.status, errorText);
+        
+        // Check for configuration issues - throw specific error for graceful fallback
+        if (response.status === 503 || response.status === 401) {
+          console.log('⚠️ [Lovable AI] Service unavailable, will fallback to regex extraction');
+          throw { 
+            code: 'LOVABLE_AI_UNAVAILABLE', 
+            message: 'Lovable AI service unavailable, falling back to regex extraction'
+          };
+        }
+        
         throw new Error(`Lovable AI extraction failed: ${response.status}`);
       }
       

@@ -125,21 +125,46 @@ Return JSON:
       const errorText = await response.text();
       console.error('[notice-ocr] Lovable AI error:', response.status, errorText);
       
+      // Check for API key format error - return 503 to trigger client fallback
+      if (response.status === 401 && errorText.includes('invalid format')) {
+        console.error('[notice-ocr] LOVABLE_API_KEY has invalid format - needs re-provisioning');
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'AI service configuration issue. Falling back to regex extraction.',
+            errorCode: 'API_KEY_INVALID'
+          }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Other auth errors
+      if (response.status === 401) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'AI service authentication failed.',
+            errorCode: 'AUTH_FAILED'
+          }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ success: false, error: 'Rate limit exceeded, please try again later.' }),
+          JSON.stringify({ success: false, error: 'Rate limit exceeded, please try again later.', errorCode: 'RATE_LIMIT' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ success: false, error: 'Payment required, please add credits to your workspace.' }),
+          JSON.stringify({ success: false, error: 'Payment required, please add credits to your workspace.', errorCode: 'PAYMENT_REQUIRED' }),
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
       return new Response(
-        JSON.stringify({ success: false, error: `AI service error: ${response.status}` }),
+        JSON.stringify({ success: false, error: `AI service error: ${response.status}`, errorCode: 'AI_ERROR' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
