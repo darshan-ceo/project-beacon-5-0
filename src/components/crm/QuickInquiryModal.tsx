@@ -1,13 +1,15 @@
 /**
  * QuickInquiryModal
- * Streamlined modal for capturing new business inquiries directly
+ * Streamlined modal for capturing new business inquiries
+ * Uses AdaptiveFormShell for consistent UI/UX with ClientModal
  */
 
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Phone, Mail, FileText } from 'lucide-react';
-import { ModalLayout } from '@/components/ui/modal-layout';
-import { Button } from '@/components/ui/button';
+import { Plus, Phone, Mail, FileText, MessageSquare } from 'lucide-react';
+import { AdaptiveFormShell } from '@/components/ui/adaptive-form-shell';
+import { FormStickyFooter } from '@/components/ui/form-sticky-footer';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -79,9 +81,7 @@ export const QuickInquiryModal: React.FC<QuickInquiryModalProps> = ({
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSubmit = () => {
     if (!partyName.trim()) {
       toast.error('Party name is required');
       return;
@@ -106,124 +106,149 @@ export const QuickInquiryModal: React.FC<QuickInquiryModalProps> = ({
   };
 
   const footer = (
-    <div className="flex justify-end gap-2">
-      <Button variant="outline" onClick={handleClose} disabled={createMutation.isPending}>
-        Cancel
-      </Button>
-      <Button onClick={handleSubmit} disabled={createMutation.isPending}>
-        {createMutation.isPending ? 'Creating...' : 'Create Inquiry'}
-      </Button>
-    </div>
+    <FormStickyFooter
+      mode="create"
+      onCancel={handleClose}
+      onPrimaryAction={handleSubmit}
+      primaryLabel="Create Inquiry"
+      isPrimaryLoading={createMutation.isPending}
+    />
   );
 
   return (
-    <ModalLayout
-      open={isOpen}
-      onOpenChange={handleClose}
+    <AdaptiveFormShell
+      isOpen={isOpen}
+      onClose={handleClose}
       title="New Inquiry"
       description="Capture a new business inquiry"
       icon={<Plus className="h-5 w-5" />}
+      complexity="simple"
       footer={footer}
     >
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Party Name */}
-        <div className="space-y-2">
-          <Label htmlFor="partyName">
-            Party Name / Business Name <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="partyName"
-            placeholder="e.g., ABC Enterprises"
-            value={partyName}
-            onChange={(e) => setPartyName(e.target.value)}
-            autoFocus
-          />
-        </div>
+      <div className="space-y-6">
+        {/* Inquiry Details Section */}
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-base font-medium">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              Inquiry Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="partyName">
+                Party Name / Business Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="partyName"
+                placeholder="e.g., ABC Enterprises"
+                value={partyName}
+                onChange={(e) => setPartyName(e.target.value)}
+                autoFocus
+              />
+            </div>
 
-        {/* Contact Info */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="phone" className="flex items-center gap-1.5">
-              <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-              Phone
-            </Label>
-            <Input
-              id="phone"
-              placeholder="+91 98765 43210"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email" className="flex items-center gap-1.5">
-              <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-              Email
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="contact@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground -mt-2">
-          At least one contact method is required
-        </p>
+            <div className="space-y-2">
+              <Label>
+                Inquiry Type <span className="text-destructive">*</span>
+              </Label>
+              <Select value={inquiryType} onValueChange={setInquiryType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select inquiry type..." />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  {INQUIRY_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Inquiry Type */}
-        <div className="space-y-2">
-          <Label>
-            Inquiry Type <span className="text-destructive">*</span>
-          </Label>
-          <Select value={inquiryType} onValueChange={setInquiryType}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select inquiry type..." />
-            </SelectTrigger>
-            <SelectContent className="bg-popover">
-              {INQUIRY_TYPE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Contact Information Section */}
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-base font-medium">
+              <Phone className="h-4 w-4 text-muted-foreground" />
+              Contact Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="flex items-center gap-1.5">
+                  <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                  Phone
+                </Label>
+                <Input
+                  id="phone"
+                  placeholder="+91 98765 43210"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="flex items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="contact@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              At least one contact method is required
+            </p>
+          </CardContent>
+        </Card>
 
-        {/* Source */}
-        <div className="space-y-2">
-          <Label>Source</Label>
-          <Select value={source} onValueChange={setSource}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select source..." />
-            </SelectTrigger>
-            <SelectContent className="bg-popover">
-              {LEAD_SOURCE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Source & Notes Section */}
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-base font-medium">
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              Source & Notes
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Source</Label>
+              <Select value={source} onValueChange={setSource}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select source..." />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  {LEAD_SOURCE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        {/* Notes */}
-        <div className="space-y-2">
-          <Label htmlFor="notes" className="flex items-center gap-1.5">
-            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-            Notes (optional)
-          </Label>
-          <Textarea
-            id="notes"
-            placeholder="Brief description of the inquiry..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-          />
-        </div>
-      </form>
-    </ModalLayout>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes (optional)</Label>
+              <Textarea
+                id="notes"
+                placeholder="Brief description of the inquiry..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </AdaptiveFormShell>
   );
 };
 
