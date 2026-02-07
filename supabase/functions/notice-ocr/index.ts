@@ -126,7 +126,8 @@ Return JSON:
       console.error('[notice-ocr] Lovable AI error:', response.status, errorText);
       
       // Check for API key format error - return 503 to trigger client fallback
-      if (response.status === 401 && errorText.includes('invalid format')) {
+      // Note: Error message can be "Invalid API key format" (case-insensitive check)
+      if (response.status === 401 && errorText.toLowerCase().includes('invalid')) {
         console.error('[notice-ocr] LOVABLE_API_KEY has invalid format - needs re-provisioning');
         return new Response(
           JSON.stringify({ 
