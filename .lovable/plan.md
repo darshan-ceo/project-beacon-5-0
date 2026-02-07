@@ -1,157 +1,186 @@
 
-# Fix LOVABLE_API_KEY Invalid Format Error in Notice Intake Wizard
+# Implement Table View for Inquiry Tracker
 
-## Root Cause Analysis
+## Overview
 
-The error message **"LOVABLE_API_KEY has invalid format (must start with sk_)"** originates from the **Lovable AI Gateway** (at `https://ai.gateway.lovable.dev`), not from application code.
-
-### What's Happening
-
-```text
-User uploads PDF
-       ↓
-Step 1: Try OpenAI Vision API (using user's openai_api_key from localStorage)
-       ↓
-OpenAI extraction fails or throws error
-       ↓
-Step 2: Fallback to Lovable AI via notice-ocr edge function
-       ↓
-Edge function calls: https://ai.gateway.lovable.dev/v1/chat/completions
-       with Authorization: Bearer ${LOVABLE_API_KEY}
-       ↓
-Lovable AI Gateway rejects: 401 Unauthorized
-       "LOVABLE_API_KEY has invalid format (must start with sk_)"
-```
-
-### Why OpenAI Key Doesn't Help
-
-The OpenAI API key you configured is for **direct OpenAI API calls** (Step 1).
-
-When that fails (API issues, rate limits, or errors), the system falls back to **Lovable AI** (Step 2), which uses a completely different authentication mechanism - the `LOVABLE_API_KEY` system secret.
-
-### The Real Problem
-
-The `LOVABLE_API_KEY` secret in this project has an **invalid format**. The Lovable AI Gateway requires keys that start with `sk_` prefix.
-
-Per system constraints: "The LOVABLE_API_KEY is a system-managed project secret provisioned by Lovable Cloud and **cannot be manually generated or modified** by the AI Agent."
+Replace the "Table view coming soon" placeholder with a fully functional data table that displays inquiries in a sortable, filterable list format matching the application's existing table patterns.
 
 ---
 
-## Solution Options
+## Technical Implementation
 
-### Option A: Re-provision LOVABLE_API_KEY (Recommended)
+### New File: `src/components/crm/LeadTable.tsx`
 
-This requires action in the Lovable platform settings:
+Create a new component following the established TaskList.tsx pattern with:
 
-1. Navigate to **Settings → Lovable Cloud**
-2. Look for an option to **regenerate/re-provision** the API key
-3. The new key should automatically have the correct `sk_` prefix
+| Feature | Implementation |
+|---------|----------------|
+| **Columns** | Party Name, Inquiry Type, Status, Source, Phone, Email, Last Activity, Actions |
+| **Sorting** | Click column headers to toggle asc/desc sorting |
+| **Row Click** | Opens the LeadDetailDrawer |
+| **Actions Menu** | View Details, Onboard as Client (for eligible statuses) |
+| **Empty State** | Shows message when no inquiries match filters |
+| **Loading State** | Skeleton rows during data fetch |
 
-If this option isn't available in the UI, you may need to contact **support@lovable.dev** to re-provision the secret.
-
-### Option B: Improve Error Handling (Code Fix)
-
-While the root cause is the invalid API key, we can improve the user experience by:
-
-1. Better error messaging when Lovable AI fails
-2. More graceful fallback to regex extraction
-3. Not treating Lovable AI failure as a blocking error
-
----
-
-## Proposed Code Changes
-
-Even though the root cause is the API key, I recommend improving error handling so users aren't blocked when Lovable AI is unavailable.
-
-### File: `supabase/functions/notice-ocr/index.ts`
-
-Improve error response to distinguish API key format errors:
+### Component Structure
 
 ```typescript
-// After line 124-126
-if (!response.ok) {
-  const errorText = await response.text();
-  console.error('[notice-ocr] Lovable AI error:', response.status, errorText);
-  
-  // Check for API key format error
-  if (response.status === 401 && errorText.includes('invalid format')) {
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: 'AI service configuration issue. Please contact support.',
-        errorCode: 'API_KEY_INVALID'
-      }),
-      { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-  // ... rest of error handling
+interface LeadTableProps {
+  leads: Lead[];
+  isLoading: boolean;
+  onViewLead: (lead: Lead) => void;
+  onConvertLead: (lead: Lead) => void;
 }
 ```
 
-### File: `src/services/noticeExtractionService.ts`
+### Table Columns
 
-Improve fallback handling to not block on Lovable AI errors:
+| Column | Field | Sortable | Responsive |
+|--------|-------|----------|------------|
+| Party Name | `name` + `designation` | Yes | Always visible |
+| Status | `lead_status` | Yes | Always visible |
+| Source | `lead_source` | Yes | Hidden on mobile |
+| Contact | `phones` / `emails` | No | Hidden on mobile |
+| Last Activity | `last_activity_at` | Yes | Hidden on tablet |
+| Actions | - | No | Always visible |
+
+### Integration with LeadsPage.tsx
+
+Update the conditional rendering in LeadsPage.tsx:
 
 ```typescript
-// In extractWithLovableAI method, line ~380-385
-if (!response.ok) {
-  const errorText = await response.text();
-  console.error('Lovable AI edge function error:', response.status, errorText);
-  
-  // Check for configuration issues - fallback gracefully
-  if (response.status === 503 || response.status === 401) {
-    throw { 
-      code: 'LOVABLE_AI_UNAVAILABLE', 
-      message: 'Lovable AI service unavailable, falling back to regex extraction'
-    };
-  }
-  
-  throw new Error(`Lovable AI extraction failed: ${response.status}`);
-}
+// Line 168-180: Replace placeholder
+{viewMode === 'table' ? (
+  <LeadTable
+    leads={leads}
+    isLoading={isLoadingLeads}
+    onViewLead={handleViewLead}
+    onConvertLead={handleConvertLead}
+  />
+) : (
+  <LeadPipeline ... />
+)}
 ```
 
 ---
 
-## Immediate Resolution Steps
+## UI/UX Details
 
-### For You (User)
+### Status Badges
+Use existing `LEAD_STATUS_CONFIG` for consistent color coding:
+- New: Blue badge
+- Follow-up: Amber badge  
+- Converted: Green badge
+- Not Proceeding: Gray badge
 
-1. **Check Lovable Cloud settings** for an option to regenerate the LOVABLE_API_KEY
-2. If no regenerate option exists, **contact support@lovable.dev** with:
-   - Project ID: `myncxddatwvtyiioqekh`
-   - Issue: "LOVABLE_API_KEY has invalid format, needs re-provisioning"
+### Source Display
+Use `LEAD_SOURCE_OPTIONS` lookup for human-readable source labels.
 
-### What the Code Fix Provides
+### Contact Display
+- Show primary phone with phone icon
+- Show primary email with mail icon
+- Truncate long values with tooltip
 
-- Users won't see the cryptic "must start with sk_" error
-- Extraction will gracefully fall back to regex when Lovable AI is unavailable
-- Better error messages for debugging
+### Last Activity Column
+- Format using `formatDistanceToNow` from date-fns
+- Show "No activity" if null
 
----
-
-## Files to Modify
-
-| File | Purpose |
-|------|---------|
-| `supabase/functions/notice-ocr/index.ts` | Return clearer error for API key issues |
-| `src/services/noticeExtractionService.ts` | Graceful fallback when Lovable AI unavailable |
-
----
-
-## Expected Behavior After Fix
-
-| Scenario | Before | After |
-|----------|--------|-------|
-| OpenAI works | ✓ Extracts via OpenAI | ✓ Same |
-| OpenAI fails, Lovable AI works | ✓ Falls back to Lovable AI | ✓ Same |
-| OpenAI fails, Lovable AI fails | ❌ Shows cryptic 401 error | ✓ Gracefully uses regex extraction |
+### Actions Dropdown
+- Eye icon: "View Details" → opens drawer
+- UserCheck icon: "Onboard as Client" → opens conversion modal
+- "Onboard as Client" hidden for converted/not_proceeding statuses
 
 ---
 
-## Summary
+## Sorting Implementation
 
-The `LOVABLE_API_KEY` system secret has an invalid format. This is a **platform provisioning issue** that requires either:
-- Re-provisioning via Lovable Cloud settings, or
-- Contacting Lovable support
+Local sorting with state management:
 
-In the meantime, I can implement code fixes to improve error handling and ensure the wizard still works (using regex fallback) when AI services are unavailable.
+```typescript
+type SortField = 'name' | 'lead_status' | 'lead_source' | 'last_activity_at';
+type SortDirection = 'asc' | 'desc';
+
+const [sortField, setSortField] = useState<SortField>('last_activity_at');
+const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+// Sort using useMemo for performance
+const sortedLeads = useMemo(() => {
+  return [...leads].sort((a, b) => {
+    // Sorting logic per field type
+  });
+}, [leads, sortField, sortDirection]);
+```
+
+---
+
+## Responsive Design
+
+| Breakpoint | Visible Columns |
+|------------|-----------------|
+| Mobile (<640px) | Party Name, Status, Actions |
+| Tablet (640-1024px) | + Source |
+| Desktop (>1024px) | + Contact, Last Activity |
+
+Using Tailwind classes: `hidden sm:table-cell`, `hidden md:table-cell`, `hidden lg:table-cell`
+
+---
+
+## Files to Create/Modify
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/components/crm/LeadTable.tsx` | **Create** | New table component |
+| `src/pages/LeadsPage.tsx` | **Modify** | Import and render LeadTable |
+
+---
+
+## Empty & Loading States
+
+### Loading State
+```tsx
+{isLoading && (
+  <TableBody>
+    {[...Array(5)].map((_, i) => (
+      <TableRow key={i}>
+        <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+        {/* ... more skeleton cells */}
+      </TableRow>
+    ))}
+  </TableBody>
+)}
+```
+
+### Empty State
+```tsx
+{!isLoading && sortedLeads.length === 0 && (
+  <TableRow>
+    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+      No inquiries found. Create a new inquiry to get started.
+    </TableCell>
+  </TableRow>
+)}
+```
+
+---
+
+## Expected Result
+
+After implementation, clicking the "Table" tab will display:
+
+```
++------------+-------------+-----------+-----------------+----------------+----+
+| Party Name | Status      | Source    | Contact         | Last Activity  |    |
++------------+-------------+-----------+-----------------+----------------+----+
+| ABC Corp   | [New]       | Referral  | 📞 9876543210   | 2 days ago     | ⋮  |
+|            | GST Notice  |           | ✉ abc@co.in    |                |    |
++------------+-------------+-----------+-----------------+----------------+----+
+| XYZ Ltd    | [Follow-up] | Walk-in   | 📞 9123456780   | 5 hours ago    | ⋮  |
+|            | Appeal      |           |                 |                |    |
++------------+-------------+-----------+-----------------+----------------+----+
+```
+
+Features:
+- Sortable columns with visual sort indicators
+- Row hover state with click-to-open detail drawer
+- Responsive column visibility
+- Consistent styling with other tables in the application
