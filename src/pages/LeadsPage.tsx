@@ -18,11 +18,13 @@ import { ConvertToClientModal } from '@/components/crm/ConvertToClientModal';
 import { QuickInquiryModal } from '@/components/crm/QuickInquiryModal';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useImportRefresh } from '@/hooks/useImportRefresh';
 
 type ViewMode = 'pipeline' | 'table';
 
 export const LeadsPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const { reloadClients } = useImportRefresh();
   const [viewMode, setViewMode] = useState<ViewMode>('pipeline');
   const [filters, setFilters] = useState<LeadFiltersType>({});
   
@@ -96,9 +98,11 @@ export const LeadsPage: React.FC = () => {
     setIsConvertModalOpen(true);
   };
 
-  const handleConversionSuccess = () => {
+  const handleConversionSuccess = async () => {
     refetchLeads();
     refetchStats();
+    // Reload clients into app state so they appear immediately in Clients Master
+    await reloadClients();
     setIsConvertModalOpen(false);
     setIsDrawerOpen(false);
     setConvertingLead(null);
