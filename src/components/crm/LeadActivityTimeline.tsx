@@ -3,7 +3,7 @@
  * Chronological feed of all lead interactions
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format, formatDistanceToNow } from 'date-fns';
 import {
@@ -50,6 +50,17 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
   contactId,
   className,
 }) => {
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const { data: activitiesResponse, isLoading } = useQuery({
     queryKey: ['lead-activities', contactId],
     queryFn: () => leadService.getActivities(contactId),
@@ -111,9 +122,22 @@ export const LeadActivityTimeline: React.FC<LeadActivityTimelineProps> = ({
               </div>
 
               {activity.description && (
-                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                  {activity.description}
-                </p>
+                <div>
+                  <p className={cn(
+                    "text-sm text-muted-foreground mt-1",
+                    !expandedIds.has(activity.id) && "line-clamp-2"
+                  )}>
+                    {activity.description}
+                  </p>
+                  {activity.description.length > 100 && (
+                    <button
+                      onClick={() => toggleExpand(activity.id)}
+                      className="text-xs text-primary hover:underline mt-1"
+                    >
+                      {expandedIds.has(activity.id) ? 'Show less' : 'Show more'}
+                    </button>
+                  )}
+                </div>
               )}
 
               {activity.outcome && (
