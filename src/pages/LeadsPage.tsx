@@ -14,6 +14,7 @@ import { LeadStats } from '@/components/crm/LeadStats';
 import { LeadFilters } from '@/components/crm/LeadFilters';
 import { LeadPipeline } from '@/components/crm/LeadPipeline';
 import { LeadDetailDrawer } from '@/components/crm/LeadDetailDrawer';
+import { LeadTable } from '@/components/crm/LeadTable';
 import { ConvertToClientModal } from '@/components/crm/ConvertToClientModal';
 import { QuickInquiryModal } from '@/components/crm/QuickInquiryModal';
 import { supabase } from '@/integrations/supabase/client';
@@ -174,9 +175,12 @@ export const LeadsPage: React.FC = () => {
           onConvertLead={handleConvertLead}
         />
       ) : (
-        <div className="text-center py-12 text-muted-foreground">
-          Table view coming soon. Use the Pipeline view for now.
-        </div>
+        <LeadTable
+          leads={leads}
+          isLoading={isLoadingLeads}
+          onViewLead={handleViewLead}
+          onConvertLead={handleConvertLead}
+        />
       )}
 
       {/* Lead Detail Drawer */}
