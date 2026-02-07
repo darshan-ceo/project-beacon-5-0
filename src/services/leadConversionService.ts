@@ -88,12 +88,12 @@ class LeadConversionService {
         return { success: false, error: `Failed to create client: ${clientError.message}` };
       }
 
-      // 4. Update the contact to link to the new client and mark as won
+      // 4. Update the contact to link to the new client and mark as converted
       const { data: updatedContact, error: contactError } = await supabase
         .from('client_contacts')
         .update({
           client_id: newClient.id,
-          lead_status: 'won',
+          lead_status: 'converted',
           converted_at: new Date().toISOString(),
           last_activity_at: new Date().toISOString(),
         } as any)

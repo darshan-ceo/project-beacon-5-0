@@ -98,6 +98,9 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
     if (status === 'not_proceeding') {
       setPendingLostStatus(status);
       setIsLostDialogOpen(true);
+    } else if (status === 'converted') {
+      // Intercept "converted" - require proper onboarding via modal
+      onConvert(currentLead);
     } else {
       updateStatusMutation.mutate({ status });
     }

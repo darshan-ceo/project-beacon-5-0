@@ -5,7 +5,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area'; // Used for column internal scroll
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Lead, LeadStatus, LEAD_STATUS_CONFIG } from '@/types/lead';
@@ -104,7 +104,12 @@ export const LeadPipeline: React.FC<LeadPipelineProps> = ({
     setDragOverStatus(null);
 
     if (draggedLead && draggedLead.lead_status !== newStatus) {
-      await onStatusChange(draggedLead.id, newStatus);
+      // Intercept "converted" - require proper onboarding via modal
+      if (newStatus === 'converted') {
+        onConvertLead?.(draggedLead);
+      } else {
+        await onStatusChange(draggedLead.id, newStatus);
+      }
     }
 
     setDraggedLead(null);
@@ -132,7 +137,7 @@ export const LeadPipeline: React.FC<LeadPipelineProps> = ({
   }
 
   return (
-    <ScrollArea className="w-full">
+    <div className="w-full overflow-x-auto touch-pan-x">
       <div className="flex gap-4 pb-4 min-w-max">
         {PIPELINE_STATUSES.map((status) => {
           const config = LEAD_STATUS_CONFIG[status];
@@ -202,6 +207,6 @@ export const LeadPipeline: React.FC<LeadPipelineProps> = ({
           );
         })}
       </div>
-    </ScrollArea>
+    </div>
   );
 };
