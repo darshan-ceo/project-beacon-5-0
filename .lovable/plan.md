@@ -1,77 +1,161 @@
 
 
-# Fix Database Constraint for Inquiry Status Flow
+# Fix Activity Description Truncation - Implementation Plan
 
 ## Problem Identified
 
-The database has a CHECK constraint `chk_lead_status` on the `client_contacts` table that only allows these values:
+The Activity Timeline in the Inquiry Details drawer truncates long activity descriptions to 2 lines using `line-clamp-2`. There is **no way to view the complete content** of an activity entry.
 
-```sql
-CHECK (lead_status IS NULL OR lead_status = ANY (ARRAY['new', 'contacted', 'qualified', 'proposal_sent', 'negotiation', 'won', 'lost']))
+**Current Behavior:**
 ```
-
-Our new 4-status inquiry flow uses different values that the database rejects:
-
-| New Status | Allowed by DB? |
-|------------|----------------|
-| `new` | Yes |
-| `follow_up` | No - causes error |
-| `converted` | No - causes error |
-| `not_proceeding` | No - causes error |
+zoom meeting schedule to discuss litigation cases with partner
+agenda Allowed "Modify database" Done! The database constraint has...  ← TRUNCATED
+```
 
 ## Solution
 
-Update the database CHECK constraint to allow the new status values while maintaining backward compatibility with existing data.
+Add click-to-expand functionality for activity items, allowing users to view the full description without leaving the timeline view.
 
-### Step 1: Alter Database Constraint
+---
 
-Drop the existing constraint and create a new one that allows both old and new values:
+## Implementation Options
 
-```sql
--- Drop the old constraint
-ALTER TABLE client_contacts DROP CONSTRAINT chk_lead_status;
+### Option A: Inline Expansion (Recommended)
+- Click on a truncated activity to expand it in place
+- "Show less" button to collapse back
+- Minimal UI disruption, keeps context visible
 
--- Create new constraint with all valid values
-ALTER TABLE client_contacts ADD CONSTRAINT chk_lead_status CHECK (
-  lead_status IS NULL OR lead_status = ANY (ARRAY[
-    -- New 4-status flow
-    'new',
-    'follow_up', 
-    'converted',
-    'not_proceeding',
-    -- Legacy values (for backward compatibility)
-    'contacted',
-    'qualified', 
-    'proposal_sent',
-    'negotiation',
-    'won',
-    'lost'
-  ])
-);
+### Option B: Activity Detail Dialog
+- Click on activity opens a modal with full details
+- Shows all fields: Subject, Description, Outcome, Next Action
+- More consistent with app's modal patterns
+
+---
+
+## Technical Implementation (Option A - Inline Expansion)
+
+### Changes to `LeadActivityTimeline.tsx`
+
+**1. Add Expandable State**
+
+Track which activity items are expanded using component state:
+```typescript
+const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+const toggleExpand = (id: string) => {
+  setExpandedIds(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  });
+};
 ```
 
-### Step 2: (Optional) Migrate Existing Data
+**2. Update Description Rendering**
 
-If there's existing data with old status values, migrate them to new values:
-
-```sql
--- Map old statuses to new ones
-UPDATE client_contacts SET lead_status = 'follow_up' WHERE lead_status IN ('contacted', 'qualified', 'proposal_sent', 'negotiation');
-UPDATE client_contacts SET lead_status = 'converted' WHERE lead_status = 'won';
-UPDATE client_contacts SET lead_status = 'not_proceeding' WHERE lead_status = 'lost';
+Replace static `line-clamp-2` with conditional expansion:
+```tsx
+{activity.description && (
+  <div>
+    <p className={cn(
+      "text-sm text-muted-foreground mt-1",
+      !expandedIds.has(activity.id) && "line-clamp-2"
+    )}>
+      {activity.description}
+    </p>
+    {activity.description.length > 100 && (
+      <button
+        onClick={() => toggleExpand(activity.id)}
+        className="text-xs text-primary hover:underline mt-1"
+      >
+        {expandedIds.has(activity.id) ? 'Show less' : 'Show more'}
+      </button>
+    )}
+  </div>
+)}
 ```
 
-## Files Changed
+**3. Make Activity Item Clickable**
+
+Add cursor pointer and click handler to the content area for better UX.
+
+---
+
+## Alternative Implementation (Option B - Detail Dialog)
+
+If the team prefers a modal approach:
+
+### New Component: `ActivityDetailDialog.tsx`
+
+A simple dialog that displays all activity fields:
+
+| Field | Display |
+|-------|---------|
+| Type | Icon + Label (Call/Email/Meeting/Note/Task) |
+| Subject | Full text, bold |
+| Description | Full text, wrapped |
+| Outcome | Full text |
+| Next Action | With due date if present |
+| Logged by | Name + timestamp |
+
+### Integration
+
+- Add state to `LeadActivityTimeline`: `selectedActivity`
+- Clicking any activity item opens the dialog
+- Dialog has "Edit" button (future enhancement)
+
+---
+
+## Files to Modify
 
 | File | Change |
 |------|--------|
-| Database Migration | Update `chk_lead_status` constraint |
+| `src/components/crm/LeadActivityTimeline.tsx` | Add expand/collapse for descriptions |
+
+### Optional (if Option B chosen)
+
+| File | Change |
+|------|--------|
+| `src/components/crm/ActivityDetailDialog.tsx` | **NEW** - Full activity detail view |
+
+---
+
+## Recommended Approach
+
+**Option A (Inline Expansion)** is recommended because:
+- Faster to implement
+- Keeps user in context (no modal opening/closing)
+- Works naturally within the scroll area
+- Less cognitive load for users
+
+---
 
 ## Expected Outcome
 
-After the constraint is updated:
-- Clicking "New" status - Works (already works)
-- Clicking "Follow-up" status - Will work (currently fails)
-- Clicking "Converted" status - Will work (currently fails)
-- Clicking "Not Proceeding" status - Will work (currently fails)
+**Before:**
+```
+zoom meeting schedule to discuss litigation cases with partner
+agenda Allowed "Modify database" Done! The database constraint has...
+```
+
+**After (expanded):**
+```
+zoom meeting schedule to discuss litigation cases with partner
+agenda Allowed "Modify database" Done! The database constraint has been updated 
+to allow the new inquiry statuses (follow_up, converted, not_proceeding). The 
+status buttons should now work correctly.
+                                                    [Show less]
+```
+
+---
+
+## Summary
+
+| Criterion | Implementation |
+|-----------|----------------|
+| View full activity content | Click to expand inline OR click to open dialog |
+| Minimal UI change | Inline expand preferred |
+| Files impacted | 1 file (LeadActivityTimeline.tsx) |
+| Backward compatible | Yes, no data changes needed |
 
