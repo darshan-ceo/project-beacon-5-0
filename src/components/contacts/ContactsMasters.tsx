@@ -122,7 +122,7 @@ export const ContactsMasters: React.FC = () => {
     const { data } = await supabase
       .from('clients')
       .select('id, display_name')
-      .eq('status', 'Active')
+      .eq('status', 'active')
       .order('display_name');
     
     if (data) {
