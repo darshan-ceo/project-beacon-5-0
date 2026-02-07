@@ -1,5 +1,10 @@
+/**
+ * MarkAsLeadModal → CreateInquiryFromContactModal
+ * Create an inquiry from an existing contact
+ */
+
 import React, { useState } from 'react';
-import { Target, Calendar, DollarSign } from 'lucide-react';
+import { Target } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -18,9 +23,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { leadService } from '@/services/leadService';
-import { LeadStatus, LEAD_SOURCE_OPTIONS } from '@/types/lead';
+import { LEAD_SOURCE_OPTIONS, INQUIRY_TYPE_OPTIONS } from '@/types/lead';
 
 interface MarkAsLeadModalProps {
   isOpen: boolean;
@@ -39,40 +44,28 @@ export const MarkAsLeadModal: React.FC<MarkAsLeadModalProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [leadSource, setLeadSource] = useState<string>('');
-  const [leadStatus, setLeadStatus] = useState<LeadStatus>('new');
-  const [expectedValue, setExpectedValue] = useState<string>('');
-  const [expectedCloseDate, setExpectedCloseDate] = useState<string>('');
+  const [inquiryType, setInquiryType] = useState<string>('');
+  const [notes, setNotes] = useState<string>('');
 
   const handleSubmit = async () => {
     setLoading(true);
     try {
       const result = await leadService.markAsLead(contactId, {
-        lead_status: leadStatus,
+        lead_status: 'new',
         lead_source: leadSource || undefined,
-        expected_value: expectedValue ? parseFloat(expectedValue) : undefined,
-        expected_close_date: expectedCloseDate || undefined,
       });
 
       if (result.success) {
-        toast({
-          title: 'Contact Marked as Lead',
-          description: `${contactName} has been added to the lead pipeline`,
+        toast.success('Inquiry created from contact', {
+          description: `${contactName} has been added to the inquiry tracker`,
         });
         onSuccess();
         handleClose();
       } else {
-        toast({
-          title: 'Error',
-          description: result.error || 'Failed to mark contact as lead',
-          variant: 'destructive',
-        });
+        toast.error(result.error || 'Failed to create inquiry from contact');
       }
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'An unexpected error occurred',
-        variant: 'destructive',
-      });
+      toast.error(error.message || 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
@@ -80,9 +73,8 @@ export const MarkAsLeadModal: React.FC<MarkAsLeadModalProps> = ({
 
   const handleClose = () => {
     setLeadSource('');
-    setLeadStatus('new');
-    setExpectedValue('');
-    setExpectedCloseDate('');
+    setInquiryType('');
+    setNotes('');
     onClose();
   };
 
@@ -92,22 +84,39 @@ export const MarkAsLeadModal: React.FC<MarkAsLeadModalProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Target className="h-5 w-5 text-primary" />
-            Mark as Lead
+            Create Inquiry from Contact
           </DialogTitle>
           <DialogDescription>
-            Add "{contactName}" to your sales pipeline as a potential lead.
+            Add "{contactName}" to your inquiry tracker as a potential business opportunity.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Lead Source */}
+          {/* Inquiry Type */}
           <div className="grid gap-2">
-            <Label htmlFor="leadSource">Lead Source</Label>
+            <Label htmlFor="inquiryType">Inquiry Type</Label>
+            <Select value={inquiryType} onValueChange={setInquiryType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select type..." />
+              </SelectTrigger>
+              <SelectContent className="bg-popover">
+                {INQUIRY_TYPE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Source */}
+          <div className="grid gap-2">
+            <Label htmlFor="leadSource">Source</Label>
             <Select value={leadSource} onValueChange={setLeadSource}>
               <SelectTrigger>
                 <SelectValue placeholder="Select source..." />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-popover">
                 {LEAD_SOURCE_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -117,47 +126,15 @@ export const MarkAsLeadModal: React.FC<MarkAsLeadModalProps> = ({
             </Select>
           </div>
 
-          {/* Initial Status */}
+          {/* Notes */}
           <div className="grid gap-2">
-            <Label htmlFor="leadStatus">Initial Status</Label>
-            <Select value={leadStatus} onValueChange={(v) => setLeadStatus(v as LeadStatus)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select status..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="new">New</SelectItem>
-                <SelectItem value="contacted">Contacted</SelectItem>
-                <SelectItem value="qualified">Qualified</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Expected Value */}
-          <div className="grid gap-2">
-            <Label htmlFor="expectedValue" className="flex items-center gap-1">
-              <DollarSign className="h-3 w-3" />
-              Expected Value (Optional)
-            </Label>
-            <Input
-              id="expectedValue"
-              type="number"
-              placeholder="e.g., 50000"
-              value={expectedValue}
-              onChange={(e) => setExpectedValue(e.target.value)}
-            />
-          </div>
-
-          {/* Expected Close Date */}
-          <div className="grid gap-2">
-            <Label htmlFor="expectedCloseDate" className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              Expected Close Date (Optional)
-            </Label>
-            <Input
-              id="expectedCloseDate"
-              type="date"
-              value={expectedCloseDate}
-              onChange={(e) => setExpectedCloseDate(e.target.value)}
+            <Label htmlFor="notes">Notes (optional)</Label>
+            <Textarea
+              id="notes"
+              placeholder="Brief description of the inquiry..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
             />
           </div>
         </div>
@@ -167,7 +144,7 @@ export const MarkAsLeadModal: React.FC<MarkAsLeadModalProps> = ({
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Saving...' : 'Mark as Lead'}
+            {loading ? 'Creating...' : 'Create Inquiry'}
           </Button>
         </DialogFooter>
       </DialogContent>

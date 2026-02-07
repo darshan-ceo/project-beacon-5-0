@@ -37,10 +37,10 @@ class LeadConversionService {
         };
       }
 
-      if (lead.lead_status === 'won' && lead.converted_at) {
+      if (lead.lead_status === 'converted' && lead.converted_at) {
         return { 
           success: false, 
-          error: 'This lead has already been converted' 
+          error: 'This inquiry has already been converted' 
         };
       }
 
@@ -244,7 +244,7 @@ class LeadConversionService {
       };
     }
 
-    if (lead.lead_status === 'won' && lead.converted_at) {
+    if (lead.lead_status === 'converted' && lead.converted_at) {
       return { 
         eligible: false, 
         reason: 'Already converted',
@@ -252,10 +252,10 @@ class LeadConversionService {
       };
     }
 
-    if (lead.lead_status === 'lost') {
+    if (lead.lead_status === 'not_proceeding') {
       return { 
         eligible: false, 
-        reason: 'Lead is marked as lost',
+        reason: 'Inquiry is marked as not proceeding',
         lead 
       };
     }

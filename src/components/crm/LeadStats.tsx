@@ -1,12 +1,12 @@
 /**
  * LeadStats Component
- * Displays pipeline metrics: total leads, value, conversion rate, avg deal value
+ * Displays inquiry-focused metrics: active inquiries, follow-ups, conversions
  */
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, IndianRupee, TrendingUp, Target } from 'lucide-react';
+import { Users, Clock, UserCheck, Plus } from 'lucide-react';
 import { PipelineStats } from '@/types/lead';
 
 interface LeadStatsProps {
@@ -14,44 +14,33 @@ interface LeadStatsProps {
   isLoading: boolean;
 }
 
-const formatCurrency = (value: number): string => {
-  if (value >= 10000000) {
-    return `₹${(value / 10000000).toFixed(1)}Cr`;
-  } else if (value >= 100000) {
-    return `₹${(value / 100000).toFixed(1)}L`;
-  } else if (value >= 1000) {
-    return `₹${(value / 1000).toFixed(1)}K`;
-  }
-  return `₹${value.toFixed(0)}`;
-};
-
 export const LeadStats: React.FC<LeadStatsProps> = ({ stats, isLoading }) => {
   const statCards = [
     {
-      label: 'Total Leads',
-      value: stats?.total_leads ?? 0,
+      label: 'Active Inquiries',
+      value: stats?.active_inquiries ?? 0,
       icon: Users,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
     },
     {
-      label: 'Pipeline Value',
-      value: formatCurrency(stats?.total_value ?? 0),
-      icon: IndianRupee,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-100',
-    },
-    {
-      label: 'Conversion Rate',
-      value: `${(stats?.conversion_rate ?? 0).toFixed(1)}%`,
-      icon: TrendingUp,
+      label: 'Follow-ups Pending',
+      value: stats?.follow_ups_pending ?? 0,
+      icon: Clock,
       color: 'text-amber-600',
       bgColor: 'bg-amber-100',
     },
     {
-      label: 'Avg Deal Value',
-      value: formatCurrency(stats?.avg_deal_value ?? 0),
-      icon: Target,
+      label: 'Converted This Month',
+      value: stats?.converted_this_month ?? 0,
+      icon: UserCheck,
+      color: 'text-green-600',
+      bgColor: 'bg-green-100',
+    },
+    {
+      label: 'New This Month',
+      value: stats?.inquiries_this_month ?? 0,
+      icon: Plus,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
     },

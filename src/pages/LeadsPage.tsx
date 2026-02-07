@@ -1,6 +1,6 @@
 /**
- * LeadsPage
- * Main CRM lead pipeline page with Kanban and table views
+ * LeadsPage (Inquiry Tracker)
+ * Main CRM inquiry page with Kanban and table views
  */
 
 import React, { useState, useCallback } from 'react';
@@ -15,6 +15,7 @@ import { LeadFilters } from '@/components/crm/LeadFilters';
 import { LeadPipeline } from '@/components/crm/LeadPipeline';
 import { LeadDetailDrawer } from '@/components/crm/LeadDetailDrawer';
 import { ConvertToClientModal } from '@/components/crm/ConvertToClientModal';
+import { QuickInquiryModal } from '@/components/crm/QuickInquiryModal';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -30,6 +31,7 @@ export const LeadsPage: React.FC = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
   const [convertingLead, setConvertingLead] = useState<Lead | null>(null);
+  const [isInquiryModalOpen, setIsInquiryModalOpen] = useState(false);
 
   // Fetch leads
   const { data: leadsResponse, isLoading: isLoadingLeads, refetch: refetchLeads } = useQuery({
@@ -103,9 +105,17 @@ export const LeadsPage: React.FC = () => {
     setSelectedLead(null);
   };
 
+  const handleNewInquiry = () => {
+    setIsInquiryModalOpen(true);
+  };
+
+  const handleInquirySuccess = () => {
+    refetchLeads();
+    refetchStats();
+  };
+
   const handleNewLead = () => {
-    // Navigate to contacts page to create a new contact and mark as lead
-    toast.info('To create a new lead, add a contact and mark it as a lead');
+    handleNewInquiry();
   };
 
   const leads = leadsResponse?.data || [];
@@ -116,9 +126,9 @@ export const LeadsPage: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Lead Pipeline</h1>
+          <h1 className="text-2xl font-bold">Inquiry Tracker</h1>
           <p className="text-muted-foreground">
-            Manage your sales pipeline and track lead progress
+            Track and manage new business inquiries
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -139,7 +149,7 @@ export const LeadsPage: React.FC = () => {
           </Button>
           <Button onClick={handleNewLead} className="gap-2">
             <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">New Lead</span>
+            <span className="hidden sm:inline">New Inquiry</span>
           </Button>
         </div>
       </div>
@@ -177,7 +187,7 @@ export const LeadsPage: React.FC = () => {
         onRefresh={handleRefresh}
       />
 
-      {/* Convert to Client Modal */}
+      {/* Onboard as Client Modal */}
       <ConvertToClientModal
         lead={convertingLead}
         isOpen={isConvertModalOpen}
@@ -186,6 +196,13 @@ export const LeadsPage: React.FC = () => {
           setConvertingLead(null);
         }}
         onSuccess={handleConversionSuccess}
+      />
+
+      {/* Quick Inquiry Modal */}
+      <QuickInquiryModal
+        isOpen={isInquiryModalOpen}
+        onClose={() => setIsInquiryModalOpen(false)}
+        onSuccess={handleInquirySuccess}
       />
     </div>
   );

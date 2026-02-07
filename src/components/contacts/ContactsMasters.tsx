@@ -630,7 +630,7 @@ export const ContactsMasters: React.FC = () => {
                                     })}
                                   >
                                     <Target className="h-4 w-4 mr-2" />
-                                    Mark as Lead
+                                    Create Inquiry
                                   </DropdownMenuItem>
                                 )}
                                 {contact.lead_status && (
@@ -638,7 +638,7 @@ export const ContactsMasters: React.FC = () => {
                                     onClick={() => handleRemoveLeadStatus(contact.id, contact.name)}
                                   >
                                     <X className="h-4 w-4 mr-2" />
-                                    Remove Lead Status
+                                    Remove Inquiry Status
                                   </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />

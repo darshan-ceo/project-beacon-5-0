@@ -1,6 +1,7 @@
 /**
- * Lead Service
- * Core CRM operations for managing leads within client_contacts
+ * Lead/Inquiry Service
+ * Core CRM operations for managing inquiries within client_contacts
+ * Note: Internal names use "lead" for DB compatibility, UI uses "inquiry"
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -11,7 +12,8 @@ import {
   LeadActivity, 
   ActivityType,
   PipelineStats,
-  LEAD_STATUS_CONFIG 
+  LEAD_STATUS_CONFIG,
+  mapLegacyStatus
 } from '@/types/lead';
 
 export interface ServiceResponse<T> {
@@ -148,8 +150,8 @@ class LeadService {
         last_activity_at: new Date().toISOString(),
       };
 
-      // If lost, we might want to capture the reason
-      if (status === 'lost' && notes) {
+      // If not proceeding, we might want to capture the reason
+      if (status === 'not_proceeding' && notes) {
         updateData.lost_reason = notes;
       }
 
@@ -319,21 +321,27 @@ class LeadService {
   }
 
   /**
-   * Get pipeline statistics
+   * Get pipeline statistics (inquiry-focused metrics)
    */
   async getPipelineStats(): Promise<ServiceResponse<PipelineStats>> {
     try {
       const { data: leads, error } = await supabase
         .from('client_contacts')
-        .select('lead_status, expected_value')
+        .select('lead_status, expected_value, converted_at, created_at')
         .not('lead_status', 'is', null);
 
       if (error) throw error;
 
-      const statuses: LeadStatus[] = ['new', 'contacted', 'qualified', 'proposal_sent', 'negotiation', 'won', 'lost'];
+      // Map legacy statuses to new 4-status flow
+      const normalizedLeads = (leads || []).map((l: any) => ({
+        ...l,
+        lead_status: mapLegacyStatus(l.lead_status),
+      }));
+
+      const statuses: LeadStatus[] = ['new', 'follow_up', 'converted', 'not_proceeding'];
       
       const byStatus = statuses.map(status => {
-        const statusLeads = (leads || []).filter((l: any) => l.lead_status === status);
+        const statusLeads = normalizedLeads.filter((l: any) => l.lead_status === status);
         return {
           status,
           count: statusLeads.length,
@@ -341,10 +349,29 @@ class LeadService {
         };
       });
 
-      const totalLeads = leads?.length || 0;
-      const wonLeads = byStatus.find(s => s.status === 'won')?.count || 0;
+      const totalLeads = normalizedLeads.length;
+      const convertedLeads = byStatus.find(s => s.status === 'converted')?.count || 0;
       const totalValue = byStatus.reduce((sum, s) => sum + s.value, 0);
-      const wonValue = byStatus.find(s => s.status === 'won')?.value || 0;
+
+      // Calculate inquiry-focused metrics
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      
+      const activeInquiries = normalizedLeads.filter(
+        (l: any) => l.lead_status === 'new' || l.lead_status === 'follow_up'
+      ).length;
+      
+      const followUpsPending = byStatus.find(s => s.status === 'follow_up')?.count || 0;
+      
+      const convertedThisMonth = normalizedLeads.filter((l: any) => 
+        l.lead_status === 'converted' && 
+        l.converted_at && 
+        new Date(l.converted_at) >= startOfMonth
+      ).length;
+      
+      const inquiriesThisMonth = normalizedLeads.filter((l: any) => 
+        l.created_at && new Date(l.created_at) >= startOfMonth
+      ).length;
 
       return {
         success: true,
@@ -352,12 +379,85 @@ class LeadService {
           total_leads: totalLeads,
           total_value: totalValue,
           by_status: byStatus,
-          conversion_rate: totalLeads > 0 ? (wonLeads / totalLeads) * 100 : 0,
-          avg_deal_value: wonLeads > 0 ? wonValue / wonLeads : 0,
+          conversion_rate: totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0,
+          avg_deal_value: 0, // Deprecated
+          active_inquiries: activeInquiries,
+          follow_ups_pending: followUpsPending,
+          converted_this_month: convertedThisMonth,
+          inquiries_this_month: inquiriesThisMonth,
         },
       };
     } catch (error: any) {
       console.error('Error fetching pipeline stats:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Create inquiry directly (without requiring a contact first)
+   */
+  async createInquiryDirect(inquiryData: {
+    partyName: string;
+    phone?: string;
+    email?: string;
+    inquiryType: string;
+    source?: string;
+    notes?: string;
+  }): Promise<ServiceResponse<Lead>> {
+    try {
+      // Get current user and tenant
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile) throw new Error('Profile not found');
+
+      // Prepare contact data
+      const phones = inquiryData.phone 
+        ? [{ number: inquiryData.phone, isPrimary: true }] 
+        : null;
+      
+      const emails = inquiryData.email 
+        ? [{ email: inquiryData.email, isPrimary: true }] 
+        : null;
+
+      // Create contact with lead status in one operation
+      const { data, error } = await supabase
+        .from('client_contacts')
+        .insert({
+          tenant_id: profile.tenant_id,
+          name: inquiryData.partyName,
+          designation: inquiryData.inquiryType, // Store inquiry type in designation
+          phones: phones,
+          emails: emails,
+          lead_status: 'new',
+          lead_source: inquiryData.source || null,
+          lead_score: 0, // Default, not used
+          notes: inquiryData.notes || null,
+          owner_user_id: user.id,
+          last_activity_at: new Date().toISOString(),
+          roles: [],
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Log initial activity
+      await this.addActivity(data.id, {
+        activity_type: 'status_change',
+        subject: 'Inquiry Created',
+        description: `New inquiry created: ${inquiryData.inquiryType}`,
+      });
+
+      return { success: true, data: data as unknown as Lead };
+    } catch (error: any) {
+      console.error('Error creating inquiry:', error);
       return { success: false, error: error.message };
     }
   }

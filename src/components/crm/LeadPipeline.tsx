@@ -22,12 +22,9 @@ interface LeadPipelineProps {
 
 const PIPELINE_STATUSES: LeadStatus[] = [
   'new',
-  'contacted',
-  'qualified',
-  'proposal_sent',
-  'negotiation',
-  'won',
-  'lost',
+  'follow_up',
+  'converted',
+  'not_proceeding',
 ];
 
 const formatCurrency = (value: number): string => {
@@ -51,12 +48,9 @@ export const LeadPipeline: React.FC<LeadPipelineProps> = ({
   const leadsByStatus = useMemo(() => {
     const grouped: Record<LeadStatus, Lead[]> = {
       new: [],
-      contacted: [],
-      qualified: [],
-      proposal_sent: [],
-      negotiation: [],
-      won: [],
-      lost: [],
+      follow_up: [],
+      converted: [],
+      not_proceeding: [],
     };
 
     leads.forEach((lead) => {
