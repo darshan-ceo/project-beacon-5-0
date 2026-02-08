@@ -243,6 +243,9 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
       if (errorMessage.includes('empty') || errorMessage.includes('0 bytes')) {
         title = 'File upload issue';
         description = 'The PDF file is empty. Please close the wizard and re-upload the file.';
+      } else if (errorMessage.includes('scanned PDF') || errorMessage.includes('SCANNED_PDF_NO_OCR')) {
+        title = 'Scanned PDF Detected';
+        description = 'This PDF contains images only (no text layer). Please configure an OpenAI API key above to enable OCR extraction.';
       } else if (errorMessage.includes('password')) {
         title = 'Password protected';
         description = 'This PDF is password-protected. Please remove the password and re-upload.';

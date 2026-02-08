@@ -50,12 +50,17 @@ export interface ExtractedNoticeData {
   documentTypeLabel?: string;
 }
 
+// Minimum text length to consider PDF as "text-based" vs "scanned"
+// Scanned PDFs typically have 0-50 chars of noise, real PDFs have 100+
+const MIN_TEXT_LENGTH_FOR_REGEX = 100;
+
 interface ExtractionResult {
   success: boolean;
   data?: ExtractedNoticeData;
   error?: string;
-  errorCode?: 'INVALID_API_KEY' | 'RATE_LIMIT' | 'PDF_PARSE_ERROR' | 'UNKNOWN';
+  errorCode?: 'INVALID_API_KEY' | 'RATE_LIMIT' | 'PDF_PARSE_ERROR' | 'SCANNED_PDF_NO_OCR' | 'UNKNOWN';
   confidence?: number;
+  isScannedPdf?: boolean;
 }
 
 class NoticeExtractionService {
@@ -685,113 +690,143 @@ Return the data as JSON with this structure:
   }
 
   /**
-   * Main extraction method with AI fallback to regex
+   * Main extraction method - PDF.js first approach
+   * 
+   * Flow:
+   * 1. Try PDF.js text extraction first (fast, no API call)
+   * 2. If text length >= threshold → use regex extraction (text-based PDF)
+   * 3. If text length < threshold → treat as scanned PDF → route to Vision OCR
+   * 4. Vision OCR: OpenAI → Lovable AI → return with explanation
    */
   async extractFromPDF(file: File): Promise<ExtractionResult> {
     try {
       let extractedData: ExtractedNoticeData;
       let usingAI = false;
       let errorCode: ExtractionResult['errorCode'] | undefined;
-
-      // Try AI/OCR first
+      let isScannedPdf = false;
+      
+      // Step 1: Try PDF.js text extraction first (fast, no API call)
+      let pdfText = '';
+      
       try {
-        const aiResult = await this.extractWithAI(file);
-        usingAI = true;
+        pdfText = await this.extractTextFromPDF(file);
+        console.log('📄 [PDF.js] Extracted text length:', pdfText.length);
         
-        // Merge AI-extracted data with our structure
-        extractedData = {
-          din: aiResult.fieldConfidence.din?.value || '',
-          gstin: aiResult.fieldConfidence.gstin?.value || '',
-          period: aiResult.fieldConfidence.period?.value || '',
-          dueDate: aiResult.fieldConfidence.dueDate?.value || '',
-          office: aiResult.fieldConfidence.office?.value || '',
-          amount: aiResult.fieldConfidence.amount?.value || '',
-          noticeType: aiResult.fieldConfidence.noticeType?.value || '',
-          noticeNo: aiResult.fieldConfidence.noticeNo?.value || '',
-          issueDate: aiResult.fieldConfidence.issueDate?.value || '',
-          // Extended fields
-          taxpayerName: aiResult.fieldConfidence.taxpayerName?.value || '',
-          tradeName: aiResult.fieldConfidence.tradeName?.value || '',
-          subject: aiResult.fieldConfidence.subject?.value || '',
-          legalSection: aiResult.fieldConfidence.legalSection?.value || '',
-          discrepancies: Array.isArray(aiResult.fieldConfidence.discrepancies?.value) ? aiResult.fieldConfidence.discrepancies.value : [],
-          // Document type detection
-          documentType: (aiResult.fieldConfidence.documentType?.value as 'main_notice' | 'annexure') || 'main_notice',
-          documentTypeLabel: aiResult.fieldConfidence.documentTypeLabel?.value || '',
-          rawText: aiResult.text,
-          fieldConfidence: aiResult.fieldConfidence
-        };
-        
-        console.debug('Notice extraction using AI/OCR successful', {
-          fields: Object.keys(aiResult.fieldConfidence),
-          values: extractedData
-        });
-      } catch (aiError) {
-        const errorMessage = aiError instanceof Error ? aiError.message : 'Unknown error';
-        const code = (aiError as any).code;
-        
-        console.log('AI/OCR extraction failed, trying Lovable AI fallback:', errorMessage);
-        
-        // Check for specific error codes
-        if (code === 'INVALID_API_KEY' || errorMessage.includes('INVALID_API_KEY')) {
-          errorCode = 'INVALID_API_KEY';
-        } else if (code === 'RATE_LIMIT' || errorMessage.includes('RATE_LIMIT')) {
-          errorCode = 'RATE_LIMIT';
+        // Check if this is a scanned PDF (no usable text)
+        if (pdfText.length < MIN_TEXT_LENGTH_FOR_REGEX) {
+          console.log('🖼️ Scanned PDF detected (text length < threshold). Routing to Vision OCR...');
+          isScannedPdf = true;
         }
+      } catch (pdfError) {
+        console.warn('📄 [PDF.js] Text extraction failed, treating as scanned PDF:', pdfError);
+        isScannedPdf = true;
+      }
+      
+      // Step 2: Route based on PDF type
+      if (isScannedPdf) {
+        // Scanned PDF → Must use Vision OCR
+        let visionSuccess = false;
         
-        // Try Lovable AI as secondary fallback before regex
+        // Try OpenAI Vision first
         try {
-          console.log('🔄 Attempting Lovable AI fallback...');
-          const lovableResult = await this.extractWithLovableAI(file);
+          console.log('🔍 [Scanned PDF] Trying OpenAI Vision...');
+          const aiResult = await this.extractWithAI(file);
+          visionSuccess = true;
           usingAI = true;
           
-          // Merge Lovable AI-extracted data with our structure
+          // Merge AI-extracted data with our structure
           extractedData = {
-            din: lovableResult.fieldConfidence.din?.value || '',
-            gstin: lovableResult.fieldConfidence.gstin?.value || '',
-            period: lovableResult.fieldConfidence.period?.value || '',
-            dueDate: lovableResult.fieldConfidence.dueDate?.value || '',
-            office: lovableResult.fieldConfidence.office?.value || '',
-            amount: lovableResult.fieldConfidence.amount?.value || '',
-            noticeType: lovableResult.fieldConfidence.noticeType?.value || '',
-            noticeNo: lovableResult.fieldConfidence.noticeNo?.value || '',
-            issueDate: lovableResult.fieldConfidence.issueDate?.value || '',
-            taxpayerName: lovableResult.fieldConfidence.taxpayerName?.value || '',
-            tradeName: lovableResult.fieldConfidence.tradeName?.value || '',
-            subject: lovableResult.fieldConfidence.subject?.value || '',
-            legalSection: lovableResult.fieldConfidence.legalSection?.value || '',
-            discrepancies: Array.isArray(lovableResult.fieldConfidence.discrepancies?.value) ? lovableResult.fieldConfidence.discrepancies.value : [],
-            documentType: (lovableResult.fieldConfidence.documentType?.value as 'main_notice' | 'annexure') || 'main_notice',
-            documentTypeLabel: lovableResult.fieldConfidence.documentTypeLabel?.value || '',
-            rawText: lovableResult.text,
-            fieldConfidence: lovableResult.fieldConfidence
+            din: aiResult.fieldConfidence.din?.value || '',
+            gstin: aiResult.fieldConfidence.gstin?.value || '',
+            period: aiResult.fieldConfidence.period?.value || '',
+            dueDate: aiResult.fieldConfidence.dueDate?.value || '',
+            office: aiResult.fieldConfidence.office?.value || '',
+            amount: aiResult.fieldConfidence.amount?.value || '',
+            noticeType: aiResult.fieldConfidence.noticeType?.value || '',
+            noticeNo: aiResult.fieldConfidence.noticeNo?.value || '',
+            issueDate: aiResult.fieldConfidence.issueDate?.value || '',
+            taxpayerName: aiResult.fieldConfidence.taxpayerName?.value || '',
+            tradeName: aiResult.fieldConfidence.tradeName?.value || '',
+            subject: aiResult.fieldConfidence.subject?.value || '',
+            legalSection: aiResult.fieldConfidence.legalSection?.value || '',
+            discrepancies: Array.isArray(aiResult.fieldConfidence.discrepancies?.value) ? aiResult.fieldConfidence.discrepancies.value : [],
+            documentType: (aiResult.fieldConfidence.documentType?.value as 'main_notice' | 'annexure') || 'main_notice',
+            documentTypeLabel: aiResult.fieldConfidence.documentTypeLabel?.value || '',
+            rawText: aiResult.text,
+            fieldConfidence: aiResult.fieldConfidence
           };
           
-          console.log('✅ Lovable AI fallback successful');
-          errorCode = undefined; // Clear error code since we succeeded with fallback
-        } catch (lovableError) {
-          console.log('Lovable AI fallback also failed, using regex:', lovableError);
+          console.log('✅ [Scanned PDF] OpenAI Vision extraction successful');
+        } catch (aiError) {
+          const aiErrorMessage = aiError instanceof Error ? aiError.message : 'Unknown error';
+          console.log('⚠️ [Scanned PDF] OpenAI Vision failed:', aiErrorMessage);
           
-          // Final fallback to basic text extraction + regex
+          // Check for specific error codes from OpenAI
+          const code = (aiError as any).code;
+          if (code === 'INVALID_API_KEY' || aiErrorMessage.includes('INVALID_API_KEY') || aiErrorMessage.includes('not configured')) {
+            errorCode = 'INVALID_API_KEY';
+          } else if (code === 'RATE_LIMIT' || aiErrorMessage.includes('RATE_LIMIT')) {
+            errorCode = 'RATE_LIMIT';
+          }
+          
+          // Try Lovable AI as fallback
           try {
-            const extractedText = await this.extractTextFromPDF(file);
-            extractedData = this.extractDataFromText(extractedText);
-            usingAI = false;
+            console.log('🔄 [Scanned PDF] Trying Lovable AI Vision fallback...');
+            const lovableResult = await this.extractWithLovableAI(file);
+            visionSuccess = true;
+            usingAI = true;
+            errorCode = undefined; // Clear error code since we succeeded
             
-            console.debug('Regex extraction completed', {
-              textLength: extractedText.length,
-              fieldsFound: Object.keys(extractedData.fieldConfidence || {}).length,
-              values: extractedData
-            });
-          } catch (pdfError) {
-            console.error('PDF text extraction failed:', pdfError);
-            return {
-              success: false,
-              error: 'Failed to extract text from PDF',
-              errorCode: 'PDF_PARSE_ERROR'
+            // Merge Lovable AI-extracted data with our structure
+            extractedData = {
+              din: lovableResult.fieldConfidence.din?.value || '',
+              gstin: lovableResult.fieldConfidence.gstin?.value || '',
+              period: lovableResult.fieldConfidence.period?.value || '',
+              dueDate: lovableResult.fieldConfidence.dueDate?.value || '',
+              office: lovableResult.fieldConfidence.office?.value || '',
+              amount: lovableResult.fieldConfidence.amount?.value || '',
+              noticeType: lovableResult.fieldConfidence.noticeType?.value || '',
+              noticeNo: lovableResult.fieldConfidence.noticeNo?.value || '',
+              issueDate: lovableResult.fieldConfidence.issueDate?.value || '',
+              taxpayerName: lovableResult.fieldConfidence.taxpayerName?.value || '',
+              tradeName: lovableResult.fieldConfidence.tradeName?.value || '',
+              subject: lovableResult.fieldConfidence.subject?.value || '',
+              legalSection: lovableResult.fieldConfidence.legalSection?.value || '',
+              discrepancies: Array.isArray(lovableResult.fieldConfidence.discrepancies?.value) ? lovableResult.fieldConfidence.discrepancies.value : [],
+              documentType: (lovableResult.fieldConfidence.documentType?.value as 'main_notice' | 'annexure') || 'main_notice',
+              documentTypeLabel: lovableResult.fieldConfidence.documentTypeLabel?.value || '',
+              rawText: lovableResult.text,
+              fieldConfidence: lovableResult.fieldConfidence
             };
+            
+            console.log('✅ [Scanned PDF] Lovable AI Vision extraction successful');
+          } catch (lovableError) {
+            console.log('❌ [Scanned PDF] Lovable AI also failed:', lovableError);
+            visionSuccess = false;
           }
         }
+        
+        // If no Vision OCR succeeded for scanned PDF
+        if (!visionSuccess) {
+          console.error('❌ [Scanned PDF] No Vision OCR available - cannot process scanned PDF');
+          return {
+            success: false,
+            error: 'This is a scanned PDF with no text layer. Vision OCR is required but unavailable. Please configure an OpenAI API key in the panel above.',
+            errorCode: errorCode || 'SCANNED_PDF_NO_OCR',
+            isScannedPdf: true
+          };
+        }
+      } else {
+        // Text-based PDF → Use regex extraction (fast path)
+        console.log('📝 [Text PDF] Using regex extraction (text length:', pdfText.length, ')');
+        extractedData = this.extractDataFromText(pdfText);
+        usingAI = false;
+        
+        console.debug('✅ [Text PDF] Regex extraction completed', {
+          textLength: pdfText.length,
+          fieldsFound: Object.keys(extractedData.fieldConfidence || {}).length,
+          values: extractedData
+        });
       }
 
       const confidence = this.calculateConfidence(extractedData);
@@ -799,8 +834,10 @@ Return the data as JSON with this structure:
       // Don't show toast for API key errors - let wizard handle it
       if (!errorCode) {
         toast({
-          title: "Notice Data Extracted",
-          description: `Extracted using ${usingAI ? 'AI/OCR' : 'regex patterns'} (~${Math.round(confidence)}% complete)`,
+          title: isScannedPdf ? "AI OCR Extraction Complete" : "Notice Data Extracted",
+          description: isScannedPdf 
+            ? `Scanned PDF processed using Vision OCR (~${Math.round(confidence)}% complete)`
+            : `Extracted using ${usingAI ? 'AI/OCR' : 'regex patterns'} (~${Math.round(confidence)}% complete)`,
         });
       }
 
@@ -808,7 +845,8 @@ Return the data as JSON with this structure:
         success: true,
         data: extractedData,
         confidence,
-        errorCode // Pass through error code even on success (for fallback scenarios)
+        errorCode,
+        isScannedPdf
       };
 
     } catch (error) {
