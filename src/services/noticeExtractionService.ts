@@ -127,7 +127,11 @@ class NoticeExtractionService {
 
   /**
    * Load PDF with automatic worker fallback
-   * Tries worker mode first, falls back to no-worker mode if blocked
+   * Tries worker mode first, falls back to fake-worker (main thread) if blocked
+   * 
+   * PDF.js v5+ uses a "fake worker" (main-thread processing) when:
+   * - GlobalWorkerOptions.workerSrc is not set AND
+   * - No worker option is provided to getDocument()
    */
   private async loadPdf(arrayBuffer: ArrayBuffer): Promise<PDFDocumentProxy> {
     console.log('📄 [PDF.js] Loading PDF, buffer size:', arrayBuffer.byteLength);
@@ -170,23 +174,33 @@ class NoticeExtractionService {
         throw error;
       }
       
-      // Retry without worker for network/CSP issues
+      // Retry WITHOUT worker by temporarily clearing workerSrc
+      // This triggers PDF.js's internal fake-worker (main-thread processing)
       try {
-        console.log('📄 [PDF.js] Retrying without worker (useWorkerFetch: false)...');
-        const pdf = await pdfjsLib.getDocument({ 
-          data: arrayBuffer, 
-          useWorkerFetch: false,
-          isEvalSupported: false
-        }).promise;
-        console.log('📄 [PDF.js] No-worker mode succeeded, pages:', pdf.numPages);
-        return pdf;
+        console.log('📄 [PDF.js] Retrying with fake worker (main thread)...');
+        
+        // Save and clear workerSrc to force fake worker
+        const originalWorkerSrc = pdfjsLib.GlobalWorkerOptions.workerSrc;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+        
+        try {
+          const pdf = await pdfjsLib.getDocument({ 
+            data: arrayBuffer
+            // Don't pass a worker option - PDF.js will use main thread
+          }).promise;
+          console.log('📄 [PDF.js] Fake worker mode succeeded, pages:', pdf.numPages);
+          return pdf;
+        } finally {
+          // Restore workerSrc for future attempts
+          pdfjsLib.GlobalWorkerOptions.workerSrc = originalWorkerSrc;
+        }
       } catch (noWorkerError) {
         const retryClassified = this.classifyPDFError(noWorkerError);
         console.error('📄 [PDF.js] Both modes failed:', retryClassified.technicalDetails);
         
         const error = new Error(retryClassified.userMessage) as PDFLoadError;
         error.category = retryClassified.category;
-        error.technicalDetails = `Worker: ${classified.technicalDetails} | No-worker: ${retryClassified.technicalDetails}`;
+        error.technicalDetails = `Worker: ${classified.technicalDetails} | Fake worker: ${retryClassified.technicalDetails}`;
         throw error;
       }
     }
