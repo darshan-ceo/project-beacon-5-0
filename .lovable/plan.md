@@ -1,58 +1,63 @@
 
-# Fix Scanned PDF Flow: Route Empty Text to Vision OCR ✅ IMPLEMENTED
+# Fix: Scanned PDF Extraction Fails Despite OpenAI API Key Being Configured
 
-## Problem Analysis
+## Problem Summary
 
-ASMT-10 and other GST notices are typically **scanned PDFs** (images embedded in PDF) with no text layer. The current extraction flow fails because:
+When uploading a scanned ASMT-10 PDF with OpenAI Vision API configured:
+- UI correctly shows "OpenAI Vision Active" badge
+- File size shows correctly (3.1 KB)  
+- But extraction fails with: "Vision OCR is required but unavailable. Please configure an OpenAI API key"
 
-| Step | What Happens | Result |
-|------|--------------|--------|
-| 1 | `extractWithAI()` checks for API key | Throws if no key → falls to step 2 |
-| 2 | `extractWithLovableAI()` calls edge function | May fail (503/401) → falls to step 3 |
-| 3 | `extractTextFromPDF()` via PDF.js | Returns **empty string** (no text layer) |
-| 4 | `extractDataFromText("")` regex | Returns empty fields |
-| 5 | Wizard shows "Extraction failed" | User blocked |
-
-**The bug**: Empty PDF.js text is treated as "regex extraction success" rather than triggering Vision OCR.
+This error is **misleading** - the API key IS configured, but something else is failing.
 
 ---
 
-## Solution Overview
+## Root Cause Analysis
+
+The extraction flow for scanned PDFs is:
 
 ```text
-                        ┌──────────────────────┐
-                        │  Extract from PDF    │
-                        └──────────┬───────────┘
-                                   │
-                    ┌──────────────▼──────────────┐
-                    │ Step 1: Try PDF.js text     │
-                    │ (fast, for text-based PDFs) │
-                    └──────────────┬──────────────┘
-                                   │
-                         ┌─────────▼─────────┐
-                         │ Text length > 100? │
-                         └─────────┬─────────┘
-                                   │
-              ┌────────NO──────────┴──────────YES────────┐
-              │                                          │
-              ▼                                          ▼
-   ┌─────────────────────┐                    ┌──────────────────┐
-   │ SCANNED PDF DETECTED│                    │ Use regex        │
-   │ Route to Vision OCR │                    │ extraction       │
-   └─────────┬───────────┘                    └──────────────────┘
-             │
-    ┌────────▼────────┐
-    │ OpenAI Vision?  │
-    └────────┬────────┘
-             │
-   ┌───NO────┴────YES───┐
-   │                    │
-   ▼                    ▼
-┌─────────┐      ┌─────────────┐
-│ Lovable │      │ OpenAI OCR  │
-│ AI OCR  │      │             │
-└─────────┘      └─────────────┘
+1. Try extractWithAI(file)       ← OpenAI Vision
+   └─> pdfToBase64Images(file)   ← Convert PDF pages to PNG
+   └─> fetch OpenAI API
+
+2. If fails → Try extractWithLovableAI(file)  ← Lovable AI fallback
+   └─> pdfToBase64Images(file)               ← SAME conversion
+   └─> fetch edge function
+
+3. If both fail → Show "Vision OCR unavailable"
 ```
+
+**Critical Bug**: Both Vision paths call `pdfToBase64Images()` which uses `loadPdf()`. If PDF.js worker fails during image rendering (not just text extraction), BOTH paths fail before any API call is made.
+
+**Evidence**: No edge function logs for `notice-ocr` - meaning the Lovable AI call never reached the server.
+
+**Why this happens**:
+- `loadPdf()` was fixed for text extraction with fake-worker fallback
+- BUT `pdfToBase64Images()` needs to RENDER pages to canvas, which may have different failure modes
+- Canvas rendering might fail silently even if document loading succeeds
+
+---
+
+## Solution
+
+### Part 1: Fix Error Message Specificity
+
+The error message must distinguish between:
+- **API key not configured** → "Please configure an OpenAI API key"
+- **API call failed** → "Vision OCR call failed: [specific error]"  
+- **PDF rendering failed** → "Could not convert PDF to images for OCR"
+
+### Part 2: Preserve and Surface Actual Errors
+
+Currently errors are logged but the final message is always generic. Need to:
+1. Capture the actual error from each failed attempt
+2. Include it in the final error message
+3. Help users and developers diagnose the real issue
+
+### Part 3: Add Robust Error Handling in pdfToBase64Images
+
+Add try-catch around canvas rendering to detect render failures separately from load failures.
 
 ---
 
@@ -60,138 +65,102 @@ ASMT-10 and other GST notices are typically **scanned PDFs** (images embedded in
 
 ### File: `src/services/noticeExtractionService.ts`
 
-#### Change 1: Add Text Length Threshold Constant
+#### Change 1: Track Error Details in extractFromPDF
 
 ```typescript
-// Minimum text length to consider PDF as "text-based" vs "scanned"
-// Scanned PDFs typically have 0-50 chars of noise, real PDFs have 100+
-const MIN_TEXT_LENGTH_FOR_REGEX = 100;
-```
+// In the scanned PDF path, track specific errors
+let openAiError: string = '';
+let lovableAiError: string = '';
 
-#### Change 2: Restructure `extractFromPDF()` Method
+try {
+  const aiResult = await this.extractWithAI(file);
+  // ... success
+} catch (aiError) {
+  openAiError = aiError instanceof Error ? aiError.message : JSON.stringify(aiError);
+  console.log('⚠️ [Scanned PDF] OpenAI Vision failed:', openAiError);
+  // ... continue to Lovable AI
+}
 
-Current flow:
-1. Try OpenAI Vision → Lovable AI → PDF.js regex
+try {
+  const lovableResult = await this.extractWithLovableAI(file);
+  // ... success
+} catch (lovableError) {
+  lovableAiError = lovableError instanceof Error ? lovableError.message : JSON.stringify(lovableError);
+  console.log('❌ [Scanned PDF] Lovable AI also failed:', lovableAiError);
+}
 
-New flow:
-1. Try PDF.js text extraction first (fast, no API call)
-2. If text length ≥ threshold → use regex extraction
-3. If text length < threshold → treat as scanned PDF → route to Vision OCR
-4. Vision OCR: OpenAI → Lovable AI → return with explanation
-
-```typescript
-async extractFromPDF(file: File): Promise<ExtractionResult> {
-  try {
-    let extractedData: ExtractedNoticeData;
-    let usingAI = false;
-    let errorCode: ExtractionResult['errorCode'] | undefined;
-    
-    // Step 1: Try PDF.js text extraction first (fast, no API call)
-    let pdfText = '';
-    let isScannedPdf = false;
-    
-    try {
-      pdfText = await this.extractTextFromPDF(file);
-      console.log('📄 [PDF.js] Extracted text length:', pdfText.length);
-      
-      // Check if this is a scanned PDF (no usable text)
-      if (pdfText.length < MIN_TEXT_LENGTH_FOR_REGEX) {
-        console.log('🖼️ Scanned PDF detected (text length < threshold). Routing to Vision OCR...');
-        isScannedPdf = true;
-      }
-    } catch (pdfError) {
-      console.warn('📄 [PDF.js] Text extraction failed, treating as scanned PDF:', pdfError);
-      isScannedPdf = true;
-    }
-    
-    // Step 2: Route based on PDF type
-    if (isScannedPdf) {
-      // Scanned PDF → Must use Vision OCR
-      let visionSuccess = false;
-      
-      // Try OpenAI Vision first
-      try {
-        const aiResult = await this.extractWithAI(file);
-        visionSuccess = true;
-        usingAI = true;
-        extractedData = /* merge aiResult */;
-      } catch (aiError) {
-        console.log('OpenAI Vision failed:', aiError);
-        
-        // Try Lovable AI as fallback
-        try {
-          const lovableResult = await this.extractWithLovableAI(file);
-          visionSuccess = true;
-          usingAI = true;
-          extractedData = /* merge lovableResult */;
-        } catch (lovableError) {
-          console.log('Lovable AI also failed:', lovableError);
-        }
-      }
-      
-      if (!visionSuccess) {
-        // No Vision OCR available - cannot process scanned PDF
-        return {
-          success: false,
-          error: 'This is a scanned PDF with no text layer. Vision OCR is required but unavailable. Please configure an OpenAI API key.',
-          errorCode: 'SCANNED_PDF_NO_OCR'
-        };
-      }
-    } else {
-      // Text-based PDF → Use regex extraction
-      extractedData = this.extractDataFromText(pdfText);
-      usingAI = false;
-    }
-    
-    /* ... rest of method ... */
+// If no Vision OCR succeeded
+if (!visionSuccess) {
+  // Build specific error message based on what failed
+  let errorMessage = 'This is a scanned PDF with no text layer. ';
+  
+  if (openAiError.includes('not configured')) {
+    errorMessage += 'Vision OCR requires an OpenAI API key. Please configure it above.';
+  } else if (openAiError.includes('canvas') || openAiError.includes('render')) {
+    errorMessage += 'Could not render PDF pages for OCR. Try a different browser or file.';
+  } else if (openAiError.includes('401') || openAiError.includes('invalid')) {
+    errorMessage += 'Your OpenAI API key appears invalid. Please check and update it.';
+  } else {
+    errorMessage += `Vision OCR failed. OpenAI: ${openAiError || 'unavailable'}. Lovable AI: ${lovableAiError || 'unavailable'}`;
   }
+  
+  return {
+    success: false,
+    error: errorMessage,
+    errorCode: errorCode || 'SCANNED_PDF_NO_OCR',
+    isScannedPdf: true
+  };
 }
 ```
 
-#### Change 3: Update Error Type
-
-Add new error code for scanned PDFs without OCR:
+#### Change 2: Add Error Handling to pdfToBase64Images
 
 ```typescript
-interface ExtractionResult {
-  errorCode?: 'INVALID_API_KEY' | 'RATE_LIMIT' | 'PDF_PARSE_ERROR' | 'SCANNED_PDF_NO_OCR' | 'UNKNOWN';
+private async pdfToBase64Images(file: File): Promise<string[]> {
+  // ... existing code ...
+  
+  const images: string[] = [];
+  const maxPages = Math.min(pdf.numPages, 4);
+  
+  for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+    try {
+      const page = await pdf.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 1.5 });
+      
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (!context) {
+        throw new Error(`Failed to get canvas context for page ${pageNum}`);
+      }
+      
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+      
+      await page.render({
+        canvasContext: context,
+        viewport: viewport
+      } as any).promise;
+      
+      const dataUrl = canvas.toDataURL('image/png');
+      if (!dataUrl || dataUrl === 'data:,') {
+        throw new Error(`Canvas render produced empty image for page ${pageNum}`);
+      }
+      
+      images.push(dataUrl.split(',')[1]);
+    } catch (pageError) {
+      console.error(`🖼️ [pdfToBase64Images] Failed to render page ${pageNum}:`, pageError);
+      // Continue with other pages, but log the failure
+    }
+  }
+  
+  if (images.length === 0) {
+    throw new Error('Could not render any PDF pages to images. Canvas rendering failed.');
+  }
+  
+  console.log('🖼️ [pdfToBase64Images] Successfully converted', images.length, 'pages to images');
+  return images;
 }
 ```
-
----
-
-### File: `src/components/notices/NoticeIntakeWizardV2.tsx`
-
-#### Change 4: Handle Scanned PDF Error in UI
-
-Add specific user guidance for scanned PDF scenarios:
-
-```typescript
-// In handleExtractData catch block
-} else if (errorMessage.includes('scanned PDF') || errorMessage.includes('SCANNED_PDF_NO_OCR')) {
-  title = 'Scanned PDF Detected';
-  description = 'This PDF contains images only (no text layer). Please configure an OpenAI API key above to enable OCR extraction.';
-}
-```
-
-#### Change 5: Show "Using AI OCR" Status
-
-Update the extraction toast to indicate when AI OCR is being used:
-
-```typescript
-toast({
-  title: isScannedPdf ? "AI OCR Processing" : "Data extracted",
-  description: isScannedPdf 
-    ? "Scanned PDF detected. Using Vision OCR for extraction..." 
-    : "Review the extracted information and fill any gaps.",
-});
-```
-
----
-
-### File: `src/components/notices/NoticeIntakeWizard.tsx`
-
-Apply the same error handling updates for V1 wizard consistency.
 
 ---
 
@@ -199,9 +168,7 @@ Apply the same error handling updates for V1 wizard consistency.
 
 | File | Changes |
 |------|---------|
-| `src/services/noticeExtractionService.ts` | Restructure `extractFromPDF()` to try PDF.js first, detect scanned PDFs, route to Vision OCR |
-| `src/components/notices/NoticeIntakeWizardV2.tsx` | Add scanned PDF error handling, show OCR status |
-| `src/components/notices/NoticeIntakeWizard.tsx` | Same error handling for V1 |
+| `src/services/noticeExtractionService.ts` | Track specific errors, improve error messages, add canvas render validation |
 
 ---
 
@@ -209,15 +176,22 @@ Apply the same error handling updates for V1 wizard consistency.
 
 | Scenario | Current | After Fix |
 |----------|---------|-----------|
-| Scanned PDF, OpenAI configured | ❌ Fails | ✅ Uses OpenAI Vision |
-| Scanned PDF, no API key | ❌ Fails silently | ✅ Clear error: "Configure API key for OCR" |
-| Text-based PDF | ✅ Works | ✅ Works (faster - regex first) |
-| Scanned PDF, Lovable AI only | ❌ Fails | ✅ Uses Lovable AI Vision |
+| OpenAI key not configured | "Configure API key" | Same (correct) |
+| OpenAI key invalid | "Configure API key" | "Your API key appears invalid" |
+| PDF render failed | "Configure API key" | "Could not render PDF for OCR" |
+| API call failed (network) | "Configure API key" | "Vision OCR failed: [network error]" |
+| Lovable AI also fails | Same generic message | Shows both error details |
 
 ---
 
-## Technical Notes
+## Debug Benefits
 
-- **Text threshold (100 chars)**: Chosen because real notices have 500+ chars, while scanned PDFs produce 0-50 chars of OCR noise from PDF.js
-- **Performance improvement**: Text-based PDFs now skip API calls entirely and use fast regex extraction
-- **Error clarity**: Users see actionable messages like "Configure OpenAI API key for scanned PDFs"
+With these changes, when extraction fails the user will see:
+- **Specific error type** (config, auth, render, network)
+- **Actionable guidance** based on failure mode
+- **Both error messages** if both paths fail
+
+And in console logs, developers will see:
+- Exact error from OpenAI Vision attempt
+- Exact error from Lovable AI attempt  
+- Whether the issue is in PDF rendering or API calls
