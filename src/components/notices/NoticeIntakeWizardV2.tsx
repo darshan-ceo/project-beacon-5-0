@@ -14,10 +14,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   CheckCircle, Upload, FileText, User, FolderOpen, Calendar, 
   AlertCircle, Loader2, Key, Eye, EyeOff, ArrowLeft, ArrowRight,
-  AlertTriangle, FileWarning, IndianRupee, CheckSquare
+  AlertTriangle, FileWarning, IndianRupee, CheckSquare, ChevronDown, Bug
 } from 'lucide-react';
 import { noticeExtractionService } from '@/services/noticeExtractionService';
 import { clientsService } from '@/services/clientsService';
@@ -27,6 +28,7 @@ import { stageNoticesService } from '@/services/stageNoticesService';
 import { taskBundleTriggerService } from '@/services/taskBundleTriggerService';
 import { useToast } from '@/hooks/use-toast';
 import { useAppState } from '@/contexts/AppStateContext';
+import { formatFileSize } from '@/utils/formatFileSize';
 import { 
   WizardMode, WizardStep, WIZARD_STEPS, getInitialWizardState, 
   getStepIndex, getNextStep, getPreviousStep, ExtractedNoticeDataV2, NoticeStageTag
@@ -80,6 +82,20 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
   const [createdNoticeId, setCreatedNoticeId] = useState<string>('');
   const [tasksCreated, setTasksCreated] = useState(0);
   const [documentUploaded, setDocumentUploaded] = useState(false);
+
+  // Debug state
+  const [pdfDebugInfo, setPdfDebugInfo] = useState<{
+    fileSize: number;
+    arrayBufferSize: number | null;
+    headerBytes: string;
+    workerSrc: string;
+  } | null>(null);
+  
+  // Check if debug mode is enabled via localStorage or query param
+  const isDebugEnabled = typeof window !== 'undefined' && (
+    localStorage.getItem('notice_ocr_debug') === '1' ||
+    new URLSearchParams(window.location.search).get('noticeOcrDebug') === '1'
+  );
 
   // API Key config
   const [apiKey, setApiKey] = useState('');
@@ -154,7 +170,7 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
     setUploadedFile(file);
     toast({
       title: "File uploaded",
-      description: `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) is ready for processing.`,
+      description: `${file.name} (${formatFileSize(file.size)}) is ready for processing.`,
     });
   }, [toast]);
 
@@ -227,12 +243,18 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
       if (errorMessage.includes('empty') || errorMessage.includes('0 bytes')) {
         title = 'File upload issue';
         description = 'The PDF file is empty. Please close the wizard and re-upload the file.';
-      } else if (errorMessage.includes('corrupted') || errorMessage.includes('password-protected')) {
-        title = 'PDF parsing failed';
-        description = 'Could not read the PDF. It may be password-protected or corrupted. Try a different file.';
-      } else if (errorMessage.includes('no pages')) {
+      } else if (errorMessage.includes('password')) {
+        title = 'Password protected';
+        description = 'This PDF is password-protected. Please remove the password and re-upload.';
+      } else if (errorMessage.includes('browser') || errorMessage.includes('blocking') || errorMessage.includes('Incognito')) {
+        title = 'PDF parser blocked';
+        description = 'Your browser/network is blocking the PDF parser. Try Incognito mode, disable extensions, or use another browser.';
+      } else if (errorMessage.includes('valid PDF') || errorMessage.includes('header')) {
         title = 'Invalid PDF';
-        description = 'The PDF has no pages. Please upload a valid notice document.';
+        description = 'This file doesn\'t appear to be a valid PDF. Please upload a different file.';
+      } else if (errorMessage.includes('corrupted') || errorMessage.includes('no pages')) {
+        title = 'PDF parsing failed';
+        description = 'Could not read the PDF. It may be corrupted or have no pages. Try a different file.';
       } else if (errorMessage.includes('INVALID_API_KEY') || errorMessage.includes('API key')) {
         title = 'Invalid API Key';
         description = 'Your OpenAI API key is invalid or expired. Please update it in the configuration panel.';
@@ -644,12 +666,66 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
                   <div className="flex-1">
                     <p className="font-medium">{uploadedFile.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                      {formatFileSize(uploadedFile.size)}
                     </p>
                   </div>
                   <Badge>PDF</Badge>
                 </CardContent>
               </Card>
+            )}
+
+            {/* PDF Debug Panel (only when debug enabled) */}
+            {uploadedFile && isDebugEnabled && (
+              <Collapsible>
+                <Card className="border-muted">
+                  <CollapsibleTrigger className="w-full">
+                    <CardHeader className="py-2 px-4 flex flex-row items-center gap-2 cursor-pointer hover:bg-muted/50">
+                      <Bug className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-xs font-medium text-muted-foreground">PDF Debug Info</span>
+                      <ChevronDown className="w-4 h-4 ml-auto text-muted-foreground" />
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="p-3 pt-0">
+                      <div className="text-xs font-mono bg-muted/50 rounded p-2 space-y-1">
+                        <p><strong>file.size:</strong> {uploadedFile.size} bytes</p>
+                        <p><strong>file.type:</strong> {uploadedFile.type || '(empty)'}</p>
+                        <p><strong>file.name:</strong> {uploadedFile.name}</p>
+                        {pdfDebugInfo && (
+                          <>
+                            <p><strong>arrayBuffer:</strong> {pdfDebugInfo.arrayBufferSize} bytes</p>
+                            <p><strong>header:</strong> {pdfDebugInfo.headerBytes}</p>
+                            <p><strong>workerSrc:</strong> {pdfDebugInfo.workerSrc.substring(0, 50)}...</p>
+                          </>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-2 text-xs h-6"
+                          onClick={async () => {
+                            try {
+                              const buf = await uploadedFile.arrayBuffer();
+                              const header = new Uint8Array(buf.slice(0, 5));
+                              const headerStr = String.fromCharCode(...header);
+                              const pdfjsLib = await import('pdfjs-dist');
+                              setPdfDebugInfo({
+                                fileSize: uploadedFile.size,
+                                arrayBufferSize: buf.byteLength,
+                                headerBytes: headerStr,
+                                workerSrc: pdfjsLib.GlobalWorkerOptions.workerSrc || '(not set)'
+                              });
+                            } catch (e) {
+                              console.error('Debug info error:', e);
+                            }
+                          }}
+                        >
+                          Analyze File
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
             )}
           </div>
         );

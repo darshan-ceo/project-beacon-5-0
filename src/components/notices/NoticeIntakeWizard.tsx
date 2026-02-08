@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, Upload, FileText, User, FolderOpen, Calendar, AlertCircle, Loader2, Key, Eye, EyeOff, Settings, ExternalLink, AlertTriangle, FileWarning } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { CheckCircle, Upload, FileText, User, FolderOpen, Calendar, AlertCircle, Loader2, Key, Eye, EyeOff, Settings, ExternalLink, AlertTriangle, FileWarning, ChevronDown, Bug } from 'lucide-react';
 import { noticeExtractionService } from '@/services/noticeExtractionService';
 import { clientsService } from '@/services/clientsService';
 import { casesService } from '@/services/casesService';
@@ -21,6 +22,7 @@ import { useAppState } from '@/contexts/AppStateContext';
 import { resolveDataGaps, type ResolverInput, type ResolverOutput } from '@/lib/notice/dataGapsResolver';
 import { useAsmt10Resolver, type ValidationResult } from '@/validation/asmt10Resolver';
 import { DataGapsResolver } from './DataGapsResolver';
+import { formatFileSize } from '@/utils/formatFileSize';
 
 interface NoticeIntakeWizardProps {
   isOpen: boolean;
@@ -186,7 +188,7 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
     setUploadedFile(file);
     toast({
       title: "File uploaded successfully",
-      description: `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) is ready for processing.`,
+      description: `${file.name} (${formatFileSize(file.size)}) is ready for processing.`,
     });
   }, [toast]);
 
@@ -352,12 +354,18 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
       if (errorMessage.includes('empty') || errorMessage.includes('0 bytes')) {
         title = 'File upload issue';
         description = 'The PDF file is empty. Please close the wizard and re-upload the file.';
-      } else if (errorMessage.includes('corrupted') || errorMessage.includes('password-protected')) {
-        title = 'PDF parsing failed';
-        description = 'Could not read the PDF. It may be password-protected or corrupted. Try a different file.';
-      } else if (errorMessage.includes('no pages')) {
+      } else if (errorMessage.includes('password')) {
+        title = 'Password protected';
+        description = 'This PDF is password-protected. Please remove the password and re-upload.';
+      } else if (errorMessage.includes('browser') || errorMessage.includes('blocking') || errorMessage.includes('Incognito')) {
+        title = 'PDF parser blocked';
+        description = 'Your browser/network is blocking the PDF parser. Try Incognito mode, disable extensions, or use another browser.';
+      } else if (errorMessage.includes('valid PDF') || errorMessage.includes('header')) {
         title = 'Invalid PDF';
-        description = 'The PDF has no pages. Please upload a valid notice document.';
+        description = 'This file doesn\'t appear to be a valid PDF. Please upload a different file.';
+      } else if (errorMessage.includes('corrupted') || errorMessage.includes('no pages')) {
+        title = 'PDF parsing failed';
+        description = 'Could not read the PDF. It may be corrupted or have no pages. Try a different file.';
       } else if (errorMessage.includes('INVALID_API_KEY') || errorMessage.includes('API key')) {
         title = 'Invalid API Key';
         description = 'Your OpenAI API key is invalid or expired. Please update it in the configuration panel.';
@@ -804,7 +812,7 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
                 <div className="flex-1">
                   <p className="font-medium">{uploadedFile.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                    {formatFileSize(uploadedFile.size)}
                   </p>
                 </div>
                 <Badge variant="secondary">PDF</Badge>
