@@ -92,8 +92,32 @@ class NoticeExtractionService {
    */
   private async extractTextFromPDF(file: File): Promise<string> {
     try {
+      // Log file details for debugging
+      console.log('📄 [PDF.js] Processing file:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified
+      });
+      
+      // Validate file before processing
+      if (!file || file.size === 0) {
+        throw new Error('PDF file is empty (0 bytes). Please re-upload the file.');
+      }
+      
       const arrayBuffer = await file.arrayBuffer();
+      
+      console.log('📄 [PDF.js] ArrayBuffer size:', arrayBuffer.byteLength);
+      
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error('Failed to read PDF file content. The file may be corrupted.');
+      }
+      
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      
+      if (pdf.numPages === 0) {
+        throw new Error('PDF has no pages');
+      }
       
       let fullText = '';
       
@@ -123,8 +147,20 @@ class NoticeExtractionService {
       // Normalize whitespace but preserve newlines
       return fullText.replace(/[ \t]+/g, ' ').trim();
     } catch (error) {
-      console.error('PDF text extraction error:', error);
-      throw new Error('Failed to extract text from PDF');
+      // Log detailed error for debugging
+      console.error('📄 [PDF.js] Text extraction error:', {
+        fileName: file?.name,
+        fileSize: file?.size,
+        fileType: file?.type,
+        error: error instanceof Error ? error.message : error
+      });
+      
+      // Re-throw with original message if it's our custom error
+      if (error instanceof Error && (error.message.includes('empty') || error.message.includes('corrupted') || error.message.includes('no pages'))) {
+        throw error;
+      }
+      
+      throw new Error('Failed to extract text from PDF. The file may be password-protected or corrupted.');
     }
   }
 
@@ -133,8 +169,31 @@ class NoticeExtractionService {
    */
   private async pdfToBase64Images(file: File): Promise<string[]> {
     try {
+      // Log file details for debugging
+      console.log('🖼️ [PDF.js] Converting to images:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+      
+      // Validate file before processing
+      if (!file || file.size === 0) {
+        throw new Error('PDF file is empty (0 bytes). Please re-upload the file.');
+      }
+      
       const arrayBuffer = await file.arrayBuffer();
+      
+      console.log('🖼️ [PDF.js] ArrayBuffer size:', arrayBuffer.byteLength);
+      
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error('Failed to read PDF file content. The file may be corrupted.');
+      }
+      
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      
+      if (pdf.numPages === 0) {
+        throw new Error('PDF has no pages');
+      }
       
       const images: string[] = [];
       const maxPages = Math.min(pdf.numPages, 4); // Process up to 4 pages
@@ -159,10 +218,24 @@ class NoticeExtractionService {
         images.push(canvas.toDataURL('image/png').split(',')[1]);
       }
       
+      console.log('🖼️ [PDF.js] Successfully converted', images.length, 'pages to images');
+      
       return images;
     } catch (error) {
-      console.error('PDF to image conversion error:', error);
-      throw new Error('Failed to convert PDF to images');
+      // Log detailed error for debugging
+      console.error('🖼️ [PDF.js] Image conversion error:', {
+        fileName: file?.name,
+        fileSize: file?.size,
+        fileType: file?.type,
+        error: error instanceof Error ? error.message : error
+      });
+      
+      // Re-throw with original message if it's our custom error
+      if (error instanceof Error && (error.message.includes('empty') || error.message.includes('corrupted') || error.message.includes('no pages'))) {
+        throw error;
+      }
+      
+      throw new Error('Failed to convert PDF to images. The file may be password-protected or corrupted.');
     }
   }
 

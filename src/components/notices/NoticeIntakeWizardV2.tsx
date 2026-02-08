@@ -136,6 +136,16 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
       return;
     }
 
+    // Validate file is properly loaded (not empty/corrupted)
+    if (!file || file.size === 0) {
+      toast({
+        title: "Invalid file",
+        description: "The PDF file appears to be empty or corrupted. Please try uploading again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Clear previous state
     setExtractedData({});
     setFieldConfidence({});
@@ -144,7 +154,7 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
     setUploadedFile(file);
     toast({
       title: "File uploaded",
-      description: `${file.name} is ready for processing.`,
+      description: `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) is ready for processing.`,
     });
   }, [toast]);
 
@@ -207,11 +217,31 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
       }
     } catch (error) {
       console.error('Extraction error:', error);
-      toast({
-        title: "Extraction error",
-        description: error instanceof Error ? error.message : "An error occurred.",
-        variant: "destructive",
-      });
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      let title = 'Extraction failed';
+      let description = errorMessage;
+      
+      // Provide specific guidance based on failure type
+      if (errorMessage.includes('empty') || errorMessage.includes('0 bytes')) {
+        title = 'File upload issue';
+        description = 'The PDF file is empty. Please close the wizard and re-upload the file.';
+      } else if (errorMessage.includes('corrupted') || errorMessage.includes('password-protected')) {
+        title = 'PDF parsing failed';
+        description = 'Could not read the PDF. It may be password-protected or corrupted. Try a different file.';
+      } else if (errorMessage.includes('no pages')) {
+        title = 'Invalid PDF';
+        description = 'The PDF has no pages. Please upload a valid notice document.';
+      } else if (errorMessage.includes('INVALID_API_KEY') || errorMessage.includes('API key')) {
+        title = 'Invalid API Key';
+        description = 'Your OpenAI API key is invalid or expired. Please update it in the configuration panel.';
+      } else if (errorMessage.includes('RATE_LIMIT')) {
+        title = 'Rate Limit Exceeded';
+        description = 'Too many requests. Please wait a moment and try again.';
+      }
+      
+      toast({ title, description, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
