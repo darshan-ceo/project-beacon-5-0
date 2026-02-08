@@ -201,13 +201,13 @@ The database schema is comprehensive and well-structured for GST litigation:
 | 5. Hearings Scheduled | ✅ Case ID required | ✅ Date/time required | ✅ Timeline entry added |
 | 6. Replies & Submissions | ✅ Notice ID required for reply | ⚠️ Optional fields mostly | ✅ Stage instance linked |
 | 7. Status Updates Logged | ✅ Stage transitions trigger timeline | ✅ Transition type required | ✅ Immutable entries |
-| 8. Final Order Uploaded | ⚠️ Order document optional | ⚠️ Order fields optional | ⚠️ No mandatory order capture |
+| 8. Final Order Uploaded | ⚠️ Order document optional | ✅ Order fields enforced before appeal (FIXED) | ⚠️ No mandatory order capture |
 | 9. Case Closed/Archived | ✅ Completion modal with reason | ⚠️ Notes optional | ✅ Completion logged |
 
 **Can User Break the Process?**
 - Yes, users can skip stages or skip document uploads
 - Checklists exist but are not blocking for all transitions
-- Order upload is not enforced before appeal stage
+- ✅ **FIXED:** Order details now enforced before appeal stage transitions (First Appeal, Tribunal, High Court, Supreme Court)
 
 ---
 
@@ -260,7 +260,7 @@ The database schema is comprehensive and well-structured for GST litigation:
 
 ### Non-Functional UI Elements
 1. Calendar sync panel shows "connected" but sync fails
-2. AI Assistant panels exist but Lovable AI is unavailable
+2. ~~AI Assistant panels exist but Lovable AI is unavailable~~ **FIXED:** Now shows graceful fallback when AI unavailable
 
 ---
 
@@ -272,7 +272,7 @@ The database schema is comprehensive and well-structured for GST litigation:
 | Working AI extraction | ❌ Missing (Lovable AI key invalid) | Critical |
 | Calendar sync | ❌ Broken | High |
 | Email delivery verification | ⚠️ Unknown | High |
-| Mandatory order capture before appeal | ❌ Missing | High |
+| Mandatory order capture before appeal | ✅ **FIXED** | High |
 | Bulk operations (notices, tasks) | ⚠️ Partial | Medium |
 
 ### Nice-to-Have Features
@@ -316,12 +316,12 @@ The core GST litigation workflow (Client → Case → Hearings → Tasks → Doc
 |---|-------|-------------------|----------------|
 | 1 | **LOVABLE_API_KEY invalid format** – AI extraction fails | Yes | Contact support to re-provision |
 | 2 | **Calendar OAuth token errors** – hearings don't sync | Yes, for calendar users | Fix token refresh flow |
-| 3 | **RLS policies overly permissive** – security risk | Audit compliance | Review and tighten policies |
+| 3 | **RLS policies overly permissive** – security risk | Audit compliance | ✅ Reviewed - issue_types is global lookup table, acceptable |
 | 4 | **Email domain verification unknown** – emails may fail | Yes, for notifications | Verify Resend domain setup |
-| 5 | **No mandatory order capture before appeal stage** – data gaps | Data quality | Add validation in stage transition |
+| 5 | **No mandatory order capture before appeal stage** – data gaps | Data quality | ✅ **FIXED** - Validation added in UnifiedStageDialog |
 | 6 | **WhatsApp integration untested** – may not work | For WhatsApp users | End-to-end test with real number |
 | 7 | **No multi-GSTIN per client model** – workaround required | Data modeling | Consider Client-GSTIN junction table |
-| 8 | **AI Assistant panels show but don't work** – confusing UX | Usability | Hide when AI unavailable |
+| 8 | **AI Assistant panels show but don't work** – confusing UX | Usability | ✅ **FIXED** - Graceful fallback when AI unavailable |
 | 9 | **Bulk notice intake missing** – operational inefficiency | Efficiency | Add bulk upload feature |
 | 10 | **Evidence integrity lacks checksums** – compliance risk | For strict audits | Add SHA-256 hash on document upload |
 

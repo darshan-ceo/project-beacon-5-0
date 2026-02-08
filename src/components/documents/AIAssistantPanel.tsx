@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Bot, 
@@ -66,6 +66,8 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
   const [showDiffModal, setShowDiffModal] = useState(false);
   const [currentDraft, setCurrentDraft] = useState<AIDraftResult | null>(null);
   const [fieldComparisons, setFieldComparisons] = useState<Record<string, { original: string; ai: string; accepted: boolean }>>({});
+  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
+  const [aiCheckError, setAiCheckError] = useState<string | null>(null);
 
   const [controls, setControls] = useState<AIDraftControls>({
     tone: 'formal',
@@ -75,6 +77,25 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
     language: 'english',
     insertCitations: false
   });
+
+  // Check AI service availability on mount
+  useEffect(() => {
+    const checkAIAvailability = async () => {
+      try {
+        // Try a lightweight health check by importing the service
+        const { aiDraftService } = await import('@/services/aiDraftService');
+        // If service loads successfully, AI is potentially available
+        setAiAvailable(true);
+        setAiCheckError(null);
+      } catch (error: any) {
+        console.warn('[AIAssistantPanel] AI service check failed:', error);
+        setAiAvailable(false);
+        setAiCheckError(error.message || 'AI service unavailable');
+      }
+    };
+    
+    checkAIAvailability();
+  }, []);
 
   const focusAreaOptions = [
     'Facts',
@@ -176,6 +197,22 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
           AI Draft Assistant is not available for your role. Contact your administrator for access.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Show unavailable state if AI check failed or is still loading
+  if (aiAvailable === false) {
+    return (
+      <Alert className="border-amber-200 bg-amber-50">
+        <AlertTriangle className="h-4 w-4 text-amber-600" />
+        <AlertDescription className="text-amber-800">
+          <span className="font-medium">AI Draft Assistant is currently unavailable.</span>
+          <br />
+          <span className="text-sm">
+            {aiCheckError || 'The AI service is temporarily unavailable. Please try again later or contact support.'}
+          </span>
         </AlertDescription>
       </Alert>
     );
