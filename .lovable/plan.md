@@ -1,149 +1,150 @@
 
+<context>
+User-visible symptom: after uploading a PDF notice (~4 KB), the wizard shows “0.00 MB” and extraction fails (“Failed to extract text from PDF”) even after hard refresh.
 
-# Fix Notice OCR - PDF Parsing Failure
+Key observation from code:
+- Both wizards display file size as MB with `toFixed(2)`. A 4 KB file is ~0.0039 MB, so it will display as “0.00 MB” even when the file is not empty.
+- The extraction pipeline relies on PDF.js three times:
+  1) `pdfToBase64Images()` for OpenAI Vision
+  2) `pdfToBase64Images()` for Lovable AI fallback
+  3) `extractTextFromPDF()` for regex fallback
+  If PDF.js document loading fails (worker blocked/failed, parsing issue), all three tiers fail and you end up with the generic “Failed to extract text from PDF”.
+</context>
 
-## Problem Summary
+<goals>
+1) Remove confusion: show correct file size for small PDFs (KB/bytes, not “0.00 MB”).
+2) Make PDF parsing resilient: if PDF.js fails in worker mode, automatically retry without worker.
+3) Surface the real underlying PDF.js error so we can identify whether it’s a worker/network/CSP issue, password protection, or an invalid PDF stream.
+</goals>
 
-Your OpenAI API key is working correctly. The issue is that **PDF.js fails to parse the uploaded PDF file** before any AI call is made. The file shows "0.00 MB" in the wizard, indicating a corrupted file upload.
+<non-goals>
+- Changing your OpenAI API key setup (this issue is happening before any OCR call can run).
+- Replacing the entire OCR pipeline (we’ll focus on fixing PDF ingestion first).
+</non-goals>
 
----
+<implementation-plan>
+<step id="1" title="Fix file size display (0.00 MB for small files)">
+  <what>
+    Update UI in both Notice Intake wizards to display file size using KB/MB/bytes formatting instead of always MB with 2 decimals.
+  </what>
+  <why>
+    A 4 KB PDF will always render as “0.00 MB” with the current code, which looks like “0 bytes” but isn’t. This is a display/UX bug that’s masking the real problem.
+  </why>
+  <files>
+    - src/components/notices/NoticeIntakeWizardV2.tsx
+    - src/components/notices/NoticeIntakeWizard.tsx
+  </files>
+  <details>
+    - Replace:
+      - Toast text: `(${(file.size / 1024 / 1024).toFixed(2)} MB)`
+      - File card text: `({(uploadedFile.size / 1024 / 1024).toFixed(2)} MB)`
+    - Reuse an existing formatter pattern already in the codebase (e.g. `orderDocumentService.formatFileSize(bytes)` logic) or extract a small shared helper `formatFileSize(bytes)` into a common util.
+    - Target behavior examples:
+      - 4000 bytes => “3.9 KB”
+      - 800 bytes => “800 B”
+      - 2,500,000 bytes => “2.4 MB”
+  </details>
+</step>
 
-## Root Cause
+<step id="2" title="Add a resilient PDF.js loader with worker fallback">
+  <what>
+    Centralize PDF loading in noticeExtractionService and implement automatic retry using `disableWorker: true` when worker-based parsing fails.
+  </what>
+  <why>
+    In real deployments, PDF.js worker loading can fail due to extensions, CSP, corporate proxies, MIME issues, or intermittent asset loading. When that happens, all extraction paths fail. Retrying without a worker often restores functionality (at the cost of performance, which is acceptable for small/medium PDFs).
+  </why>
+  <files>
+    - src/services/noticeExtractionService.ts
+  </files>
+  <details>
+    Implement a helper like:
+    - `private async loadPdf(arrayBuffer: ArrayBuffer): Promise<PDFDocumentProxy>`
+      1) Try `pdfjsLib.getDocument({ data: arrayBuffer }).promise`
+      2) If it throws, log the original error and retry:
+         `pdfjsLib.getDocument({ data: arrayBuffer, disableWorker: true }).promise`
+      3) If retry fails, throw a new error that includes the original error name/message for debugging.
+    Then update both:
+    - `extractTextFromPDF()` to use `loadPdf(arrayBuffer)`
+    - `pdfToBase64Images()` to use `loadPdf(arrayBuffer)`
+  </details>
+</step>
 
-| Layer | Status | Evidence |
-|-------|--------|----------|
-| File Upload | ❌ Broken | File shows 0.00 MB |
-| PDF.js Parsing | ❌ Fails | Error at `extractTextFromPDF` |
-| OpenAI Vision API | ⬜ Never Called | No network request logged |
-| Lovable AI | ⬜ Never Called | Also uses failed PDF parser |
+<step id="3" title="Improve diagnostics: show underlying PDF.js failure reason">
+  <what>
+    Preserve and expose the actual PDF.js error message (not only “Failed to extract text from PDF”).
+  </what>
+  <why>
+    Right now, the service collapses most PDF.js failures into a generic message. Without the underlying reason, we can’t distinguish:
+    - Worker load blocked
+    - Password-protected PDF
+    - Invalid/corrupt PDF bytes
+    - PDF.js parsing incompatibility
+  </why>
+  <files>
+    - src/services/noticeExtractionService.ts
+    - src/components/notices/NoticeIntakeWizardV2.tsx
+    - src/components/notices/NoticeIntakeWizard.tsx
+  </files>
+  <details>
+    - In the service:
+      - When PDF parsing fails, return `ExtractionResult` with a richer `error` message (safe, user-friendly) and keep a “technical details” string for console debugging.
+      - Detect common PDF.js error types:
+        - Password-protected: error name/message indicates password (e.g. `PasswordException`)
+        - Worker/module load/network: “Failed to fetch”, “imported module”, “Failed to load module script”, etc.
+    - In the wizard:
+      - Update the destructive toast description to include a short actionable hint based on category:
+        - If worker blocked: “Your browser/network is blocking the PDF parser. Try Incognito mode, disable extensions, or use another browser.”
+        - If password-protected: “This PDF is password-protected. Remove the password and re-upload.”
+        - If invalid bytes/header mismatch: “This file doesn’t look like a valid PDF.”
+  </details>
+</step>
 
-The extraction flow tries to convert PDF → Images BEFORE calling OpenAI, and that conversion is failing.
+<step id="4" title="Optional: add an on-screen 'PDF Debug Info' toggle (fast troubleshooting)">
+  <what>
+    Add a small expandable debug block in the Upload step (only when a debug flag is enabled) showing:
+    - file.size in bytes
+    - arrayBuffer.byteLength
+    - first 5 bytes/header (“%PDF-” check)
+    - pdfjs workerSrc string
+  </what>
+  <why>
+    This allows non-technical users to capture exactly what’s wrong without digging into DevTools, and it helps confirm whether the browser is reading the file correctly.
+  </why>
+  <files>
+    - src/components/notices/NoticeIntakeWizardV2.tsx (and optionally V1)
+  </files>
+  <details>
+    Controlled by something like:
+    - `localStorage.setItem('notice_ocr_debug', '1')`
+    - or query param `?noticeOcrDebug=1`
+  </details>
+</step>
 
----
+<validation-plan>
+1) Upload the provided sample PDF again:
+   - The UI should show “~3.9 KB” (not “0.00 MB”).
+2) Start extraction:
+   - If worker mode fails, the service should retry without worker automatically.
+   - Extraction should proceed to either:
+     - OpenAI Vision OCR (network call visible), or
+     - Regex extraction (if AI is unavailable), but without hard failing at PDF parsing.
+3) Confirm improved error feedback:
+   - If it still fails, the toast should indicate the category (worker blocked / password / invalid PDF), and console logs should include the underlying PDF.js error.
+</validation-plan>
 
-## Fix Plan (3 Parts)
+<expected-outcome>
+- The “0.00 MB” display no longer misleads; small PDFs show KB/bytes.
+- The OCR pipeline works again in environments where PDF.js worker loading is blocked by retrying with `disableWorker`.
+- If parsing still fails, you’ll get a precise, actionable error message instead of a generic “Failed to extract text from PDF”.
+</expected-outcome>
 
-### Part 1: Add File Validation Before Processing
-
-Before attempting extraction, validate the file is properly loaded.
-
-**File:** `src/components/notices/NoticeIntakeWizardV2.tsx`
-
-```typescript
-// Add file validation in handleFileUpload
-const handleFileUpload = useCallback((file: File) => {
-  // Validate file is properly loaded
-  if (!file || file.size === 0) {
-    toast({
-      title: "Invalid file",
-      description: "The PDF file appears to be empty or corrupted. Please try uploading again.",
-      variant: "destructive",
-    });
-    return;
-  }
-  
-  // Rest of existing logic...
-```
-
----
-
-### Part 2: Improve PDF.js Error Handling
-
-Add detailed error logging to understand exactly why PDF.js fails.
-
-**File:** `src/services/noticeExtractionService.ts`
-
-Update `extractTextFromPDF` method:
-
-```typescript
-private async extractTextFromPDF(file: File): Promise<string> {
-  try {
-    // Log file details for debugging
-    console.log('📄 [PDF.js] Processing file:', {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      lastModified: file.lastModified
-    });
-    
-    // Validate file before processing
-    if (file.size === 0) {
-      throw new Error('PDF file is empty (0 bytes)');
-    }
-    
-    const arrayBuffer = await file.arrayBuffer();
-    
-    console.log('📄 [PDF.js] ArrayBuffer size:', arrayBuffer.byteLength);
-    
-    if (arrayBuffer.byteLength === 0) {
-      throw new Error('Failed to read PDF file content');
-    }
-    
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    // ... rest of existing logic
-```
-
-Update `pdfToBase64Images` method similarly with validation.
-
----
-
-### Part 3: Show Actionable Error Messages
-
-Provide specific guidance based on the failure type.
-
-**File:** `src/components/notices/NoticeIntakeWizardV2.tsx`
-
-Update error handling in `handleExtractData`:
-
-```typescript
-} catch (error) {
-  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-  
-  let title = 'Extraction failed';
-  let description = errorMessage;
-  
-  if (errorMessage.includes('empty') || errorMessage.includes('0 bytes')) {
-    title = 'File upload issue';
-    description = 'The PDF file is empty. Please close and re-upload the file.';
-  } else if (errorMessage.includes('Failed to extract text')) {
-    title = 'PDF parsing failed';
-    description = 'Could not read the PDF. It may be password-protected or corrupted. Try a different file.';
-  } else if (errorMessage.includes('INVALID_API_KEY')) {
-    title = 'Invalid API Key';
-    description = 'Your OpenAI API key is invalid or expired. Please update it in the configuration panel.';
-  }
-  
-  toast({ title, description, variant: "destructive" });
-}
-```
-
----
-
-## Immediate Workaround
-
-To test if your OpenAI API key works:
-
-1. **Try a different PDF file** - The current "Stage1_Scrutiny_ASMT-10_Sample1.pdf" may be corrupted
-2. **Refresh the page** - This clears any cached file state
-3. **Re-upload the PDF** - Ensure the file fully loads before clicking extract
-
----
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/components/notices/NoticeIntakeWizardV2.tsx` | Add file size validation, improve error messages |
-| `src/services/noticeExtractionService.ts` | Add detailed logging, validate file before parsing |
-| `src/components/notices/NoticeIntakeWizard.tsx` | Same fixes for V1 wizard |
-
----
-
-## Expected Outcome
-
-After implementation:
-- **Empty files** (0 bytes) are rejected immediately with clear message
-- **PDF parsing errors** show specific guidance (password-protected, corrupted, etc.)
-- **API key errors** are clearly distinguished from file errors
-- **Debugging logs** help identify future issues
-
+<files-to-change-summary>
+- src/services/noticeExtractionService.ts
+  - Add `loadPdf()` helper with worker fallback and improved error classification.
+  - Use `loadPdf()` in both text extraction and image conversion paths.
+- src/components/notices/NoticeIntakeWizardV2.tsx
+  - Use a proper file-size formatter in toast + file card.
+  - Show categorized error hints; optional debug info toggle.
+- src/components/notices/NoticeIntakeWizard.tsx
+  - Same file-size formatting + improved error feedback.
+</files-to-change-summary>
