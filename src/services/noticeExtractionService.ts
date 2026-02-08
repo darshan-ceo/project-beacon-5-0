@@ -5,7 +5,16 @@
 
 import { toast } from '@/hooks/use-toast';
 import * as pdfjsLib from 'pdfjs-dist';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
+// Error categories for user-friendly messages
+type PDFErrorCategory = 'worker_blocked' | 'password_protected' | 'invalid_pdf' | 'file_empty' | 'unknown';
+
+interface PDFLoadError extends Error {
+  category: PDFErrorCategory;
+  technicalDetails: string;
+}
 
 export interface FieldConfidence {
   value: string;
@@ -55,6 +64,134 @@ class NoticeExtractionService {
     pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
   }
 
+  /**
+   * Classify PDF.js errors into user-friendly categories
+   */
+  private classifyPDFError(error: any): { category: PDFErrorCategory; userMessage: string; technicalDetails: string } {
+    const message = error?.message || String(error);
+    const name = error?.name || '';
+    
+    // Check for password-protected PDFs
+    if (name === 'PasswordException' || message.toLowerCase().includes('password')) {
+      return {
+        category: 'password_protected',
+        userMessage: 'This PDF is password-protected. Please remove the password and re-upload.',
+        technicalDetails: message
+      };
+    }
+    
+    // Check for worker loading issues
+    if (
+      message.includes('Failed to fetch') ||
+      message.includes('imported module') ||
+      message.includes('Failed to load module') ||
+      message.includes('NetworkError') ||
+      message.includes('dynamically imported module')
+    ) {
+      return {
+        category: 'worker_blocked',
+        userMessage: 'Your browser/network is blocking the PDF parser. Try Incognito mode, disable extensions, or use another browser.',
+        technicalDetails: `Worker load failed: ${message}`
+      };
+    }
+    
+    // Check for invalid PDF structure
+    if (
+      message.includes('Invalid PDF') ||
+      message.includes('missing header') ||
+      message.includes('stream must have data') ||
+      message.includes('Invalid XRef')
+    ) {
+      return {
+        category: 'invalid_pdf',
+        userMessage: 'This file doesn\'t appear to be a valid PDF. Please upload a different file.',
+        technicalDetails: message
+      };
+    }
+    
+    // Check for empty/corrupted files
+    if (message.includes('empty') || message.includes('0 bytes') || message.includes('corrupted')) {
+      return {
+        category: 'file_empty',
+        userMessage: 'The PDF file is empty or corrupted. Please re-upload the file.',
+        technicalDetails: message
+      };
+    }
+    
+    return {
+      category: 'unknown',
+      userMessage: 'Failed to process PDF. Please try a different file.',
+      technicalDetails: message
+    };
+  }
+
+  /**
+   * Load PDF with automatic worker fallback
+   * Tries worker mode first, falls back to no-worker mode if blocked
+   */
+  private async loadPdf(arrayBuffer: ArrayBuffer): Promise<PDFDocumentProxy> {
+    console.log('📄 [PDF.js] Loading PDF, buffer size:', arrayBuffer.byteLength);
+    
+    if (arrayBuffer.byteLength === 0) {
+      const error = new Error('PDF file is empty (0 bytes)') as PDFLoadError;
+      error.category = 'file_empty';
+      error.technicalDetails = 'ArrayBuffer has 0 bytes';
+      throw error;
+    }
+    
+    // Check PDF header (%PDF-)
+    const header = new Uint8Array(arrayBuffer.slice(0, 5));
+    const headerString = String.fromCharCode(...header);
+    console.log('📄 [PDF.js] File header:', headerString);
+    
+    if (headerString !== '%PDF-') {
+      console.warn('📄 [PDF.js] Invalid PDF header:', headerString);
+      const error = new Error('File does not have a valid PDF header') as PDFLoadError;
+      error.category = 'invalid_pdf';
+      error.technicalDetails = `Header: "${headerString}" (expected "%PDF-")`;
+      throw error;
+    }
+    
+    // Try with worker first
+    try {
+      console.log('📄 [PDF.js] Attempting load with worker...');
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      console.log('📄 [PDF.js] Worker mode succeeded, pages:', pdf.numPages);
+      return pdf;
+    } catch (workerError) {
+      const classified = this.classifyPDFError(workerError);
+      console.warn('📄 [PDF.js] Worker mode failed:', classified.technicalDetails);
+      
+      // Don't retry for password-protected or invalid PDFs
+      if (classified.category === 'password_protected' || classified.category === 'invalid_pdf') {
+        const error = new Error(classified.userMessage) as PDFLoadError;
+        error.category = classified.category;
+        error.technicalDetails = classified.technicalDetails;
+        throw error;
+      }
+      
+      // Retry without worker for network/CSP issues
+      try {
+        console.log('📄 [PDF.js] Retrying without worker (useWorkerFetch: false)...');
+        const pdf = await pdfjsLib.getDocument({ 
+          data: arrayBuffer, 
+          useWorkerFetch: false,
+          isEvalSupported: false
+        }).promise;
+        console.log('📄 [PDF.js] No-worker mode succeeded, pages:', pdf.numPages);
+        return pdf;
+      } catch (noWorkerError) {
+        const retryClassified = this.classifyPDFError(noWorkerError);
+        console.error('📄 [PDF.js] Both modes failed:', retryClassified.technicalDetails);
+        
+        const error = new Error(retryClassified.userMessage) as PDFLoadError;
+        error.category = retryClassified.category;
+        error.technicalDetails = `Worker: ${classified.technicalDetails} | No-worker: ${retryClassified.technicalDetails}`;
+        throw error;
+      }
+    }
+  }
+
   private regexPatterns = {
     // DIN format - 15-20 characters alphanumeric
     din: /DIN[\s:]*([A-Z0-9]{15,20})/i,
@@ -88,155 +225,111 @@ class NoticeExtractionService {
   };
 
   /**
-   * Extract text from PDF file using PDF.js
+   * Extract text from PDF file using PDF.js with resilient loading
    */
   private async extractTextFromPDF(file: File): Promise<string> {
-    try {
-      // Log file details for debugging
-      console.log('📄 [PDF.js] Processing file:', {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        lastModified: file.lastModified
-      });
-      
-      // Validate file before processing
-      if (!file || file.size === 0) {
-        throw new Error('PDF file is empty (0 bytes). Please re-upload the file.');
-      }
-      
-      const arrayBuffer = await file.arrayBuffer();
-      
-      console.log('📄 [PDF.js] ArrayBuffer size:', arrayBuffer.byteLength);
-      
-      if (arrayBuffer.byteLength === 0) {
-        throw new Error('Failed to read PDF file content. The file may be corrupted.');
-      }
-      
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      
-      if (pdf.numPages === 0) {
-        throw new Error('PDF has no pages');
-      }
-      
-      let fullText = '';
-      
-      // Extract text from all pages with improved line detection
-      for (let pageNum = 1; pageNum <= Math.min(pdf.numPages, 10); pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const textContent = await page.getTextContent();
-        
-        // Improved text joining - add newlines between items with large Y gaps
-        let lastY = 0;
-        const pageText = textContent.items
-          .map((item: any) => {
-            const text = item.str;
-            const y = item.transform ? item.transform[5] : 0; // Y position
-            
-            // Add newline if Y position changed significantly (new line)
-            const prefix = (lastY && Math.abs(y - lastY) > 10) ? '\n' : ' ';
-            lastY = y;
-            
-            return prefix + text;
-          })
-          .join('');
-        
-        fullText += pageText + '\n';
-      }
-      
-      // Normalize whitespace but preserve newlines
-      return fullText.replace(/[ \t]+/g, ' ').trim();
-    } catch (error) {
-      // Log detailed error for debugging
-      console.error('📄 [PDF.js] Text extraction error:', {
-        fileName: file?.name,
-        fileSize: file?.size,
-        fileType: file?.type,
-        error: error instanceof Error ? error.message : error
-      });
-      
-      // Re-throw with original message if it's our custom error
-      if (error instanceof Error && (error.message.includes('empty') || error.message.includes('corrupted') || error.message.includes('no pages'))) {
-        throw error;
-      }
-      
-      throw new Error('Failed to extract text from PDF. The file may be password-protected or corrupted.');
+    console.log('📄 [extractTextFromPDF] Processing file:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: file.lastModified
+    });
+    
+    // Validate file before processing
+    if (!file || file.size === 0) {
+      throw new Error('PDF file is empty (0 bytes). Please re-upload the file.');
     }
+    
+    const arrayBuffer = await file.arrayBuffer();
+    console.log('📄 [extractTextFromPDF] ArrayBuffer size:', arrayBuffer.byteLength);
+    
+    // Use resilient loader with worker fallback
+    const pdf = await this.loadPdf(arrayBuffer);
+    
+    if (pdf.numPages === 0) {
+      throw new Error('PDF has no pages');
+    }
+    
+    let fullText = '';
+    
+    // Extract text from all pages with improved line detection
+    for (let pageNum = 1; pageNum <= Math.min(pdf.numPages, 10); pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      
+      // Improved text joining - add newlines between items with large Y gaps
+      let lastY = 0;
+      const pageText = textContent.items
+        .map((item: any) => {
+          const text = item.str;
+          const y = item.transform ? item.transform[5] : 0; // Y position
+          
+          // Add newline if Y position changed significantly (new line)
+          const prefix = (lastY && Math.abs(y - lastY) > 10) ? '\n' : ' ';
+          lastY = y;
+          
+          return prefix + text;
+        })
+        .join('');
+      
+      fullText += pageText + '\n';
+    }
+    
+    // Normalize whitespace but preserve newlines
+    return fullText.replace(/[ \t]+/g, ' ').trim();
   }
 
   /**
    * Convert PDF pages to PNG images for Vision API (up to 4 pages)
    */
   private async pdfToBase64Images(file: File): Promise<string[]> {
-    try {
-      // Log file details for debugging
-      console.log('🖼️ [PDF.js] Converting to images:', {
-        name: file.name,
-        size: file.size,
-        type: file.type
-      });
-      
-      // Validate file before processing
-      if (!file || file.size === 0) {
-        throw new Error('PDF file is empty (0 bytes). Please re-upload the file.');
-      }
-      
-      const arrayBuffer = await file.arrayBuffer();
-      
-      console.log('🖼️ [PDF.js] ArrayBuffer size:', arrayBuffer.byteLength);
-      
-      if (arrayBuffer.byteLength === 0) {
-        throw new Error('Failed to read PDF file content. The file may be corrupted.');
-      }
-      
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      
-      if (pdf.numPages === 0) {
-        throw new Error('PDF has no pages');
-      }
-      
-      const images: string[] = [];
-      const maxPages = Math.min(pdf.numPages, 4); // Process up to 4 pages
-      
-      for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.5 }); // Slightly lower for multiple pages
-        
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        if (!context) throw new Error('Failed to get canvas context');
-        
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        
-        const renderContext = {
-          canvasContext: context,
-          viewport: viewport
-        };
-        
-        await page.render(renderContext as any).promise;
-        images.push(canvas.toDataURL('image/png').split(',')[1]);
-      }
-      
-      console.log('🖼️ [PDF.js] Successfully converted', images.length, 'pages to images');
-      
-      return images;
-    } catch (error) {
-      // Log detailed error for debugging
-      console.error('🖼️ [PDF.js] Image conversion error:', {
-        fileName: file?.name,
-        fileSize: file?.size,
-        fileType: file?.type,
-        error: error instanceof Error ? error.message : error
-      });
-      
-      // Re-throw with original message if it's our custom error
-      if (error instanceof Error && (error.message.includes('empty') || error.message.includes('corrupted') || error.message.includes('no pages'))) {
-        throw error;
-      }
-      
-      throw new Error('Failed to convert PDF to images. The file may be password-protected or corrupted.');
+    console.log('🖼️ [pdfToBase64Images] Converting to images:', {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    });
+    
+    // Validate file before processing
+    if (!file || file.size === 0) {
+      throw new Error('PDF file is empty (0 bytes). Please re-upload the file.');
     }
+    
+    const arrayBuffer = await file.arrayBuffer();
+    console.log('🖼️ [pdfToBase64Images] ArrayBuffer size:', arrayBuffer.byteLength);
+    
+    // Use resilient loader with worker fallback
+    const pdf = await this.loadPdf(arrayBuffer);
+    
+    if (pdf.numPages === 0) {
+      throw new Error('PDF has no pages');
+    }
+    
+    const images: string[] = [];
+    const maxPages = Math.min(pdf.numPages, 4); // Process up to 4 pages
+    
+    for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 1.5 }); // Slightly lower for multiple pages
+      
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Failed to get canvas context');
+      
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+      
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport
+      };
+      
+      await page.render(renderContext as any).promise;
+      images.push(canvas.toDataURL('image/png').split(',')[1]);
+    }
+    
+    console.log('🖼️ [pdfToBase64Images] Successfully converted', images.length, 'pages to images');
+    
+    return images;
   }
 
   /**
