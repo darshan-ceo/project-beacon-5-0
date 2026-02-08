@@ -1,150 +1,168 @@
 
-<context>
-User-visible symptom: after uploading a PDF notice (~4 KB), the wizard shows “0.00 MB” and extraction fails (“Failed to extract text from PDF”) even after hard refresh.
+# Fix Notice OCR - PDF.js Worker Fallback Not Working
 
-Key observation from code:
-- Both wizards display file size as MB with `toFixed(2)`. A 4 KB file is ~0.0039 MB, so it will display as “0.00 MB” even when the file is not empty.
-- The extraction pipeline relies on PDF.js three times:
-  1) `pdfToBase64Images()` for OpenAI Vision
-  2) `pdfToBase64Images()` for Lovable AI fallback
-  3) `extractTextFromPDF()` for regex fallback
-  If PDF.js document loading fails (worker blocked/failed, parsing issue), all three tiers fail and you end up with the generic “Failed to extract text from PDF”.
-</context>
+## Problem Summary
 
-<goals>
-1) Remove confusion: show correct file size for small PDFs (KB/bytes, not “0.00 MB”).
-2) Make PDF parsing resilient: if PDF.js fails in worker mode, automatically retry without worker.
-3) Surface the real underlying PDF.js error so we can identify whether it’s a worker/network/CSP issue, password protection, or an invalid PDF stream.
-</goals>
+Despite file size displaying correctly (3.1 KB), the extraction still fails with "Failed to extract text from PDF". The issue is that the current worker fallback implementation is **incorrect** for PDF.js v5.
 
-<non-goals>
-- Changing your OpenAI API key setup (this issue is happening before any OCR call can run).
-- Replacing the entire OCR pipeline (we’ll focus on fixing PDF ingestion first).
-</non-goals>
+## Root Cause Analysis
 
-<implementation-plan>
-<step id="1" title="Fix file size display (0.00 MB for small files)">
-  <what>
-    Update UI in both Notice Intake wizards to display file size using KB/MB/bytes formatting instead of always MB with 2 decimals.
-  </what>
-  <why>
-    A 4 KB PDF will always render as “0.00 MB” with the current code, which looks like “0 bytes” but isn’t. This is a display/UX bug that’s masking the real problem.
-  </why>
-  <files>
-    - src/components/notices/NoticeIntakeWizardV2.tsx
-    - src/components/notices/NoticeIntakeWizard.tsx
-  </files>
-  <details>
-    - Replace:
-      - Toast text: `(${(file.size / 1024 / 1024).toFixed(2)} MB)`
-      - File card text: `({(uploadedFile.size / 1024 / 1024).toFixed(2)} MB)`
-    - Reuse an existing formatter pattern already in the codebase (e.g. `orderDocumentService.formatFileSize(bytes)` logic) or extract a small shared helper `formatFileSize(bytes)` into a common util.
-    - Target behavior examples:
-      - 4000 bytes => “3.9 KB”
-      - 800 bytes => “800 B”
-      - 2,500,000 bytes => “2.4 MB”
-  </details>
-</step>
+### What's Happening
+1. **Worker Loading Fails** - The PDF.js web worker (`pdf.worker.min.mjs`) fails to load due to browser CSP restrictions, network issues, or extension blocking
+2. **Incorrect Fallback** - The current code uses `useWorkerFetch: false` which does NOT disable the worker - it only disables the Fetch API inside the worker thread
+3. **Both Attempts Fail** - Since both attempts still try to use the broken worker, extraction fails
 
-<step id="2" title="Add a resilient PDF.js loader with worker fallback">
-  <what>
-    Centralize PDF loading in noticeExtractionService and implement automatic retry using `disableWorker: true` when worker-based parsing fails.
-  </what>
-  <why>
-    In real deployments, PDF.js worker loading can fail due to extensions, CSP, corporate proxies, MIME issues, or intermittent asset loading. When that happens, all extraction paths fail. Retrying without a worker often restores functionality (at the cost of performance, which is acceptable for small/medium PDFs).
-  </why>
-  <files>
-    - src/services/noticeExtractionService.ts
-  </files>
-  <details>
-    Implement a helper like:
-    - `private async loadPdf(arrayBuffer: ArrayBuffer): Promise<PDFDocumentProxy>`
-      1) Try `pdfjsLib.getDocument({ data: arrayBuffer }).promise`
-      2) If it throws, log the original error and retry:
-         `pdfjsLib.getDocument({ data: arrayBuffer, disableWorker: true }).promise`
-      3) If retry fails, throw a new error that includes the original error name/message for debugging.
-    Then update both:
-    - `extractTextFromPDF()` to use `loadPdf(arrayBuffer)`
-    - `pdfToBase64Images()` to use `loadPdf(arrayBuffer)`
-  </details>
-</step>
+### Why Current Fallback Doesn't Work
+```typescript
+// Current code (WRONG)
+const pdf = await pdfjsLib.getDocument({ 
+  data: arrayBuffer, 
+  useWorkerFetch: false,  // This doesn't disable the worker!
+  isEvalSupported: false
+}).promise;
+```
 
-<step id="3" title="Improve diagnostics: show underlying PDF.js failure reason">
-  <what>
-    Preserve and expose the actual PDF.js error message (not only “Failed to extract text from PDF”).
-  </what>
-  <why>
-    Right now, the service collapses most PDF.js failures into a generic message. Without the underlying reason, we can’t distinguish:
-    - Worker load blocked
-    - Password-protected PDF
-    - Invalid/corrupt PDF bytes
-    - PDF.js parsing incompatibility
-  </why>
-  <files>
-    - src/services/noticeExtractionService.ts
-    - src/components/notices/NoticeIntakeWizardV2.tsx
-    - src/components/notices/NoticeIntakeWizard.tsx
-  </files>
-  <details>
-    - In the service:
-      - When PDF parsing fails, return `ExtractionResult` with a richer `error` message (safe, user-friendly) and keep a “technical details” string for console debugging.
-      - Detect common PDF.js error types:
-        - Password-protected: error name/message indicates password (e.g. `PasswordException`)
-        - Worker/module load/network: “Failed to fetch”, “imported module”, “Failed to load module script”, etc.
-    - In the wizard:
-      - Update the destructive toast description to include a short actionable hint based on category:
-        - If worker blocked: “Your browser/network is blocking the PDF parser. Try Incognito mode, disable extensions, or use another browser.”
-        - If password-protected: “This PDF is password-protected. Remove the password and re-upload.”
-        - If invalid bytes/header mismatch: “This file doesn’t look like a valid PDF.”
-  </details>
-</step>
+The `useWorkerFetch` option tells PDF.js not to use Fetch API in the worker for loading CMaps/fonts - it doesn't disable the worker itself.
 
-<step id="4" title="Optional: add an on-screen 'PDF Debug Info' toggle (fast troubleshooting)">
-  <what>
-    Add a small expandable debug block in the Upload step (only when a debug flag is enabled) showing:
-    - file.size in bytes
-    - arrayBuffer.byteLength
-    - first 5 bytes/header (“%PDF-” check)
-    - pdfjs workerSrc string
-  </what>
-  <why>
-    This allows non-technical users to capture exactly what’s wrong without digging into DevTools, and it helps confirm whether the browser is reading the file correctly.
-  </why>
-  <files>
-    - src/components/notices/NoticeIntakeWizardV2.tsx (and optionally V1)
-  </files>
-  <details>
-    Controlled by something like:
-    - `localStorage.setItem('notice_ocr_debug', '1')`
-    - or query param `?noticeOcrDebug=1`
-  </details>
-</step>
+---
 
-<validation-plan>
-1) Upload the provided sample PDF again:
-   - The UI should show “~3.9 KB” (not “0.00 MB”).
-2) Start extraction:
-   - If worker mode fails, the service should retry without worker automatically.
-   - Extraction should proceed to either:
-     - OpenAI Vision OCR (network call visible), or
-     - Regex extraction (if AI is unavailable), but without hard failing at PDF parsing.
-3) Confirm improved error feedback:
-   - If it still fails, the toast should indicate the category (worker blocked / password / invalid PDF), and console logs should include the underlying PDF.js error.
-</validation-plan>
+## Solution
 
-<expected-outcome>
-- The “0.00 MB” display no longer misleads; small PDFs show KB/bytes.
-- The OCR pipeline works again in environments where PDF.js worker loading is blocked by retrying with `disableWorker`.
-- If parsing still fails, you’ll get a precise, actionable error message instead of a generic “Failed to extract text from PDF”.
-</expected-outcome>
+### Approach: Clear workerSrc on Fallback
 
-<files-to-change-summary>
-- src/services/noticeExtractionService.ts
-  - Add `loadPdf()` helper with worker fallback and improved error classification.
-  - Use `loadPdf()` in both text extraction and image conversion paths.
-- src/components/notices/NoticeIntakeWizardV2.tsx
-  - Use a proper file-size formatter in toast + file card.
-  - Show categorized error hints; optional debug info toggle.
-- src/components/notices/NoticeIntakeWizard.tsx
-  - Same file-size formatting + improved error feedback.
-</files-to-change-summary>
+PDF.js v5+ automatically uses a "fake worker" (main-thread processing) when:
+- `GlobalWorkerOptions.workerSrc` is not set AND
+- No `worker` option is provided to `getDocument()`
+
+The fix is to temporarily clear `workerSrc` before the retry attempt to trigger the internal fake worker mechanism.
+
+---
+
+## Technical Implementation
+
+### File: `src/services/noticeExtractionService.ts`
+
+#### Step 1: Update the `loadPdf()` Method
+
+Replace the current retry logic with a proper fake-worker fallback:
+
+```typescript
+private async loadPdf(arrayBuffer: ArrayBuffer): Promise<PDFDocumentProxy> {
+  console.log('📄 [PDF.js] Loading PDF, buffer size:', arrayBuffer.byteLength);
+  
+  if (arrayBuffer.byteLength === 0) {
+    const error = new Error('PDF file is empty (0 bytes)') as PDFLoadError;
+    error.category = 'file_empty';
+    error.technicalDetails = 'ArrayBuffer has 0 bytes';
+    throw error;
+  }
+  
+  // Check PDF header (%PDF-)
+  const header = new Uint8Array(arrayBuffer.slice(0, 5));
+  const headerString = String.fromCharCode(...header);
+  console.log('📄 [PDF.js] File header:', headerString);
+  
+  if (headerString !== '%PDF-') {
+    console.warn('📄 [PDF.js] Invalid PDF header:', headerString);
+    const error = new Error('File does not have a valid PDF header') as PDFLoadError;
+    error.category = 'invalid_pdf';
+    error.technicalDetails = `Header: "${headerString}" (expected "%PDF-")`;
+    throw error;
+  }
+  
+  // Try with worker first
+  try {
+    console.log('📄 [PDF.js] Attempting load with worker...');
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    console.log('📄 [PDF.js] Worker mode succeeded, pages:', pdf.numPages);
+    return pdf;
+  } catch (workerError) {
+    const classified = this.classifyPDFError(workerError);
+    console.warn('📄 [PDF.js] Worker mode failed:', classified.technicalDetails);
+    
+    // Don't retry for password-protected or invalid PDFs
+    if (classified.category === 'password_protected' || classified.category === 'invalid_pdf') {
+      const error = new Error(classified.userMessage) as PDFLoadError;
+      error.category = classified.category;
+      error.technicalDetails = classified.technicalDetails;
+      throw error;
+    }
+    
+    // Retry WITHOUT worker by temporarily clearing workerSrc
+    // This triggers PDF.js's internal fake-worker (main-thread processing)
+    try {
+      console.log('📄 [PDF.js] Retrying with fake worker (main thread)...');
+      
+      // Save and clear workerSrc to force fake worker
+      const originalWorkerSrc = pdfjsLib.GlobalWorkerOptions.workerSrc;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+      
+      try {
+        const pdf = await pdfjsLib.getDocument({ 
+          data: arrayBuffer,
+          // Don't pass a worker - PDF.js will use main thread
+        }).promise;
+        console.log('📄 [PDF.js] Fake worker mode succeeded, pages:', pdf.numPages);
+        return pdf;
+      } finally {
+        // Restore workerSrc for future attempts
+        pdfjsLib.GlobalWorkerOptions.workerSrc = originalWorkerSrc;
+      }
+    } catch (noWorkerError) {
+      const retryClassified = this.classifyPDFError(noWorkerError);
+      console.error('📄 [PDF.js] Both modes failed:', retryClassified.technicalDetails);
+      
+      const error = new Error(retryClassified.userMessage) as PDFLoadError;
+      error.category = retryClassified.category;
+      error.technicalDetails = `Worker: ${classified.technicalDetails} | Fake worker: ${retryClassified.technicalDetails}`;
+      throw error;
+    }
+  }
+}
+```
+
+---
+
+## Alternative Approach: Import Legacy Build
+
+If the fake-worker fallback doesn't work reliably, use the legacy build that's designed for better compatibility:
+
+```typescript
+// Option B: Use legacy build for fallback
+import * as pdfjsLibLegacy from 'pdfjs-dist/legacy/build/pdf.mjs';
+
+// In fallback code:
+const pdf = await pdfjsLibLegacy.getDocument({ data: arrayBuffer }).promise;
+```
+
+---
+
+## Expected Outcome
+
+After this fix:
+1. **Worker mode tried first** - Fast, uses Web Worker for parsing
+2. **If worker fails** - Automatically falls back to main-thread parsing (slower but works)
+3. **Clear error messages** - Password, invalid PDF, etc. are detected and reported
+4. **Extraction proceeds** - Either to OpenAI Vision or regex fallback
+
+---
+
+## Files to Change
+
+| File | Changes |
+|------|---------|
+| `src/services/noticeExtractionService.ts` | Update `loadPdf()` to clear `workerSrc` before retry instead of using `useWorkerFetch` |
+
+---
+
+## Validation Steps
+
+1. Hard refresh the page
+2. Upload the same 3.1 KB PDF
+3. File size should show correctly (already working)
+4. Console should show:
+   - `📄 [PDF.js] Attempting load with worker...`
+   - `📄 [PDF.js] Worker mode failed: [error details]`
+   - `📄 [PDF.js] Retrying with fake worker (main thread)...`
+   - `📄 [PDF.js] Fake worker mode succeeded, pages: 1`
+5. Extraction should complete (either via OpenAI or regex fallback)
