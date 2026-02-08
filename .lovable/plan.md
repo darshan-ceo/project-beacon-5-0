@@ -1,149 +1,197 @@
 
-# Fix Notice OCR - PDF.js Worker Fallback Not Working
+# Fix Scanned PDF Flow: Route Empty Text to Vision OCR
 
-## Problem Summary
+## Problem Analysis
 
-Despite file size displaying correctly (3.1 KB), the extraction still fails with "Failed to extract text from PDF". The issue is that the current worker fallback implementation is **incorrect** for PDF.js v5.
+ASMT-10 and other GST notices are typically **scanned PDFs** (images embedded in PDF) with no text layer. The current extraction flow fails because:
 
-## Root Cause Analysis
+| Step | What Happens | Result |
+|------|--------------|--------|
+| 1 | `extractWithAI()` checks for API key | Throws if no key → falls to step 2 |
+| 2 | `extractWithLovableAI()` calls edge function | May fail (503/401) → falls to step 3 |
+| 3 | `extractTextFromPDF()` via PDF.js | Returns **empty string** (no text layer) |
+| 4 | `extractDataFromText("")` regex | Returns empty fields |
+| 5 | Wizard shows "Extraction failed" | User blocked |
 
-### What's Happening
-1. **Worker Loading Fails** - The PDF.js web worker (`pdf.worker.min.mjs`) fails to load due to browser CSP restrictions, network issues, or extension blocking
-2. **Incorrect Fallback** - The current code uses `useWorkerFetch: false` which does NOT disable the worker - it only disables the Fetch API inside the worker thread
-3. **Both Attempts Fail** - Since both attempts still try to use the broken worker, extraction fails
+**The bug**: Empty PDF.js text is treated as "regex extraction success" rather than triggering Vision OCR.
 
-### Why Current Fallback Doesn't Work
-```typescript
-// Current code (WRONG)
-const pdf = await pdfjsLib.getDocument({ 
-  data: arrayBuffer, 
-  useWorkerFetch: false,  // This doesn't disable the worker!
-  isEvalSupported: false
-}).promise;
+---
+
+## Solution Overview
+
+```text
+                        ┌──────────────────────┐
+                        │  Extract from PDF    │
+                        └──────────┬───────────┘
+                                   │
+                    ┌──────────────▼──────────────┐
+                    │ Step 1: Try PDF.js text     │
+                    │ (fast, for text-based PDFs) │
+                    └──────────────┬──────────────┘
+                                   │
+                         ┌─────────▼─────────┐
+                         │ Text length > 100? │
+                         └─────────┬─────────┘
+                                   │
+              ┌────────NO──────────┴──────────YES────────┐
+              │                                          │
+              ▼                                          ▼
+   ┌─────────────────────┐                    ┌──────────────────┐
+   │ SCANNED PDF DETECTED│                    │ Use regex        │
+   │ Route to Vision OCR │                    │ extraction       │
+   └─────────┬───────────┘                    └──────────────────┘
+             │
+    ┌────────▼────────┐
+    │ OpenAI Vision?  │
+    └────────┬────────┘
+             │
+   ┌───NO────┴────YES───┐
+   │                    │
+   ▼                    ▼
+┌─────────┐      ┌─────────────┐
+│ Lovable │      │ OpenAI OCR  │
+│ AI OCR  │      │             │
+└─────────┘      └─────────────┘
 ```
 
-The `useWorkerFetch` option tells PDF.js not to use Fetch API in the worker for loading CMaps/fonts - it doesn't disable the worker itself.
-
 ---
 
-## Solution
-
-### Approach: Clear workerSrc on Fallback
-
-PDF.js v5+ automatically uses a "fake worker" (main-thread processing) when:
-- `GlobalWorkerOptions.workerSrc` is not set AND
-- No `worker` option is provided to `getDocument()`
-
-The fix is to temporarily clear `workerSrc` before the retry attempt to trigger the internal fake worker mechanism.
-
----
-
-## Technical Implementation
+## Implementation Details
 
 ### File: `src/services/noticeExtractionService.ts`
 
-#### Step 1: Update the `loadPdf()` Method
-
-Replace the current retry logic with a proper fake-worker fallback:
+#### Change 1: Add Text Length Threshold Constant
 
 ```typescript
-private async loadPdf(arrayBuffer: ArrayBuffer): Promise<PDFDocumentProxy> {
-  console.log('📄 [PDF.js] Loading PDF, buffer size:', arrayBuffer.byteLength);
-  
-  if (arrayBuffer.byteLength === 0) {
-    const error = new Error('PDF file is empty (0 bytes)') as PDFLoadError;
-    error.category = 'file_empty';
-    error.technicalDetails = 'ArrayBuffer has 0 bytes';
-    throw error;
-  }
-  
-  // Check PDF header (%PDF-)
-  const header = new Uint8Array(arrayBuffer.slice(0, 5));
-  const headerString = String.fromCharCode(...header);
-  console.log('📄 [PDF.js] File header:', headerString);
-  
-  if (headerString !== '%PDF-') {
-    console.warn('📄 [PDF.js] Invalid PDF header:', headerString);
-    const error = new Error('File does not have a valid PDF header') as PDFLoadError;
-    error.category = 'invalid_pdf';
-    error.technicalDetails = `Header: "${headerString}" (expected "%PDF-")`;
-    throw error;
-  }
-  
-  // Try with worker first
+// Minimum text length to consider PDF as "text-based" vs "scanned"
+// Scanned PDFs typically have 0-50 chars of noise, real PDFs have 100+
+const MIN_TEXT_LENGTH_FOR_REGEX = 100;
+```
+
+#### Change 2: Restructure `extractFromPDF()` Method
+
+Current flow:
+1. Try OpenAI Vision → Lovable AI → PDF.js regex
+
+New flow:
+1. Try PDF.js text extraction first (fast, no API call)
+2. If text length ≥ threshold → use regex extraction
+3. If text length < threshold → treat as scanned PDF → route to Vision OCR
+4. Vision OCR: OpenAI → Lovable AI → return with explanation
+
+```typescript
+async extractFromPDF(file: File): Promise<ExtractionResult> {
   try {
-    console.log('📄 [PDF.js] Attempting load with worker...');
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    console.log('📄 [PDF.js] Worker mode succeeded, pages:', pdf.numPages);
-    return pdf;
-  } catch (workerError) {
-    const classified = this.classifyPDFError(workerError);
-    console.warn('📄 [PDF.js] Worker mode failed:', classified.technicalDetails);
+    let extractedData: ExtractedNoticeData;
+    let usingAI = false;
+    let errorCode: ExtractionResult['errorCode'] | undefined;
     
-    // Don't retry for password-protected or invalid PDFs
-    if (classified.category === 'password_protected' || classified.category === 'invalid_pdf') {
-      const error = new Error(classified.userMessage) as PDFLoadError;
-      error.category = classified.category;
-      error.technicalDetails = classified.technicalDetails;
-      throw error;
-    }
+    // Step 1: Try PDF.js text extraction first (fast, no API call)
+    let pdfText = '';
+    let isScannedPdf = false;
     
-    // Retry WITHOUT worker by temporarily clearing workerSrc
-    // This triggers PDF.js's internal fake-worker (main-thread processing)
     try {
-      console.log('📄 [PDF.js] Retrying with fake worker (main thread)...');
+      pdfText = await this.extractTextFromPDF(file);
+      console.log('📄 [PDF.js] Extracted text length:', pdfText.length);
       
-      // Save and clear workerSrc to force fake worker
-      const originalWorkerSrc = pdfjsLib.GlobalWorkerOptions.workerSrc;
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-      
-      try {
-        const pdf = await pdfjsLib.getDocument({ 
-          data: arrayBuffer,
-          // Don't pass a worker - PDF.js will use main thread
-        }).promise;
-        console.log('📄 [PDF.js] Fake worker mode succeeded, pages:', pdf.numPages);
-        return pdf;
-      } finally {
-        // Restore workerSrc for future attempts
-        pdfjsLib.GlobalWorkerOptions.workerSrc = originalWorkerSrc;
+      // Check if this is a scanned PDF (no usable text)
+      if (pdfText.length < MIN_TEXT_LENGTH_FOR_REGEX) {
+        console.log('🖼️ Scanned PDF detected (text length < threshold). Routing to Vision OCR...');
+        isScannedPdf = true;
       }
-    } catch (noWorkerError) {
-      const retryClassified = this.classifyPDFError(noWorkerError);
-      console.error('📄 [PDF.js] Both modes failed:', retryClassified.technicalDetails);
-      
-      const error = new Error(retryClassified.userMessage) as PDFLoadError;
-      error.category = retryClassified.category;
-      error.technicalDetails = `Worker: ${classified.technicalDetails} | Fake worker: ${retryClassified.technicalDetails}`;
-      throw error;
+    } catch (pdfError) {
+      console.warn('📄 [PDF.js] Text extraction failed, treating as scanned PDF:', pdfError);
+      isScannedPdf = true;
     }
+    
+    // Step 2: Route based on PDF type
+    if (isScannedPdf) {
+      // Scanned PDF → Must use Vision OCR
+      let visionSuccess = false;
+      
+      // Try OpenAI Vision first
+      try {
+        const aiResult = await this.extractWithAI(file);
+        visionSuccess = true;
+        usingAI = true;
+        extractedData = /* merge aiResult */;
+      } catch (aiError) {
+        console.log('OpenAI Vision failed:', aiError);
+        
+        // Try Lovable AI as fallback
+        try {
+          const lovableResult = await this.extractWithLovableAI(file);
+          visionSuccess = true;
+          usingAI = true;
+          extractedData = /* merge lovableResult */;
+        } catch (lovableError) {
+          console.log('Lovable AI also failed:', lovableError);
+        }
+      }
+      
+      if (!visionSuccess) {
+        // No Vision OCR available - cannot process scanned PDF
+        return {
+          success: false,
+          error: 'This is a scanned PDF with no text layer. Vision OCR is required but unavailable. Please configure an OpenAI API key.',
+          errorCode: 'SCANNED_PDF_NO_OCR'
+        };
+      }
+    } else {
+      // Text-based PDF → Use regex extraction
+      extractedData = this.extractDataFromText(pdfText);
+      usingAI = false;
+    }
+    
+    /* ... rest of method ... */
   }
+}
+```
+
+#### Change 3: Update Error Type
+
+Add new error code for scanned PDFs without OCR:
+
+```typescript
+interface ExtractionResult {
+  errorCode?: 'INVALID_API_KEY' | 'RATE_LIMIT' | 'PDF_PARSE_ERROR' | 'SCANNED_PDF_NO_OCR' | 'UNKNOWN';
 }
 ```
 
 ---
 
-## Alternative Approach: Import Legacy Build
+### File: `src/components/notices/NoticeIntakeWizardV2.tsx`
 
-If the fake-worker fallback doesn't work reliably, use the legacy build that's designed for better compatibility:
+#### Change 4: Handle Scanned PDF Error in UI
+
+Add specific user guidance for scanned PDF scenarios:
 
 ```typescript
-// Option B: Use legacy build for fallback
-import * as pdfjsLibLegacy from 'pdfjs-dist/legacy/build/pdf.mjs';
+// In handleExtractData catch block
+} else if (errorMessage.includes('scanned PDF') || errorMessage.includes('SCANNED_PDF_NO_OCR')) {
+  title = 'Scanned PDF Detected';
+  description = 'This PDF contains images only (no text layer). Please configure an OpenAI API key above to enable OCR extraction.';
+}
+```
 
-// In fallback code:
-const pdf = await pdfjsLibLegacy.getDocument({ data: arrayBuffer }).promise;
+#### Change 5: Show "Using AI OCR" Status
+
+Update the extraction toast to indicate when AI OCR is being used:
+
+```typescript
+toast({
+  title: isScannedPdf ? "AI OCR Processing" : "Data extracted",
+  description: isScannedPdf 
+    ? "Scanned PDF detected. Using Vision OCR for extraction..." 
+    : "Review the extracted information and fill any gaps.",
+});
 ```
 
 ---
 
-## Expected Outcome
+### File: `src/components/notices/NoticeIntakeWizard.tsx`
 
-After this fix:
-1. **Worker mode tried first** - Fast, uses Web Worker for parsing
-2. **If worker fails** - Automatically falls back to main-thread parsing (slower but works)
-3. **Clear error messages** - Password, invalid PDF, etc. are detected and reported
-4. **Extraction proceeds** - Either to OpenAI Vision or regex fallback
+Apply the same error handling updates for V1 wizard consistency.
 
 ---
 
@@ -151,18 +199,25 @@ After this fix:
 
 | File | Changes |
 |------|---------|
-| `src/services/noticeExtractionService.ts` | Update `loadPdf()` to clear `workerSrc` before retry instead of using `useWorkerFetch` |
+| `src/services/noticeExtractionService.ts` | Restructure `extractFromPDF()` to try PDF.js first, detect scanned PDFs, route to Vision OCR |
+| `src/components/notices/NoticeIntakeWizardV2.tsx` | Add scanned PDF error handling, show OCR status |
+| `src/components/notices/NoticeIntakeWizard.tsx` | Same error handling for V1 |
 
 ---
 
-## Validation Steps
+## Expected Behavior After Fix
 
-1. Hard refresh the page
-2. Upload the same 3.1 KB PDF
-3. File size should show correctly (already working)
-4. Console should show:
-   - `📄 [PDF.js] Attempting load with worker...`
-   - `📄 [PDF.js] Worker mode failed: [error details]`
-   - `📄 [PDF.js] Retrying with fake worker (main thread)...`
-   - `📄 [PDF.js] Fake worker mode succeeded, pages: 1`
-5. Extraction should complete (either via OpenAI or regex fallback)
+| Scenario | Current | After Fix |
+|----------|---------|-----------|
+| Scanned PDF, OpenAI configured | ❌ Fails | ✅ Uses OpenAI Vision |
+| Scanned PDF, no API key | ❌ Fails silently | ✅ Clear error: "Configure API key for OCR" |
+| Text-based PDF | ✅ Works | ✅ Works (faster - regex first) |
+| Scanned PDF, Lovable AI only | ❌ Fails | ✅ Uses Lovable AI Vision |
+
+---
+
+## Technical Notes
+
+- **Text threshold (100 chars)**: Chosen because real notices have 500+ chars, while scanned PDFs produce 0-50 chars of OCR noise from PDF.js
+- **Performance improvement**: Text-based PDFs now skip API calls entirely and use fast regex extraction
+- **Error clarity**: Users see actionable messages like "Configure OpenAI API key for scanned PDFs"
