@@ -50,9 +50,21 @@ export const CalendarIntegrationPanel: React.FC = () => {
         const loadedSettings = await integrationsService.loadCalendarSettings();
         if (loadedSettings) {
           setSettings(loadedSettings);
-          await updateConnectionStatus(loadedSettings.provider);
-          if (loadedSettings.provider !== 'none') {
-            await loadCalendars(loadedSettings);
+          
+          // Only try to load calendars if actually connected (has tokens)
+          if (loadedSettings.provider !== 'none' && loadedSettings.connectionStatus === 'connected') {
+            const status = await integrationsService.getConnectionStatus(
+              loadedSettings.provider === 'outlook' ? 'outlook' : 'google'
+            );
+            setConnectionStatus(status);
+            
+            // Only fetch calendars if we have a valid connection
+            if (status.connected) {
+              await loadCalendars(loadedSettings);
+            }
+          } else {
+            // Just update connection status without trying to load calendars
+            await updateConnectionStatus(loadedSettings.provider);
           }
         }
       } catch (error) {
@@ -76,9 +88,16 @@ export const CalendarIntegrationPanel: React.FC = () => {
     setConnectionStatus(status);
   };
 
-  // Load available calendars
+  // Load available calendars - only called when connection is verified
   const loadCalendars = async (currentSettings: CalendarIntegrationSettings) => {
     if (currentSettings.provider === 'none') {
+      setAvailableCalendars([]);
+      return;
+    }
+
+    // Don't attempt to load calendars if not connected
+    if (!connectionStatus.connected && currentSettings.connectionStatus !== 'connected') {
+      console.log('[Calendar] Skipping calendar list - not connected');
       setAvailableCalendars([]);
       return;
     }
@@ -88,7 +107,11 @@ export const CalendarIntegrationPanel: React.FC = () => {
       const calendars = await calendarService.listCalendars(currentSettings);
       setAvailableCalendars(calendars);
     } catch (error) {
-      console.error('Failed to load calendars:', error);
+      // Only log if it's not the expected "no tokens" error
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (!errorMessage.includes('No') || !errorMessage.includes('token')) {
+        console.error('Failed to load calendars:', error);
+      }
       setAvailableCalendars([]);
     } finally {
       setIsLoadingCalendars(false);
