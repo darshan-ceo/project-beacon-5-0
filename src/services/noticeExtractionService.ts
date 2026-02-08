@@ -300,6 +300,7 @@ class NoticeExtractionService {
 
   /**
    * Convert PDF pages to PNG images for Vision API (up to 4 pages)
+   * Includes robust error handling for canvas rendering failures
    */
   private async pdfToBase64Images(file: File): Promise<string[]> {
     console.log('🖼️ [pdfToBase64Images] Converting to images:', {
@@ -325,28 +326,52 @@ class NoticeExtractionService {
     
     const images: string[] = [];
     const maxPages = Math.min(pdf.numPages, 4); // Process up to 4 pages
+    const pageErrors: string[] = [];
     
     for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const viewport = page.getViewport({ scale: 1.5 }); // Slightly lower for multiple pages
-      
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      if (!context) throw new Error('Failed to get canvas context');
-      
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
-      
-      const renderContext = {
-        canvasContext: context,
-        viewport: viewport
-      };
-      
-      await page.render(renderContext as any).promise;
-      images.push(canvas.toDataURL('image/png').split(',')[1]);
+      try {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1.5 }); // Slightly lower for multiple pages
+        
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (!context) {
+          throw new Error(`Failed to get canvas context for page ${pageNum}`);
+        }
+        
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport
+        };
+        
+        await page.render(renderContext as any).promise;
+        
+        const dataUrl = canvas.toDataURL('image/png');
+        if (!dataUrl || dataUrl === 'data:,') {
+          throw new Error(`Canvas render produced empty image for page ${pageNum}`);
+        }
+        
+        images.push(dataUrl.split(',')[1]);
+      } catch (pageError) {
+        const errorMsg = pageError instanceof Error ? pageError.message : String(pageError);
+        console.error(`🖼️ [pdfToBase64Images] Failed to render page ${pageNum}:`, pageError);
+        pageErrors.push(`Page ${pageNum}: ${errorMsg}`);
+        // Continue with other pages
+      }
+    }
+    
+    if (images.length === 0) {
+      const errorDetails = pageErrors.length > 0 ? ` Errors: ${pageErrors.join('; ')}` : '';
+      throw new Error(`Could not render any PDF pages to images. Canvas rendering failed.${errorDetails}`);
     }
     
     console.log('🖼️ [pdfToBase64Images] Successfully converted', images.length, 'pages to images');
+    if (pageErrors.length > 0) {
+      console.warn('🖼️ [pdfToBase64Images] Some pages failed:', pageErrors);
+    }
     
     return images;
   }
@@ -726,6 +751,8 @@ Return the data as JSON with this structure:
       if (isScannedPdf) {
         // Scanned PDF → Must use Vision OCR
         let visionSuccess = false;
+        let openAiError = '';
+        let lovableAiError = '';
         
         // Try OpenAI Vision first
         try {
@@ -758,14 +785,14 @@ Return the data as JSON with this structure:
           
           console.log('✅ [Scanned PDF] OpenAI Vision extraction successful');
         } catch (aiError) {
-          const aiErrorMessage = aiError instanceof Error ? aiError.message : 'Unknown error';
-          console.log('⚠️ [Scanned PDF] OpenAI Vision failed:', aiErrorMessage);
+          openAiError = aiError instanceof Error ? aiError.message : JSON.stringify(aiError);
+          console.log('⚠️ [Scanned PDF] OpenAI Vision failed:', openAiError);
           
           // Check for specific error codes from OpenAI
           const code = (aiError as any).code;
-          if (code === 'INVALID_API_KEY' || aiErrorMessage.includes('INVALID_API_KEY') || aiErrorMessage.includes('not configured')) {
+          if (code === 'INVALID_API_KEY' || openAiError.includes('INVALID_API_KEY') || openAiError.includes('not configured')) {
             errorCode = 'INVALID_API_KEY';
-          } else if (code === 'RATE_LIMIT' || aiErrorMessage.includes('RATE_LIMIT')) {
+          } else if (code === 'RATE_LIMIT' || openAiError.includes('RATE_LIMIT')) {
             errorCode = 'RATE_LIMIT';
           }
           
@@ -801,17 +828,37 @@ Return the data as JSON with this structure:
             
             console.log('✅ [Scanned PDF] Lovable AI Vision extraction successful');
           } catch (lovableError) {
-            console.log('❌ [Scanned PDF] Lovable AI also failed:', lovableError);
+            lovableAiError = lovableError instanceof Error ? lovableError.message : JSON.stringify(lovableError);
+            console.log('❌ [Scanned PDF] Lovable AI also failed:', lovableAiError);
             visionSuccess = false;
           }
         }
         
-        // If no Vision OCR succeeded for scanned PDF
+        // If no Vision OCR succeeded for scanned PDF - build specific error message
         if (!visionSuccess) {
           console.error('❌ [Scanned PDF] No Vision OCR available - cannot process scanned PDF');
+          
+          // Build specific error message based on what failed
+          let errorMessage = 'This is a scanned PDF with no text layer. ';
+          
+          if (openAiError.includes('not configured')) {
+            errorMessage += 'Vision OCR requires an OpenAI API key. Please configure it in the panel above.';
+          } else if (openAiError.includes('canvas') || openAiError.includes('render') || openAiError.includes('Canvas')) {
+            errorMessage += 'Could not render PDF pages for OCR. Try a different browser or re-upload the file.';
+          } else if (openAiError.includes('401') || openAiError.includes('invalid') || openAiError.includes('INVALID_API_KEY')) {
+            errorMessage += 'Your OpenAI API key appears invalid. Please check and update it.';
+          } else if (openAiError.includes('429') || openAiError.includes('RATE_LIMIT')) {
+            errorMessage += 'Rate limit exceeded. Please try again in a few minutes.';
+          } else {
+            // Show both errors for diagnosis
+            const openAiDetail = openAiError || 'unavailable';
+            const lovableAiDetail = lovableAiError || 'unavailable';
+            errorMessage += `Vision OCR failed. OpenAI: ${openAiDetail}. Lovable AI: ${lovableAiDetail}`;
+          }
+          
           return {
             success: false,
-            error: 'This is a scanned PDF with no text layer. Vision OCR is required but unavailable. Please configure an OpenAI API key in the panel above.',
+            error: errorMessage,
             errorCode: errorCode || 'SCANNED_PDF_NO_OCR',
             isScannedPdf: true
           };
