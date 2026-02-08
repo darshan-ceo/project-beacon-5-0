@@ -131,7 +131,22 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
       )
     : [];
 
-  const hasBlockingItems = transitionType === 'Forward' && (incompleteTasks.length > 0 || pendingHearings.length > 0);
+  // Appeal stage targets that require order capture
+  const APPEAL_STAGES = ['First Appeal', 'Tribunal', 'High Court', 'Supreme Court'];
+  
+  // Check if advancing to appeal stage without order details
+  const isAdvancingToAppealStage = transitionType === 'Forward' && APPEAL_STAGES.includes(selectedStage);
+  const hasMissingOrderDetails = isAdvancingToAppealStage && caseData && (
+    !caseData.orderDate || 
+    !(caseData as any).impugned_order_no ||
+    !(caseData as any).impugned_order_date
+  );
+
+  const hasBlockingItems = transitionType === 'Forward' && (
+    incompleteTasks.length > 0 || 
+    pendingHearings.length > 0 ||
+    hasMissingOrderDetails
+  );
   
   // Check if user is admin
   useEffect(() => {
@@ -482,7 +497,7 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
                   </div>
                 )}
                 {pendingHearings.length > 0 && (
-                  <div>
+                  <div className="mb-2">
                     <div className="font-medium">Pending Hearings ({pendingHearings.length}):</div>
                     <ul className="list-disc list-inside ml-2 text-sm">
                       {pendingHearings.slice(0, 5).map(hearing => (
@@ -496,8 +511,19 @@ export const UnifiedStageDialog: React.FC<UnifiedStageDialogProps> = ({
                     </ul>
                   </div>
                 )}
+                {hasMissingOrderDetails && (
+                  <div className="mb-2">
+                    <div className="font-medium text-destructive">Missing Impugned Order Details:</div>
+                    <p className="text-sm ml-2">
+                      To advance to {selectedStage}, you must capture the Impugned Order Number, Order Date, and Order Received Date. 
+                      Please update the case details with the order information before proceeding to appeal stages.
+                    </p>
+                  </div>
+                )}
                 <div className="mt-2 text-sm">
-                  Please complete all tasks and conclude all hearings before advancing to the next stage.
+                  {hasMissingOrderDetails 
+                    ? 'Capture order details in Case Edit to proceed with appeal filing.'
+                    : 'Please complete all tasks and conclude all hearings before advancing to the next stage.'}
                 </div>
               </AlertDescription>
               </Alert>
