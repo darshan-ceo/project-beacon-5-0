@@ -565,7 +565,8 @@ Return the data as JSON with this structure:
   }
 
   /**
-   * Fallback to Lovable AI when OpenAI fails (uses edge function)
+   * Fallback to Lovable AI when OpenAI fails (uses edge function with images)
+   * @deprecated Use extractWithDirectPDF instead for scanned PDFs
    */
   private async extractWithLovableAI(file: File): Promise<{ text: string; fieldConfidence: Record<string, FieldConfidence> }> {
     console.log('🔄 [Lovable AI] Starting extraction fallback...');
@@ -631,6 +632,104 @@ Return the data as JSON with this structure:
       console.error('❌ [Lovable AI] Error:', error);
       throw error;
     }
+  }
+
+  /**
+   * Extract using DIRECT PDF input to Lovable AI (no browser canvas rendering)
+   * Gemini 2.5 Flash natively supports PDF files as input
+   * This bypasses the broken pdfToBase64Images → canvas rendering path
+   */
+  private async extractWithDirectPDF(file: File): Promise<{ text: string; fieldConfidence: Record<string, FieldConfidence> }> {
+    console.log('📄 [Direct PDF OCR] Sending raw PDF to Lovable AI (no canvas rendering)...');
+    
+    // Read file as base64 - NO canvas rendering needed
+    const arrayBuffer = await file.arrayBuffer();
+    
+    // Validate file
+    if (arrayBuffer.byteLength === 0) {
+      throw new Error('PDF file is empty (0 bytes)');
+    }
+    
+    // Convert to base64 - handle large files with chunking
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+      binary += String.fromCharCode(...chunk);
+    }
+    const base64 = btoa(binary);
+    
+    console.log('📄 [Direct PDF OCR] PDF base64 length:', base64.length);
+    
+    // Call the new edge function that accepts raw PDF
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/notice-ocr-pdf`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`
+      },
+      body: JSON.stringify({ pdfBase64: base64, filename: file.name })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Direct PDF OCR] Edge function error:', response.status, errorText);
+      
+      // Parse error response
+      let errorData: any = {};
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: errorText };
+      }
+      
+      // Check for specific error codes
+      if (response.status === 503 || response.status === 401) {
+        throw { 
+          code: errorData.errorCode || 'LOVABLE_AI_UNAVAILABLE', 
+          message: errorData.error || 'Lovable AI service unavailable'
+        };
+      }
+      
+      if (response.status === 429) {
+        throw { code: 'RATE_LIMIT', message: errorData.error || 'Rate limit exceeded' };
+      }
+      
+      if (response.status === 402) {
+        throw { code: 'PAYMENT_REQUIRED', message: errorData.error || 'Payment required' };
+      }
+      
+      throw new Error(errorData.error || `Direct PDF OCR failed: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Direct PDF OCR extraction failed');
+    }
+    
+    // Convert to our field confidence format
+    const fieldConfidence: Record<string, FieldConfidence> = {};
+    Object.entries(result.fields || {}).forEach(([key, field]: [string, any]) => {
+      if (field && field.value) {
+        fieldConfidence[key] = {
+          value: field.value,
+          confidence: field.confidence || 0,
+          source: 'ocr'
+        };
+      }
+    });
+    
+    console.log('✅ [Direct PDF OCR] Extraction successful:', Object.keys(fieldConfidence));
+    
+    return {
+      text: result.rawText || '',
+      fieldConfidence
+    };
   }
 
   /**
@@ -749,111 +848,189 @@ Return the data as JSON with this structure:
       
       // Step 2: Route based on PDF type
       if (isScannedPdf) {
-        // Scanned PDF → Must use Vision OCR
+        // ==========================================
+        // SCANNED PDF → DIRECT PDF INPUT TO VISION
+        // This bypasses browser canvas rendering entirely
+        // ==========================================
         let visionSuccess = false;
+        let directPdfError = '';
         let openAiError = '';
-        let lovableAiError = '';
         
-        // Try OpenAI Vision first
+        // PRIMARY: Try Direct PDF OCR (Lovable AI with raw PDF input)
+        // This sends the PDF directly to Gemini - no canvas rendering needed
         try {
-          console.log('🔍 [Scanned PDF] Trying OpenAI Vision...');
-          const aiResult = await this.extractWithAI(file);
+          console.log('📄 [Scanned PDF] Trying Direct PDF OCR (bypassing browser canvas)...');
+          const directResult = await this.extractWithDirectPDF(file);
           visionSuccess = true;
           usingAI = true;
           
           // Merge AI-extracted data with our structure
           extractedData = {
-            din: aiResult.fieldConfidence.din?.value || '',
-            gstin: aiResult.fieldConfidence.gstin?.value || '',
-            period: aiResult.fieldConfidence.period?.value || '',
-            dueDate: aiResult.fieldConfidence.dueDate?.value || '',
-            office: aiResult.fieldConfidence.office?.value || '',
-            amount: aiResult.fieldConfidence.amount?.value || '',
-            noticeType: aiResult.fieldConfidence.noticeType?.value || '',
-            noticeNo: aiResult.fieldConfidence.noticeNo?.value || '',
-            issueDate: aiResult.fieldConfidence.issueDate?.value || '',
-            taxpayerName: aiResult.fieldConfidence.taxpayerName?.value || '',
-            tradeName: aiResult.fieldConfidence.tradeName?.value || '',
-            subject: aiResult.fieldConfidence.subject?.value || '',
-            legalSection: aiResult.fieldConfidence.legalSection?.value || '',
-            discrepancies: Array.isArray(aiResult.fieldConfidence.discrepancies?.value) ? aiResult.fieldConfidence.discrepancies.value : [],
-            documentType: (aiResult.fieldConfidence.documentType?.value as 'main_notice' | 'annexure') || 'main_notice',
-            documentTypeLabel: aiResult.fieldConfidence.documentTypeLabel?.value || '',
-            rawText: aiResult.text,
-            fieldConfidence: aiResult.fieldConfidence
+            din: directResult.fieldConfidence.din?.value || '',
+            gstin: directResult.fieldConfidence.gstin?.value || '',
+            period: directResult.fieldConfidence.period?.value || '',
+            dueDate: directResult.fieldConfidence.dueDate?.value || '',
+            office: directResult.fieldConfidence.office?.value || '',
+            amount: directResult.fieldConfidence.amount?.value || '',
+            noticeType: directResult.fieldConfidence.noticeType?.value || '',
+            noticeNo: directResult.fieldConfidence.noticeNo?.value || '',
+            issueDate: directResult.fieldConfidence.issueDate?.value || '',
+            taxpayerName: directResult.fieldConfidence.taxpayerName?.value || '',
+            tradeName: directResult.fieldConfidence.tradeName?.value || '',
+            subject: directResult.fieldConfidence.subject?.value || '',
+            legalSection: directResult.fieldConfidence.legalSection?.value || '',
+            discrepancies: Array.isArray(directResult.fieldConfidence.discrepancies?.value) ? directResult.fieldConfidence.discrepancies.value : [],
+            documentType: (directResult.fieldConfidence.documentType?.value as 'main_notice' | 'annexure') || 'main_notice',
+            documentTypeLabel: directResult.fieldConfidence.documentTypeLabel?.value || '',
+            rawText: directResult.text,
+            fieldConfidence: directResult.fieldConfidence
           };
           
-          console.log('✅ [Scanned PDF] OpenAI Vision extraction successful');
-        } catch (aiError) {
-          openAiError = aiError instanceof Error ? aiError.message : JSON.stringify(aiError);
-          console.log('⚠️ [Scanned PDF] OpenAI Vision failed:', openAiError);
+          console.log('✅ [Scanned PDF] Direct PDF OCR extraction successful (no canvas used)');
+        } catch (directError) {
+          directPdfError = directError instanceof Error ? directError.message : JSON.stringify(directError);
+          console.log('⚠️ [Scanned PDF] Direct PDF OCR failed:', directPdfError);
           
-          // Check for specific error codes from OpenAI
-          const code = (aiError as any).code;
-          if (code === 'INVALID_API_KEY' || openAiError.includes('INVALID_API_KEY') || openAiError.includes('not configured')) {
-            errorCode = 'INVALID_API_KEY';
-          } else if (code === 'RATE_LIMIT' || openAiError.includes('RATE_LIMIT')) {
+          const code = (directError as any).code;
+          if (code === 'RATE_LIMIT' || directPdfError.includes('RATE_LIMIT')) {
             errorCode = 'RATE_LIMIT';
           }
           
-          // Try Lovable AI as fallback
-          try {
-            console.log('🔄 [Scanned PDF] Trying Lovable AI Vision fallback...');
-            const lovableResult = await this.extractWithLovableAI(file);
-            visionSuccess = true;
-            usingAI = true;
-            errorCode = undefined; // Clear error code since we succeeded
-            
-            // Merge Lovable AI-extracted data with our structure
-            extractedData = {
-              din: lovableResult.fieldConfidence.din?.value || '',
-              gstin: lovableResult.fieldConfidence.gstin?.value || '',
-              period: lovableResult.fieldConfidence.period?.value || '',
-              dueDate: lovableResult.fieldConfidence.dueDate?.value || '',
-              office: lovableResult.fieldConfidence.office?.value || '',
-              amount: lovableResult.fieldConfidence.amount?.value || '',
-              noticeType: lovableResult.fieldConfidence.noticeType?.value || '',
-              noticeNo: lovableResult.fieldConfidence.noticeNo?.value || '',
-              issueDate: lovableResult.fieldConfidence.issueDate?.value || '',
-              taxpayerName: lovableResult.fieldConfidence.taxpayerName?.value || '',
-              tradeName: lovableResult.fieldConfidence.tradeName?.value || '',
-              subject: lovableResult.fieldConfidence.subject?.value || '',
-              legalSection: lovableResult.fieldConfidence.legalSection?.value || '',
-              discrepancies: Array.isArray(lovableResult.fieldConfidence.discrepancies?.value) ? lovableResult.fieldConfidence.discrepancies.value : [],
-              documentType: (lovableResult.fieldConfidence.documentType?.value as 'main_notice' | 'annexure') || 'main_notice',
-              documentTypeLabel: lovableResult.fieldConfidence.documentTypeLabel?.value || '',
-              rawText: lovableResult.text,
-              fieldConfidence: lovableResult.fieldConfidence
-            };
-            
-            console.log('✅ [Scanned PDF] Lovable AI Vision extraction successful');
-          } catch (lovableError) {
-            lovableAiError = lovableError instanceof Error ? lovableError.message : JSON.stringify(lovableError);
-            console.log('❌ [Scanned PDF] Lovable AI also failed:', lovableAiError);
-            visionSuccess = false;
+          // FALLBACK: Try OpenAI Vision with direct PDF input (if API key configured)
+          const apiKey = localStorage.getItem('openai_api_key');
+          if (apiKey) {
+            try {
+              console.log('🔄 [Scanned PDF] Trying OpenAI Vision with direct PDF input...');
+              
+              // Read file as base64 for OpenAI
+              const arrayBuffer = await file.arrayBuffer();
+              const bytes = new Uint8Array(arrayBuffer);
+              let binary = '';
+              const chunkSize = 8192;
+              for (let i = 0; i < bytes.length; i += chunkSize) {
+                const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+                binary += String.fromCharCode(...chunk);
+              }
+              const base64 = btoa(binary);
+              
+              // OpenAI Vision API with direct PDF input
+              const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${apiKey}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: 'gpt-4o',
+                  messages: [
+                    {
+                      role: 'user',
+                      content: [
+                        {
+                          type: 'text',
+                          text: `Extract all information from this Indian GST notice PDF. Return JSON with fields: din, noticeNo, gstin, noticeType, issueDate, dueDate, period, taxpayerName, tradeName, subject, legalSection, office, amount. Include confidence scores (0-100) for each field. Also include rawText with full extracted text.`
+                        },
+                        {
+                          type: 'image_url',
+                          image_url: {
+                            url: `data:application/pdf;base64,${base64}`
+                          }
+                        }
+                      ]
+                    }
+                  ],
+                  max_tokens: 4000,
+                  temperature: 0.1
+                }),
+              });
+              
+              if (response.ok) {
+                const data = await response.json();
+                const content = data.choices?.[0]?.message?.content;
+                const jsonMatch = content?.match(/\{[\s\S]*\}/);
+                
+                if (jsonMatch) {
+                  const parsed = JSON.parse(jsonMatch[0]);
+                  visionSuccess = true;
+                  usingAI = true;
+                  errorCode = undefined;
+                  
+                  // Convert to our field confidence format
+                  const fieldConfidence: Record<string, FieldConfidence> = {};
+                  Object.entries(parsed.fields || parsed).forEach(([key, field]: [string, any]) => {
+                    if (field && (typeof field === 'object' ? field.value : field)) {
+                      fieldConfidence[key] = {
+                        value: typeof field === 'object' ? field.value : field,
+                        confidence: typeof field === 'object' ? (field.confidence || 75) : 75,
+                        source: 'ocr'
+                      };
+                    }
+                  });
+                  
+                  extractedData = {
+                    din: fieldConfidence.din?.value || '',
+                    gstin: fieldConfidence.gstin?.value || '',
+                    period: fieldConfidence.period?.value || '',
+                    dueDate: fieldConfidence.dueDate?.value || '',
+                    office: fieldConfidence.office?.value || '',
+                    amount: fieldConfidence.amount?.value || '',
+                    noticeType: fieldConfidence.noticeType?.value || '',
+                    noticeNo: fieldConfidence.noticeNo?.value || '',
+                    issueDate: fieldConfidence.issueDate?.value || '',
+                    taxpayerName: fieldConfidence.taxpayerName?.value || '',
+                    tradeName: fieldConfidence.tradeName?.value || '',
+                    subject: fieldConfidence.subject?.value || '',
+                    legalSection: fieldConfidence.legalSection?.value || '',
+                    discrepancies: [],
+                    documentType: 'main_notice',
+                    documentTypeLabel: fieldConfidence.noticeType?.value || '',
+                    rawText: parsed.rawText || content,
+                    fieldConfidence
+                  };
+                  
+                  console.log('✅ [Scanned PDF] OpenAI Vision direct PDF extraction successful');
+                }
+              } else {
+                const errorText = await response.text();
+                openAiError = `OpenAI ${response.status}: ${errorText.slice(0, 200)}`;
+                console.log('⚠️ [Scanned PDF] OpenAI Vision failed:', openAiError);
+                
+                if (response.status === 401) {
+                  errorCode = 'INVALID_API_KEY';
+                } else if (response.status === 429) {
+                  errorCode = 'RATE_LIMIT';
+                }
+              }
+            } catch (openAiCatchError) {
+              openAiError = openAiCatchError instanceof Error ? openAiCatchError.message : String(openAiCatchError);
+              console.log('⚠️ [Scanned PDF] OpenAI Vision error:', openAiError);
+            }
+          } else {
+            openAiError = 'OpenAI API key not configured';
           }
         }
         
         // If no Vision OCR succeeded for scanned PDF - build specific error message
         if (!visionSuccess) {
-          console.error('❌ [Scanned PDF] No Vision OCR available - cannot process scanned PDF');
+          console.error('❌ [Scanned PDF] All Vision OCR methods failed');
           
           // Build specific error message based on what failed
-          let errorMessage = 'This is a scanned PDF with no text layer. ';
+          let errorMessage = 'This is a scanned PDF requiring AI OCR. ';
           
-          if (openAiError.includes('not configured')) {
-            errorMessage += 'Vision OCR requires an OpenAI API key. Please configure it in the panel above.';
-          } else if (openAiError.includes('canvas') || openAiError.includes('render') || openAiError.includes('Canvas')) {
-            errorMessage += 'Could not render PDF pages for OCR. Try a different browser or re-upload the file.';
-          } else if (openAiError.includes('401') || openAiError.includes('invalid') || openAiError.includes('INVALID_API_KEY')) {
-            errorMessage += 'Your OpenAI API key appears invalid. Please check and update it.';
-          } else if (openAiError.includes('429') || openAiError.includes('RATE_LIMIT')) {
+          if (directPdfError.includes('RATE_LIMIT') || openAiError.includes('429')) {
             errorMessage += 'Rate limit exceeded. Please try again in a few minutes.';
+            errorCode = 'RATE_LIMIT';
+          } else if (directPdfError.includes('PAYMENT_REQUIRED')) {
+            errorMessage += 'AI credits exhausted. Please add credits to continue.';
+          } else if (openAiError.includes('401') || openAiError.includes('INVALID_API_KEY')) {
+            errorMessage += 'Your OpenAI API key appears invalid. Lovable AI also failed.';
+            errorCode = 'INVALID_API_KEY';
           } else {
-            // Show both errors for diagnosis
-            const openAiDetail = openAiError || 'unavailable';
-            const lovableAiDetail = lovableAiError || 'unavailable';
-            errorMessage += `Vision OCR failed. OpenAI: ${openAiDetail}. Lovable AI: ${lovableAiDetail}`;
+            // Show error details for diagnosis
+            errorMessage += `Lovable AI: ${directPdfError || 'unavailable'}`;
+            if (openAiError && openAiError !== 'OpenAI API key not configured') {
+              errorMessage += `. OpenAI: ${openAiError}`;
+            }
           }
           
           return {

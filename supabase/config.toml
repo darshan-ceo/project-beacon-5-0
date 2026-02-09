@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.notice-ocr]
 verify_jwt = false
+
+[functions.notice-ocr-pdf]
+verify_jwt = false
