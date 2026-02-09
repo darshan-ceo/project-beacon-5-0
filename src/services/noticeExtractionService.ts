@@ -897,108 +897,118 @@ Return the data as JSON with this structure:
           }
           
           // FALLBACK: Try OpenAI Vision with direct PDF input (if API key configured)
+          // NOTE: OpenAI Vision API does NOT support direct PDF input
+          // It only accepts image formats (PNG, JPEG, GIF, WebP)
+          // For OpenAI fallback, we must convert PDF to images first
+          // However, this is the path that was failing before
+          // Since Lovable AI (Gemini) supports direct PDF, it should be the primary path
+          
           const apiKey = localStorage.getItem('openai_api_key');
           if (apiKey) {
             try {
-              console.log('🔄 [Scanned PDF] Trying OpenAI Vision with direct PDF input...');
+              console.log('🔄 [Scanned PDF] Trying OpenAI Vision with rendered images (fallback)...');
               
-              // Read file as base64 for OpenAI
-              const arrayBuffer = await file.arrayBuffer();
-              const bytes = new Uint8Array(arrayBuffer);
-              let binary = '';
-              const chunkSize = 8192;
-              for (let i = 0; i < bytes.length; i += chunkSize) {
-                const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-                binary += String.fromCharCode(...chunk);
+              // OpenAI requires images, not PDFs - try to render pages
+              // This may fail for some scanned PDFs, which is expected
+              let base64Images: string[] = [];
+              try {
+                base64Images = await this.pdfToBase64Images(file);
+              } catch (renderError) {
+                console.warn('⚠️ [OpenAI Fallback] Cannot render PDF to images:', renderError);
+                openAiError = 'Cannot render PDF pages to images for OpenAI (scanned PDF limitation)';
+                // Skip OpenAI if we can't render
               }
-              const base64 = btoa(binary);
               
-              // OpenAI Vision API with direct PDF input
-              const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${apiKey}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  model: 'gpt-4o',
-                  messages: [
-                    {
-                      role: 'user',
-                      content: [
-                        {
-                          type: 'text',
-                          text: `Extract all information from this Indian GST notice PDF. Return JSON with fields: din, noticeNo, gstin, noticeType, issueDate, dueDate, period, taxpayerName, tradeName, subject, legalSection, office, amount. Include confidence scores (0-100) for each field. Also include rawText with full extracted text.`
-                        },
-                        {
-                          type: 'image_url',
-                          image_url: {
-                            url: `data:application/pdf;base64,${base64}`
-                          }
-                        }
-                      ]
-                    }
-                  ],
-                  max_tokens: 4000,
-                  temperature: 0.1
-                }),
-              });
-              
-              if (response.ok) {
-                const data = await response.json();
-                const content = data.choices?.[0]?.message?.content;
-                const jsonMatch = content?.match(/\{[\s\S]*\}/);
+              if (base64Images.length > 0) {
+                // Build image content array - OpenAI only accepts images
+                const imageContent = base64Images.map(img => ({
+                  type: 'image_url' as const,
+                  image_url: {
+                    url: `data:image/png;base64,${img}`
+                  }
+                }));
                 
-                if (jsonMatch) {
-                  const parsed = JSON.parse(jsonMatch[0]);
-                  visionSuccess = true;
-                  usingAI = true;
-                  errorCode = undefined;
-                  
-                  // Convert to our field confidence format
-                  const fieldConfidence: Record<string, FieldConfidence> = {};
-                  Object.entries(parsed.fields || parsed).forEach(([key, field]: [string, any]) => {
-                    if (field && (typeof field === 'object' ? field.value : field)) {
-                      fieldConfidence[key] = {
-                        value: typeof field === 'object' ? field.value : field,
-                        confidence: typeof field === 'object' ? (field.confidence || 75) : 75,
-                        source: 'ocr'
-                      };
-                    }
-                  });
-                  
-                  extractedData = {
-                    din: fieldConfidence.din?.value || '',
-                    gstin: fieldConfidence.gstin?.value || '',
-                    period: fieldConfidence.period?.value || '',
-                    dueDate: fieldConfidence.dueDate?.value || '',
-                    office: fieldConfidence.office?.value || '',
-                    amount: fieldConfidence.amount?.value || '',
-                    noticeType: fieldConfidence.noticeType?.value || '',
-                    noticeNo: fieldConfidence.noticeNo?.value || '',
-                    issueDate: fieldConfidence.issueDate?.value || '',
-                    taxpayerName: fieldConfidence.taxpayerName?.value || '',
-                    tradeName: fieldConfidence.tradeName?.value || '',
-                    subject: fieldConfidence.subject?.value || '',
-                    legalSection: fieldConfidence.legalSection?.value || '',
-                    discrepancies: [],
-                    documentType: 'main_notice',
-                    documentTypeLabel: fieldConfidence.noticeType?.value || '',
-                    rawText: parsed.rawText || content,
-                    fieldConfidence
-                  };
-                  
-                  console.log('✅ [Scanned PDF] OpenAI Vision direct PDF extraction successful');
-                }
-              } else {
-                const errorText = await response.text();
-                openAiError = `OpenAI ${response.status}: ${errorText.slice(0, 200)}`;
-                console.log('⚠️ [Scanned PDF] OpenAI Vision failed:', openAiError);
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [
+                      {
+                        role: 'user',
+                        content: [
+                          {
+                            type: 'text',
+                            text: `Extract all information from this Indian GST notice. Return JSON with fields: din, noticeNo, gstin, noticeType, issueDate, dueDate, period, taxpayerName, tradeName, subject, legalSection, office, amount. Include confidence scores (0-100) for each field. Also include rawText with full extracted text.`
+                          },
+                          ...imageContent
+                        ]
+                      }
+                    ],
+                    max_tokens: 4000,
+                    temperature: 0.1
+                  }),
+                });
                 
-                if (response.status === 401) {
-                  errorCode = 'INVALID_API_KEY';
-                } else if (response.status === 429) {
-                  errorCode = 'RATE_LIMIT';
+                if (response.ok) {
+                  const data = await response.json();
+                  const content = data.choices?.[0]?.message?.content;
+                  const jsonMatch = content?.match(/\{[\s\S]*\}/);
+                  
+                  if (jsonMatch) {
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    visionSuccess = true;
+                    usingAI = true;
+                    errorCode = undefined;
+                    
+                    // Convert to our field confidence format
+                    const fieldConfidence: Record<string, FieldConfidence> = {};
+                    Object.entries(parsed.fields || parsed).forEach(([key, field]: [string, any]) => {
+                      if (field && (typeof field === 'object' ? field.value : field)) {
+                        fieldConfidence[key] = {
+                          value: typeof field === 'object' ? field.value : field,
+                          confidence: typeof field === 'object' ? (field.confidence || 75) : 75,
+                          source: 'ocr'
+                        };
+                      }
+                    });
+                    
+                    extractedData = {
+                      din: fieldConfidence.din?.value || '',
+                      gstin: fieldConfidence.gstin?.value || '',
+                      period: fieldConfidence.period?.value || '',
+                      dueDate: fieldConfidence.dueDate?.value || '',
+                      office: fieldConfidence.office?.value || '',
+                      amount: fieldConfidence.amount?.value || '',
+                      noticeType: fieldConfidence.noticeType?.value || '',
+                      noticeNo: fieldConfidence.noticeNo?.value || '',
+                      issueDate: fieldConfidence.issueDate?.value || '',
+                      taxpayerName: fieldConfidence.taxpayerName?.value || '',
+                      tradeName: fieldConfidence.tradeName?.value || '',
+                      subject: fieldConfidence.subject?.value || '',
+                      legalSection: fieldConfidence.legalSection?.value || '',
+                      discrepancies: [],
+                      documentType: 'main_notice',
+                      documentTypeLabel: fieldConfidence.noticeType?.value || '',
+                      rawText: parsed.rawText || content,
+                      fieldConfidence
+                    };
+                    
+                    console.log('✅ [Scanned PDF] OpenAI Vision image-based extraction successful');
+                  }
+                } else {
+                  const errorText = await response.text();
+                  openAiError = `OpenAI ${response.status}: ${errorText.slice(0, 200)}`;
+                  console.log('⚠️ [Scanned PDF] OpenAI Vision failed:', openAiError);
+                  
+                  if (response.status === 401) {
+                    errorCode = 'INVALID_API_KEY';
+                  } else if (response.status === 429) {
+                    errorCode = 'RATE_LIMIT';
+                  }
                 }
               }
             } catch (openAiCatchError) {
