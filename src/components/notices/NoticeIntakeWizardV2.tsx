@@ -225,11 +225,19 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
         
         setCurrentStep('resolve_gaps');
       } else {
-        toast({
-          title: "Extraction failed",
-          description: result.error || "Unable to extract data from the notice.",
-          variant: "destructive",
-        });
+        if (result.errorCode === 'AI_SERVICE_MISCONFIGURED') {
+          toast({
+            title: 'AI OCR unavailable',
+            description: 'AI OCR is temporarily unavailable due to a backend configuration issue. Please contact support to re-provision the AI key, then try again.',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Extraction failed',
+            description: result.error || 'Unable to extract data from the notice.',
+            variant: 'destructive',
+          });
+        }
       }
     } catch (error) {
       console.error('Extraction error:', error);
@@ -244,8 +252,8 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
         title = 'File upload issue';
         description = 'The PDF file is empty. Please close the wizard and re-upload the file.';
       } else if (errorMessage.includes('scanned PDF') || errorMessage.includes('SCANNED_PDF_NO_OCR')) {
-        title = 'Scanned PDF Detected';
-        description = 'This PDF contains images only (no text layer). Please configure an OpenAI API key above to enable OCR extraction.';
+        title = 'Scanned Notice Detected';
+        description = 'This notice appears to be scanned (no usable text layer). AI OCR could not complete—if you see a configuration error, please contact support to re-provision the AI key.';
       } else if (errorMessage.includes('password')) {
         title = 'Password protected';
         description = 'This PDF is password-protected. Please remove the password and re-upload.';
