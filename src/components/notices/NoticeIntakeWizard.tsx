@@ -205,12 +205,23 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
       console.debug('  ✅ [Extraction result]:', { success: result.success, hasData: !!result.data });
       
       // Handle specific errors
+      if (result.errorCode === 'AI_SERVICE_MISCONFIGURED') {
+        console.debug('  ❌ [Error] AI OCR service misconfigured');
+        toast({
+          title: 'AI OCR unavailable',
+          description: 'AI OCR is temporarily unavailable due to a backend configuration issue. Please contact support to re-provision the AI key, then try again.',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+      }
+
       if (result.errorCode === 'INVALID_API_KEY') {
         console.debug('  ❌ [Error] Invalid API key');
         toast({
-          title: "Invalid OpenAI API Key",
-          description: "Please configure a valid API key to use AI extraction.",
-          variant: "destructive",
+          title: 'Invalid OpenAI API Key',
+          description: 'Please configure a valid API key to use AI extraction.',
+          variant: 'destructive',
         });
         setShowApiKeyModal(true);
         setLoading(false);
@@ -355,8 +366,8 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
         title = 'File upload issue';
         description = 'The PDF file is empty. Please close the wizard and re-upload the file.';
       } else if (errorMessage.includes('scanned PDF') || errorMessage.includes('SCANNED_PDF_NO_OCR')) {
-        title = 'Scanned PDF Detected';
-        description = 'This PDF contains images only (no text layer). Please configure an OpenAI API key above to enable OCR extraction.';
+        title = 'Scanned Notice Detected';
+        description = 'This notice appears to be scanned (no usable text layer). AI OCR could not complete—if you see a configuration error, please contact support to re-provision the AI key.';
       } else if (errorMessage.includes('password')) {
         title = 'Password protected';
         description = 'This PDF is password-protected. Please remove the password and re-upload.';
