@@ -15,6 +15,97 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+/**
+ * Robust JSON extraction that handles truncated responses and unescaped chars
+ */
+function extractJsonFromText(text: string): Record<string, any> | null {
+  // Try direct parse first
+  try {
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) {
+      return JSON.parse(match[0]);
+    }
+  } catch {
+    // Continue to fallback
+  }
+
+  // Find the fields object and extract what we can
+  const fieldsMatch = text.match(/"fields"\s*:\s*\{/);
+  if (!fieldsMatch) return null;
+
+  const startIdx = text.indexOf('{');
+  if (startIdx === -1) return null;
+
+  // Find balanced braces for fields object
+  let braceCount = 0;
+  let fieldsEnd = -1;
+  const fieldsStart = text.indexOf('"fields"');
+  
+  for (let i = fieldsStart; i < text.length; i++) {
+    if (text[i] === '{') braceCount++;
+    if (text[i] === '}') {
+      braceCount--;
+      if (braceCount === 0) {
+        fieldsEnd = i + 1;
+        break;
+      }
+    }
+  }
+
+  if (fieldsEnd === -1) {
+    // Truncated - try to extract individual fields
+    return extractFieldsManually(text);
+  }
+
+  // Try to parse just the fields portion
+  try {
+    const fieldsJson = text.slice(text.indexOf('{', fieldsStart), fieldsEnd);
+    const fields = JSON.parse(fieldsJson);
+    return { fields, rawText: '' };
+  } catch {
+    return extractFieldsManually(text);
+  }
+}
+
+/**
+ * Manual field extraction when JSON is malformed
+ */
+function extractFieldsManually(text: string): Record<string, any> | null {
+  const fields: Record<string, { value: string; confidence: number }> = {};
+  
+  const fieldPatterns = [
+    { key: 'documentType', pattern: /"documentType"\s*:\s*\{\s*"value"\s*:\s*"([^"]*)"/ },
+    { key: 'documentTypeLabel', pattern: /"documentTypeLabel"\s*:\s*\{\s*"value"\s*:\s*"([^"]*)"/ },
+    { key: 'din', pattern: /"din"\s*:\s*\{\s*"value"\s*:\s*"([^"]*)"/ },
+    { key: 'noticeNo', pattern: /"noticeNo"\s*:\s*\{\s*"value"\s*:\s*"([^"]*)"/ },
+    { key: 'gstin', pattern: /"gstin"\s*:\s*\{\s*"value"\s*:\s*"([^"]*)"/ },
+    { key: 'noticeType', pattern: /"noticeType"\s*:\s*\{\s*"value"\s*:\s*"([^"]*)"/ },
+    { key: 'issueDate', pattern: /"issueDate"\s*:\s*\{\s*"value"\s*:\s*"([^"]*)"/ },
+    { key: 'dueDate', pattern: /"dueDate"\s*:\s*\{\s*"value"\s*:\s*"([^"]*)"/ },
+    { key: 'period', pattern: /"period"\s*:\s*\{\s*"value"\s*:\s*"([^"]*)"/ },
+    { key: 'taxpayerName', pattern: /"taxpayerName"\s*:\s*\{\s*"value"\s*:\s*"([^"]*)"/ },
+    { key: 'tradeName', pattern: /"tradeName"\s*:\s*\{\s*"value"\s*:\s*"([^"]*)"/ },
+    { key: 'subject', pattern: /"subject"\s*:\s*\{\s*"value"\s*:\s*"([^"]*)"/ },
+    { key: 'legalSection', pattern: /"legalSection"\s*:\s*\{\s*"value"\s*:\s*"([^"]*)"/ },
+    { key: 'office', pattern: /"office"\s*:\s*\{\s*"value"\s*:\s*"([^"]*)"/ },
+    { key: 'amount', pattern: /"amount"\s*:\s*\{\s*"value"\s*:\s*"([^"]*)"/ },
+  ];
+
+  let foundAny = false;
+  for (const { key, pattern } of fieldPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      fields[key] = { value: match[1], confidence: 70 }; // Lower confidence for manual extraction
+      foundAny = true;
+    }
+  }
+
+  if (!foundAny) return null;
+
+  console.log('[notice-ocr-pdf] Used manual field extraction, found:', Object.keys(fields));
+  return { fields, rawText: '' };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -65,63 +156,46 @@ Deno.serve(async (req) => {
               content: [
                 {
                   type: 'input_text',
-                  text: 'Extract all information from this GST notice PDF with confidence scores. Return JSON in the exact schema described below.',
-                },
-                {
-                  type: 'input_text',
-                  text: `You are an expert at extracting structured data from Indian GST notices (ASMT-10, ASMT-11, DRC-01, DRC-01A, DRC-03, DRC-07, etc.). Extract all fields with confidence scores.
-
-DOCUMENT TYPE DETECTION:
-- Identify if this is a main notice or an annexure
-- Return documentType: "main_notice" or "annexure"
+                  text: `You are an expert at extracting structured data from Indian GST notices. Extract all fields with confidence scores.
 
 REQUIRED FIELDS:
 - DIN (Document Identification Number): 15-20 character alphanumeric
-- Notice Number/Reference: The reference number (look for "Reference No.", "Ref No.", "Notice No.")
-- GSTIN: 15 character format (2 digits + 5 letters + 4 digits + 1 letter + 1 alphanumeric + Z + 1 alphanumeric)
-- Notice Type: Type of notice (FORM GST DRC-01A, ASMT-10, DRC-01, etc.)
-- Issue Date: When the notice was issued (DD/MM/YYYY or DD.MM.YYYY format)
-- Due Date: Response deadline (DD/MM/YYYY or DD.MM.YYYY format)
-- Tax Period: Period covered (e.g., "F.Y. 2021-2022", "April 2021 - March 2022")
-
-IMPORTANT GSTIN RULES:
-- The TAXPAYER's GSTIN appears in the notice header or "To:" section
-- Do NOT use supplier GSTINs from discrepancy/ITC tables
-- If taxpayer GSTIN is not visible, return empty string
-
-TAXPAYER DETAILS:
-- Taxpayer Name: Legal name from notice header (look for "Name", "M/s." - NOT supplier names)
+- Notice Number/Reference: The reference number
+- GSTIN: 15 character format (taxpayer's GSTIN from header, NOT supplier GSTINs)
+- Notice Type: FORM GST DRC-01A, ASMT-10, DRC-01, etc.
+- Issue Date: DD/MM/YYYY format
+- Due Date: Response deadline DD/MM/YYYY format
+- Tax Period: e.g., "F.Y. 2021-2022"
+- Taxpayer Name: Legal name from notice header
 - Trade Name: Business trade name if different
+- Subject: The full subject line
+- Legal Section: GST Act section (e.g., "Section 73(1)")
+- Office: Issuing GST office/authority
+- Amount: Total demand amount (numeric only, no commas)
 
-NOTICE CONTENT:
-- Subject: The full subject line of the notice
-- Legal Section: GST Act section invoked (e.g., "Section 73(1)")
-- Office: Issuing GST office/authority name
+AMOUNT EXTRACTION: Handle lakh format "93,90,812" = 9390812
 
-AMOUNT EXTRACTION (Indian format):
-- Handle lakh format: "93,90,812" = 9390812
-- Handle "/-" suffix: "₹97,06,154/-" = 9706154
+CRITICAL: Return ONLY valid JSON. Keep rawText to first 500 chars max.
 
-Return JSON:
 {
   "fields": {
     "documentType": { "value": "main_notice", "confidence": 90 },
-    "documentTypeLabel": { "value": "DRC-01A", "confidence": 85 },
-    "din": { "value": "...", "confidence": 95 },
-    "noticeNo": { "value": "...", "confidence": 90 },
-    "gstin": { "value": "...", "confidence": 95 },
-    "noticeType": { "value": "DRC-01A", "confidence": 95 },
-    "issueDate": { "value": "DD/MM/YYYY", "confidence": 85 },
-    "dueDate": { "value": "DD/MM/YYYY", "confidence": 90 },
-    "period": { "value": "F.Y. 2021-2022", "confidence": 85 },
-    "taxpayerName": { "value": "...", "confidence": 90 },
-    "tradeName": { "value": "...", "confidence": 85 },
-    "subject": { "value": "...", "confidence": 85 },
-    "legalSection": { "value": "Section 73(1)", "confidence": 80 },
-    "office": { "value": "...", "confidence": 80 },
-    "amount": { "value": "9390812", "confidence": 85 }
+    "documentTypeLabel": { "value": "DRC-01", "confidence": 85 },
+    "din": { "value": "", "confidence": 50 },
+    "noticeNo": { "value": "", "confidence": 90 },
+    "gstin": { "value": "", "confidence": 95 },
+    "noticeType": { "value": "", "confidence": 95 },
+    "issueDate": { "value": "", "confidence": 85 },
+    "dueDate": { "value": "", "confidence": 90 },
+    "period": { "value": "", "confidence": 85 },
+    "taxpayerName": { "value": "", "confidence": 90 },
+    "tradeName": { "value": "", "confidence": 85 },
+    "subject": { "value": "", "confidence": 85 },
+    "legalSection": { "value": "", "confidence": 80 },
+    "office": { "value": "", "confidence": 80 },
+    "amount": { "value": "", "confidence": 85 }
   },
-  "rawText": "full extracted text..."
+  "rawText": "first 500 chars of text..."
 }`,
                 },
                 {
@@ -132,7 +206,7 @@ Return JSON:
               ],
             },
           ],
-          max_output_tokens: 4000,
+          max_output_tokens: 2000,
           temperature: 0.1,
         }),
       });
@@ -182,29 +256,21 @@ Return JSON:
         return parts.join('\n');
       })();
 
-      const jsonMatch = oaiText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
+      // Robust JSON extraction - find balanced braces
+      const parsed = extractJsonFromText(oaiText);
+      if (!parsed) {
         console.error('[notice-ocr-pdf] OpenAI returned non-JSON output');
         return new Response(
-          JSON.stringify({ success: false, error: 'Failed to parse extraction result', rawText: oaiText }),
+          JSON.stringify({ success: false, error: 'Failed to parse extraction result', rawText: oaiText.slice(0, 500) }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
 
-      try {
-        const parsed = JSON.parse(jsonMatch[0]);
-        console.log('[notice-ocr-pdf] OpenAI extraction successful:', Object.keys(parsed.fields || {}));
-        return new Response(
-          JSON.stringify({ success: true, ...parsed }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      } catch (parseError) {
-        console.error('[notice-ocr-pdf] OpenAI JSON parse error:', parseError);
-        return new Response(
-          JSON.stringify({ success: false, error: 'Failed to parse extraction JSON', rawText: oaiText }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
+      console.log('[notice-ocr-pdf] OpenAI extraction successful:', Object.keys(parsed.fields || {}));
+      return new Response(
+        JSON.stringify({ success: true, ...parsed }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
     }
 
     // ------------------------------------------------------------
@@ -243,60 +309,46 @@ Return JSON:
         messages: [
           {
             role: 'system',
-            content: `You are an expert at extracting structured data from Indian GST notices (ASMT-10, ASMT-11, DRC-01, DRC-01A, DRC-03, DRC-07, etc.). Extract all fields with confidence scores.
-
-DOCUMENT TYPE DETECTION:
-- Identify if this is a main notice or an annexure
-- Return documentType: "main_notice" or "annexure"
+            content: `You are an expert at extracting structured data from Indian GST notices. Extract all fields with confidence scores.
 
 REQUIRED FIELDS:
 - DIN (Document Identification Number): 15-20 character alphanumeric
-- Notice Number/Reference: The reference number (look for "Reference No.", "Ref No.", "Notice No.")
-- GSTIN: 15 character format (2 digits + 5 letters + 4 digits + 1 letter + 1 alphanumeric + Z + 1 alphanumeric)
-- Notice Type: Type of notice (FORM GST DRC-01A, ASMT-10, DRC-01, etc.)
-- Issue Date: When the notice was issued (DD/MM/YYYY or DD.MM.YYYY format)
-- Due Date: Response deadline (DD/MM/YYYY or DD.MM.YYYY format)
-- Tax Period: Period covered (e.g., "F.Y. 2021-2022", "April 2021 - March 2022")
-
-IMPORTANT GSTIN RULES:
-- The TAXPAYER's GSTIN appears in the notice header or "To:" section
-- Do NOT use supplier GSTINs from discrepancy/ITC tables
-- If taxpayer GSTIN is not visible, return empty string
-
-TAXPAYER DETAILS:
-- Taxpayer Name: Legal name from notice header (look for "Name", "M/s." - NOT supplier names)
+- Notice Number/Reference: The reference number
+- GSTIN: 15 character format (taxpayer's GSTIN from header, NOT supplier GSTINs)
+- Notice Type: FORM GST DRC-01A, ASMT-10, DRC-01, etc.
+- Issue Date: DD/MM/YYYY format
+- Due Date: Response deadline DD/MM/YYYY format
+- Tax Period: e.g., "F.Y. 2021-2022"
+- Taxpayer Name: Legal name from notice header
 - Trade Name: Business trade name if different
+- Subject: The full subject line
+- Legal Section: GST Act section (e.g., "Section 73(1)")
+- Office: Issuing GST office/authority
+- Amount: Total demand amount (numeric only, no commas)
 
-NOTICE CONTENT:
-- Subject: The full subject line of the notice
-- Legal Section: GST Act section invoked (e.g., "Section 73(1)", "Section 74")
-- Office: Issuing GST office/authority name
+AMOUNT EXTRACTION: Handle lakh format "93,90,812" = 9390812
 
-AMOUNT EXTRACTION (Indian format):
-- Handle lakh format: "93,90,812" = 9390812
-- Handle "/-" suffix: "₹97,06,154/-" = 9706154
-- Look for "Total Tax", "Demand", "IGST", "CGST", "SGST" amounts
+CRITICAL: Return ONLY valid JSON. Keep rawText to first 500 chars max.
 
-Return JSON:
 {
   "fields": {
     "documentType": { "value": "main_notice", "confidence": 90 },
-    "documentTypeLabel": { "value": "DRC-01A", "confidence": 85 },
-    "din": { "value": "...", "confidence": 95 },
-    "noticeNo": { "value": "...", "confidence": 90 },
-    "gstin": { "value": "...", "confidence": 95 },
-    "noticeType": { "value": "DRC-01A", "confidence": 95 },
-    "issueDate": { "value": "DD/MM/YYYY", "confidence": 85 },
-    "dueDate": { "value": "DD/MM/YYYY", "confidence": 90 },
-    "period": { "value": "F.Y. 2021-2022", "confidence": 85 },
-    "taxpayerName": { "value": "...", "confidence": 90 },
-    "tradeName": { "value": "...", "confidence": 85 },
-    "subject": { "value": "...", "confidence": 85 },
-    "legalSection": { "value": "Section 73(1)", "confidence": 80 },
-    "office": { "value": "...", "confidence": 80 },
-    "amount": { "value": "9390812", "confidence": 85 }
+    "documentTypeLabel": { "value": "DRC-01", "confidence": 85 },
+    "din": { "value": "", "confidence": 50 },
+    "noticeNo": { "value": "", "confidence": 90 },
+    "gstin": { "value": "", "confidence": 95 },
+    "noticeType": { "value": "", "confidence": 95 },
+    "issueDate": { "value": "", "confidence": 85 },
+    "dueDate": { "value": "", "confidence": 90 },
+    "period": { "value": "", "confidence": 85 },
+    "taxpayerName": { "value": "", "confidence": 90 },
+    "tradeName": { "value": "", "confidence": 85 },
+    "subject": { "value": "", "confidence": 85 },
+    "legalSection": { "value": "", "confidence": 80 },
+    "office": { "value": "", "confidence": 80 },
+    "amount": { "value": "", "confidence": 85 }
   },
-  "rawText": "full extracted text..."
+  "rawText": "first 500 chars..."
 }`
           },
           {
@@ -304,7 +356,7 @@ Return JSON:
             content: [
               {
                 type: 'text',
-                text: 'Extract all information from this GST notice PDF with confidence scores. This may be a multi-page scanned document:'
+                text: 'Extract all information from this GST notice PDF. Return ONLY valid JSON:'
               },
               {
                 type: 'image_url',
@@ -315,7 +367,7 @@ Return JSON:
             ]
           }
         ],
-        max_tokens: 4000,
+        max_tokens: 2000,
         temperature: 0.1
       }),
     });
@@ -379,31 +431,21 @@ Return JSON:
       );
     }
 
-    // Parse JSON from response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    // Robust JSON extraction - handles truncated responses
+    const parsed = extractJsonFromText(content);
+    if (!parsed) {
       console.error('[notice-ocr-pdf] Failed to parse JSON from response');
       return new Response(
-        JSON.stringify({ success: false, error: 'Failed to parse extraction result', rawText: content }),
+        JSON.stringify({ success: false, error: 'Failed to parse extraction result', rawText: content.slice(0, 500) }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    try {
-      const parsed = JSON.parse(jsonMatch[0]);
-      console.log('[notice-ocr-pdf] Extraction successful:', Object.keys(parsed.fields || {}));
-      
-      return new Response(
-        JSON.stringify({ success: true, ...parsed }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } catch (parseError) {
-      console.error('[notice-ocr-pdf] JSON parse error:', parseError);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Failed to parse extraction JSON', rawText: content }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log('[notice-ocr-pdf] Extraction successful:', Object.keys(parsed.fields || {}));
+    return new Response(
+      JSON.stringify({ success: true, ...parsed }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
     console.error('[notice-ocr-pdf] Error:', error);
     return new Response(
