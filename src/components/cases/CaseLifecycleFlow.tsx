@@ -61,6 +61,8 @@ import { FileReplyModal } from '@/components/modals/FileReplyModal';
 import { NoticeClosureModal } from '@/components/modals/NoticeClosureModal';
 import { useStageWorkflow } from '@/hooks/useStageWorkflow';
 import { StageNotice, WorkflowStepKey, StageClosureDetails, CreateStageNoticeInput, CreateStageReplyInput, UpdateStageNoticeInput } from '@/types/stageWorkflow';
+import { StageClosureFormData } from '@/types/stageClosureDetails';
+import { stageClosureDetailsService } from '@/services/stageClosureDetailsService';
 
 interface CaseLifecycleFlowProps {
   selectedCase?: Case | null;
@@ -119,6 +121,8 @@ const lifecycleStages = [
   }
 ];
 
+const STAGE_ORDER_FOR_CLOSURE = ['Assessment', 'Adjudication', 'First Appeal', 'Tribunal', 'High Court', 'Supreme Court'];
+
 export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCase, onCaseUpdated, onNavigateToOverview }) => {
   const { toast } = useToast();
   const { state, dispatch } = useAppState();
@@ -142,6 +146,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   const [closingNotice, setClosingNotice] = useState<StageNotice | null>(null);
   const [stageInstanceId, setStageInstanceId] = useState<string | null>(null);
   const [isClosingStage, setIsClosingStage] = useState(false);
+  const [isSavingClosure, setIsSavingClosure] = useState(false);
 
   // Helper function to format dates safely
   const formatDate = (dateStr?: string | null): string => {
@@ -357,32 +362,79 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
     setSelectedNotice(null);
   }, [addReply, toast]);
 
-  const handleCloseStage = useCallback(async (details: StageClosureDetails) => {
-    if (!stageInstanceId) return;
+  const handleSaveClosure = useCallback(async (formData: StageClosureFormData) => {
+    if (!stageInstanceId || !selectedCase) return;
+    setIsSavingClosure(true);
+    try {
+      await stageClosureDetailsService.save(stageInstanceId, selectedCase.id, formData);
+      toast({ title: "Closure Saved", description: "Closure data saved as draft." });
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to save closure data.", variant: "destructive" });
+    } finally {
+      setIsSavingClosure(false);
+    }
+  }, [stageInstanceId, selectedCase, toast]);
+
+  const handleCloseStage = useCallback(async (formData: StageClosureFormData) => {
+    if (!stageInstanceId || !selectedCase) return;
     
     setIsClosingStage(true);
     try {
-      // Complete the closure step
-      const success = await completeStep('closure');
-      if (success) {
-        toast({
-          title: "Stage Closed",
-          description: `Stage closed with outcome: ${details.outcome}`,
-        });
-        // Trigger refresh
-        await refreshWorkflow();
+      // Save and finalize closure data
+      await stageClosureDetailsService.save(stageInstanceId, selectedCase.id, formData);
+      await stageClosureDetailsService.finalize(stageInstanceId);
+
+      const closureStatus = formData.closure_status;
+
+      if (closureStatus === 'Order Passed') {
+        // Complete closure step which triggers forward transition via handleClosureTransition
+        const success = await completeStep('closure');
+        if (success) {
+          toast({ title: "Stage Closed", description: `Order passed. Case advanced to next stage.` });
+        }
+      } else if (closureStatus === 'Fully Dropped' || closureStatus === 'Withdrawn' || closureStatus === 'Settled') {
+        // Close case at current level
+        await completeStep('closure');
+        await supabase
+          .from('cases')
+          .update({ status: 'Closed', completed_at: new Date().toISOString() })
+          .eq('id', selectedCase.id);
+        toast({ title: "Case Closed", description: `Case closed with outcome: ${closureStatus}` });
+      } else if (closureStatus === 'Remanded') {
+        // Remand: transition back to earlier stage
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: instance } = await supabase
+          .from('stage_instances')
+          .select('case_id, stage_key, tenant_id')
+          .eq('id', stageInstanceId)
+          .maybeSingle();
+        
+        if (instance && user) {
+          const currentIdx = STAGE_ORDER_FOR_CLOSURE.indexOf(instance.stage_key);
+          const remandStage = currentIdx > 0 ? STAGE_ORDER_FOR_CLOSURE[currentIdx - 1] : 'Assessment';
+          
+          await supabase.from('stage_transitions').insert({
+            tenant_id: instance.tenant_id,
+            case_id: instance.case_id,
+            from_stage: instance.stage_key,
+            to_stage: remandStage,
+            transition_type: 'Remand',
+            comments: `Stage remanded from ${instance.stage_key} to ${remandStage}`,
+            created_by: user.id
+          });
+          await supabase.from('cases').update({ stage_code: remandStage }).eq('id', selectedCase.id);
+          toast({ title: "Stage Remanded", description: `Case remanded to ${remandStage}.` });
+        }
       }
+
+      await refreshWorkflow();
     } catch (err) {
       console.error('[CaseLifecycleFlow] Error closing stage:', err);
-      toast({
-        title: "Error",
-        description: "Failed to close stage. Please try again.",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Failed to close stage. Please try again.", variant: "destructive" });
     } finally {
       setIsClosingStage(false);
     }
-  }, [stageInstanceId, completeStep, toast, refreshWorkflow]);
+  }, [stageInstanceId, selectedCase, completeStep, toast, refreshWorkflow]);
 
   // Get stage-specific hearings
   // Check both caseId (legacy) and case_id (DB) since hearingsService returns both formats
@@ -801,9 +853,11 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
             <StageClosurePanel
               stageKey={selectedCase.currentStage}
               stageInstanceId={stageInstanceId}
-              canClose={workflowState.canClose}
-              blockingReasons={workflowState.blockingReasons}
+              caseId={selectedCase.id}
+              closureWarnings={workflowState.closureWarnings}
+              onSaveClosure={handleSaveClosure}
               onCloseStage={handleCloseStage}
+              isSaving={isSavingClosure}
               isClosing={isClosingStage}
             />
           )}
