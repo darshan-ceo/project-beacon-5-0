@@ -125,6 +125,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   const navigate = useNavigate();
   const [showStageModal, setShowStageModal] = useState(false);
   const [showHearingModal, setShowHearingModal] = useState(false);
+  const [defaultHearingType, setDefaultHearingType] = useState<string>('General');
   const [showFormModal, setShowFormModal] = useState(false);
   const [selectedFormCode, setSelectedFormCode] = useState<string>('');
   const [formTemplate, setFormTemplate] = useState<any>(null);
@@ -753,7 +754,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
               onViewNotice={handleViewNotice}
               onFileReply={handleFileReply}
               onCloseNotice={handleCloseNotice}
-              onScheduleHearing={() => setShowHearingModal(true)}
+              onScheduleHearing={() => { const idx = lifecycleStages.findIndex(s => s.id === normalizeStage(selectedCase?.currentStage)); setDefaultHearingType(idx === 0 ? 'Personal Hearing' : 'General'); setShowHearingModal(true); }}
               noticeReplies={noticeReplies}
               onLoadReplies={loadRepliesForNotice}
             />
@@ -772,7 +773,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                 onViewNotice={handleViewNotice}
                 onFileReply={handleFileReply}
                 onCloseNotice={handleCloseNotice}
-                onScheduleHearing={() => setShowHearingModal(true)}
+                onScheduleHearing={() => { const idx = lifecycleStages.findIndex(s => s.id === normalizeStage(selectedCase?.currentStage)); setDefaultHearingType(idx === 0 ? 'Personal Hearing' : 'General'); setShowHearingModal(true); }}
                 noticeReplies={noticeReplies}
                 onLoadReplies={loadRepliesForNotice}
               />
@@ -792,7 +793,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
               hearings={stageHearings}
               stageInstanceId={stageInstanceId}
               caseId={selectedCase.id}
-              onScheduleHearing={() => setShowHearingModal(true)}
+              onScheduleHearing={() => { const idx = lifecycleStages.findIndex(s => s.id === normalizeStage(selectedCase?.currentStage)); setDefaultHearingType(idx === 0 ? 'Personal Hearing' : 'General'); setShowHearingModal(true); }}
             />
           )}
 
@@ -1035,7 +1036,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                             variant="outline" 
                             size="sm" 
                             className="w-full justify-start"
-                            onClick={() => setShowHearingModal(true)}
+                            onClick={() => { const idx = lifecycleStages.findIndex(s => s.id === normalizeStage(selectedCase?.currentStage)); setDefaultHearingType(idx === 0 ? 'Personal Hearing' : 'General'); setShowHearingModal(true); }}
                           >
                             <Clock className="mr-2 h-4 w-4" />
                             Schedule Hearing
@@ -1231,6 +1232,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         contextCaseId={selectedCase?.id}
         contextClientId={selectedCase?.clientId}
         stageInstanceId={stageInstanceId}
+        defaultHearingType={defaultHearingType as any}
       />
 
       {/* Form Render Modal */}

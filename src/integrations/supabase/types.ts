@@ -2629,6 +2629,87 @@ export type Database = {
           },
         ]
       }
+      hearing_ph_details: {
+        Row: {
+          additional_submissions: Json | null
+          attended_by: string | null
+          case_id: string
+          created_at: string | null
+          hearing_id: string
+          hearing_mode: string | null
+          id: string
+          ph_notice_date: string
+          ph_notice_ref_no: string
+          place_of_hearing: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          additional_submissions?: Json | null
+          attended_by?: string | null
+          case_id: string
+          created_at?: string | null
+          hearing_id: string
+          hearing_mode?: string | null
+          id?: string
+          ph_notice_date: string
+          ph_notice_ref_no: string
+          place_of_hearing?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          additional_submissions?: Json | null
+          attended_by?: string | null
+          case_id?: string
+          created_at?: string | null
+          hearing_id?: string
+          hearing_mode?: string | null
+          id?: string
+          ph_notice_date?: string
+          ph_notice_ref_no?: string
+          place_of_hearing?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hearing_ph_details_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "case_activity_summary"
+            referencedColumns: ["case_id"]
+          },
+          {
+            foreignKeyName: "hearing_ph_details_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hearing_ph_details_hearing_id_fkey"
+            columns: ["hearing_id"]
+            isOneToOne: true
+            referencedRelation: "hearings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hearing_ph_details_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "hearing_ph_details_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hearings: {
         Row: {
           authority_id: string | null
@@ -2641,6 +2722,7 @@ export type Database = {
           hearing_date: string
           hearing_outcome: string | null
           hearing_purpose: string | null
+          hearing_type: string | null
           id: string
           is_demo: boolean | null
           judge_name: string | null
@@ -2667,6 +2749,7 @@ export type Database = {
           hearing_date: string
           hearing_outcome?: string | null
           hearing_purpose?: string | null
+          hearing_type?: string | null
           id?: string
           is_demo?: boolean | null
           judge_name?: string | null
@@ -2693,6 +2776,7 @@ export type Database = {
           hearing_date?: string
           hearing_outcome?: string | null
           hearing_purpose?: string | null
+          hearing_type?: string | null
           id?: string
           is_demo?: boolean | null
           judge_name?: string | null

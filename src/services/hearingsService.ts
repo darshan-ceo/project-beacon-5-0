@@ -115,7 +115,8 @@ export const hearingsService = {
         judge_name: data.judge_ids?.join(', ') || null,
         status: 'scheduled',
         notes: data.notes || null,
-        outcome: null
+        outcome: null,
+        hearing_type: data.hearing_type || 'General'
       };
 
       // Persist to Supabase first
@@ -140,6 +141,7 @@ export const hearingsService = {
         notes: savedHearing.notes,
         forum_id: data.forum_id,
         authority_id: data.authority_id,
+        hearing_type: data.hearing_type || 'General',
         created_by: 'current-user-id',
         created_at: savedHearing.created_at || new Date().toISOString(),
         updated_at: savedHearing.updated_at || new Date().toISOString(),
