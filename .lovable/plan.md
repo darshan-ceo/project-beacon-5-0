@@ -1,144 +1,176 @@
 
 
-# Stage-Aware Structured Reply for Appeal Stages
+# Stage-Aware Personal Hearing as a Hearing Type
 
 ## Overview
-Extend the Reply workflow so that for appeal-level stages (First Appeal and above), clicking "Reply" opens a full-page structured form instead of the existing simple modal. The existing modal remains unchanged for Assessment and Adjudication stages.
+Extend the existing Hearing entity with a `hearing_type` field and PH-specific detail fields. Personal Hearing (PH) is treated as a type of hearing, NOT a separate module. The existing "Schedule New Hearing" modal remains the single entry point -- it gains a "Hearing Type" dropdown that defaults based on the current lifecycle stage.
 
-## Stage Level Logic
-The `lifecycleStages` array defines stage order:
-- Index 0: Assessment -- simple modal
-- Index 1: Adjudication -- simple modal
-- Index 2+: First Appeal, Tribunal, High Court, Supreme Court -- full-page structured reply
-
-The threshold is index >= 2 (matching "First Appeal onwards").
+## Architecture Rule
+- ONE Hearing entity, ONE `hearings` table, ONE `HearingModal`
+- No separate `personal_hearings` table, no separate PH page or route
+- PH-specific fields are stored in an additive extension table `hearing_ph_details` linked 1:1 via `hearing_id`
 
 ---
 
-## Step 1: Database Migration -- `structured_reply_details` Table
+## Step 1: Database Migration -- `hearing_ph_details` Table
 
-Create a new additive table to store the extended reply fields without modifying `stage_replies`:
-
-```text
-structured_reply_details
-  id             UUID PK
-  tenant_id      UUID FK -> tenants
-  reply_id       UUID FK -> stage_replies (unique, 1:1)
-  case_id        UUID FK -> cases
-  prepared_by    TEXT
-  filed_by_name  TEXT
-  pre_deposit_pct    NUMERIC
-  pre_deposit_amount NUMERIC
-  pre_deposit_remarks TEXT
-  cross_obj_ref      TEXT
-  cross_obj_date     DATE
-  ack_reference_id   TEXT
-  filing_proof_doc_ids JSONB (array of doc IDs)
-  delay_reason       TEXT
-  condonation_filed  BOOLEAN DEFAULT false
-  key_arguments      TEXT
-  strength_weakness  TEXT
-  expected_outcome   TEXT
-  additional_submissions JSONB (array of {description, doc_id})
-  created_at     TIMESTAMPTZ DEFAULT now()
-  updated_at     TIMESTAMPTZ DEFAULT now()
-```
-
-RLS: tenant-scoped read/write matching existing `stage_replies` policies.
-
-## Step 2: New Route -- `/cases/:caseId/reply/edit`
-
-Add a new route in `App.tsx`:
+Additive extension table (does NOT modify the existing `hearings` table):
 
 ```text
-/cases/:caseId/reply/edit?noticeId=X&replyId=Y&stageInstanceId=Z
+hearing_ph_details
+  id                      UUID PK DEFAULT gen_random_uuid()
+  tenant_id               UUID NOT NULL
+  hearing_id              UUID UNIQUE NOT NULL FK -> hearings(id) ON DELETE CASCADE
+  case_id                 UUID NOT NULL FK -> cases(id)
+  ph_notice_ref_no        TEXT NOT NULL
+  ph_notice_date          DATE NOT NULL
+  hearing_mode            TEXT DEFAULT 'Physical'   -- Physical / Virtual
+  place_of_hearing        TEXT
+  attended_by             TEXT
+  additional_submissions  JSONB DEFAULT '[]'         -- [{description, doc_id}]
+  created_at              TIMESTAMPTZ DEFAULT now()
+  updated_at              TIMESTAMPTZ DEFAULT now()
 ```
 
-This route renders the new `StructuredReplyPage` component wrapped in `ProtectedRoute` (no AdminLayout needed -- full-page form).
+Also add a `hearing_type` column to the existing `hearings` table:
 
-## Step 3: New Page Component -- `StructuredReplyPage.tsx`
+```sql
+ALTER TABLE hearings ADD COLUMN IF NOT EXISTS hearing_type VARCHAR DEFAULT 'General';
+```
 
-Location: `src/pages/StructuredReplyPage.tsx`
+Valid values: `'Personal Hearing'`, `'Virtual Hearing'`, `'Final Hearing'`, `'Mention'`, `'General'`
 
-Uses the existing `FullPageForm` shell. Sections (as Card components):
+RLS policies on `hearing_ph_details`: tenant-scoped read/write matching existing `hearings` policies.
 
-1. **Header Snapshot** (read-only) -- Case number, stage name, notice due date, reply status, delay badge
-2. **Basic Reply Details** -- Reply Reference (required), Reply Date, Filing Mode (Online/Physical), Prepared By, Filed By
-3. **Pre-Deposit Details** -- Percentage, Amount, Remarks (visible only for appeal stages)
-4. **Cross-Objection** (optional) -- Reference No, Date
-5. **Filing Proof** -- Acknowledgement/Portal Reference ID, Upload filing proof (reuses existing upload logic from `FileReplyModal`)
-6. **Additional Submissions** -- Repeatable rows with description + document upload
-7. **Delay Handling** -- Conditionally shown when reply_date > notice due_date; mandatory delay reason, optional condonation checkbox
-8. **Internal Notes** -- Key Arguments, Strength/Weakness, Expected Outcome dropdown
+## Step 2: Update Hearing Types
 
-Footer: "Save Draft" and "File Reply" buttons.
+**`src/types/hearings.ts`** -- Add:
 
-## Step 4: New Service -- `structuredReplyService.ts`
+```typescript
+export type HearingType = 'Personal Hearing' | 'Virtual Hearing' | 'Final Hearing' | 'Mention' | 'General';
+```
 
-Location: `src/services/structuredReplyService.ts`
+Add `hearing_type` to the `Hearing` interface and `HearingFormData` interface.
+
+**`src/types/hearingPhDetails.ts`** -- New file:
+
+```typescript
+export interface HearingPhDetails {
+  id: string;
+  tenant_id: string;
+  hearing_id: string;
+  case_id: string;
+  ph_notice_ref_no: string;
+  ph_notice_date: string;
+  hearing_mode: 'Physical' | 'Virtual';
+  place_of_hearing: string | null;
+  attended_by: string | null;
+  additional_submissions: { description: string; doc_id: string | null }[];
+}
+```
+
+## Step 3: New Service -- `hearingPhDetailsService.ts`
+
+Location: `src/services/hearingPhDetailsService.ts`
 
 Methods:
-- `getByReplyId(replyId)` -- fetch structured details
-- `save(data)` -- upsert into `structured_reply_details`
-- Reuses `stageRepliesService.createReply()` / `updateReply()` for the base reply record
+- `getByHearingId(hearingId)` -- fetch PH details for a hearing
+- `save(data)` -- upsert into `hearing_ph_details`
+- `deleteByHearingId(hearingId)` -- remove PH details if type changes away from PH
 
-On "File Reply" (status = Filed):
-- Calls `stageRepliesService` to update status to Filed
-- This automatically updates notice status to "Replied" (existing logic)
-- Creates a timeline entry via existing workflow step mechanisms
+## Step 4: Modify `HearingModal.tsx` -- Type-Driven Form
 
-## Step 5: Modify `handleFileReply` in `CaseLifecycleFlow.tsx`
+Changes to the existing hearing modal (no new modal or page):
 
-Current code (line 304-307):
+1. **Add `hearing_type` to form state** -- New field defaulting based on stage context
+2. **Add "Hearing Type" dropdown** in Section 2 (Schedule Information), before Date/Time:
+   - Values: Personal Hearing, Virtual Hearing, Final Hearing, Mention, General
+   - Default: `'Personal Hearing'` when stage = Assessment (index 0), `'General'` otherwise
+3. **Conditionally show PH-specific section** (new Card) when `hearing_type === 'Personal Hearing'`:
+   - PH Notice Reference Number (required)
+   - PH Notice Date (required)
+   - Mode of Hearing (Physical / Virtual)
+   - Place of Hearing
+   - Attended By
+4. **Conditionally show Additional Submissions section** when `hearing_type === 'Personal Hearing'`:
+   - Repeatable rows: description text + optional document upload
+   - Reuses existing `HearingDocumentUpload` pattern
+5. **On submit**: After `hearingsService.createHearing()`, if type is PH, also save to `hearing_ph_details` via the new service
+6. **On edit/view**: Load PH details if `hearing_type === 'Personal Hearing'` and populate the fields
+
+### Stage-Aware Default Logic
+
+The `HearingModal` receives `stageInstanceId` already. We add a new prop `defaultHearingType` (optional). In `CaseLifecycleFlow.tsx`, when opening the modal:
+
 ```typescript
-const handleFileReply = useCallback((notice: StageNotice) => {
-  setSelectedNotice(notice);
-  setShowFileReplyModal(true);
-}, []);
+// Determine default hearing type based on stage
+const stageIndex = lifecycleStages.findIndex(
+  s => s.id === normalizeStage(selectedCase?.currentStage)
+);
+const defaultType = stageIndex === 0 ? 'Personal Hearing' : 'General';
 ```
 
-Changed to:
+Pass this as a prop. The user can still change the type -- it's a default, not a lock.
+
+## Step 5: Modify `CaseLifecycleFlow.tsx`
+
+Replace the four `() => setShowHearingModal(true)` calls (lines 756, 775, 795, 1038) with a handler that computes the default hearing type:
+
 ```typescript
-const handleFileReply = useCallback((notice: StageNotice) => {
+const handleScheduleHearing = useCallback(() => {
   const stageIndex = lifecycleStages.findIndex(
     s => s.id === normalizeStage(selectedCase?.currentStage)
   );
-  if (stageIndex >= 2) {
-    // Appeal stage: navigate to full-page structured reply
-    navigate(`/cases/${selectedCase.id}/reply/edit?noticeId=${notice.id}&stageInstanceId=${stageInstanceId}`);
-  } else {
-    // Pre-appeal: use existing modal
-    setSelectedNotice(notice);
-    setShowFileReplyModal(true);
-  }
-}, [selectedCase, stageInstanceId, navigate]);
+  setDefaultHearingType(stageIndex === 0 ? 'Personal Hearing' : 'General');
+  setShowHearingModal(true);
+}, [selectedCase]);
 ```
 
-## Step 6: Lifecycle Automation
+Add `defaultHearingType` state and pass it to `HearingModal`.
 
-When structured reply is filed (status = "Filed"):
-1. `stageRepliesService.createReply` already updates notice status to "Replied"
-2. The workflow step for "reply" is already auto-advanced
-3. No additional automation code needed -- existing service handles it
+## Step 6: Update `hearingsService.createHearing()`
+
+Add `hearing_type` to the `hearingData` object sent to storage:
+
+```typescript
+const hearingData = {
+  ...existingFields,
+  hearing_type: data.hearing_type || 'General',
+};
+```
+
+No other changes to the service -- timeline, automation, notifications all work as before since they operate on the single `hearings` entity.
+
+## Step 7: Lifecycle Automation
+
+No changes needed. The existing `hearingsService.createHearing()` already:
+- Creates timeline entry ("Hearing Scheduled")
+- Triggers task bundle automation
+- Sends notifications
+- Updates stage progress
+
+All of this works identically regardless of hearing type.
 
 ---
 
-## Files Changed
+## Files Changed Summary
 
 | File | Action | Purpose |
 |------|--------|---------|
-| New migration SQL | Create | `structured_reply_details` table + RLS |
-| `src/App.tsx` | Edit | Add `/cases/:caseId/reply/edit` route |
-| `src/pages/StructuredReplyPage.tsx` | Create | Full-page structured reply form |
-| `src/services/structuredReplyService.ts` | Create | CRUD for structured reply details |
-| `src/components/cases/CaseLifecycleFlow.tsx` | Edit | Stage-aware reply routing in `handleFileReply` |
-| `src/types/stageWorkflow.ts` | Edit | Add `StructuredReplyDetails` type |
+| New migration SQL | Create | `hearing_ph_details` table + `hearing_type` column on `hearings` |
+| `src/types/hearings.ts` | Edit | Add `HearingType` type and `hearing_type` field |
+| `src/types/hearingPhDetails.ts` | Create | PH details interface |
+| `src/services/hearingPhDetailsService.ts` | Create | CRUD for PH detail fields |
+| `src/services/hearingsService.ts` | Edit | Include `hearing_type` in create/update |
+| `src/components/modals/HearingModal.tsx` | Edit | Add type dropdown + conditional PH fields |
+| `src/components/cases/CaseLifecycleFlow.tsx` | Edit | Stage-aware default type when opening modal |
 
 ## Zero-Regression Guarantee
 
-- Existing `FileReplyModal` is untouched -- still used for Assessment and Adjudication
-- Existing `stage_replies` table is not modified
-- Existing `stageRepliesService` is reused as the base layer
-- Only additive database changes (new table)
-- Back navigation from structured reply page returns to case lifecycle
+- Existing `hearings` table is not modified destructively -- only one additive column (`hearing_type` with default `'General'`)
+- Existing `HearingModal` remains the single entry point -- enhanced, not replaced
+- All existing hearings continue to work with `hearing_type = 'General'` (default)
+- No new routes, no new pages, no separate PH workflow
+- Dashboards, timelines, reports, calendar views are unaffected -- they read from the same `hearings` table
+- Button label everywhere remains "Schedule Hearing" / "Add Hearing"
 
