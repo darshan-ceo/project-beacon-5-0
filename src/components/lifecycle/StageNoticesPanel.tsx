@@ -45,6 +45,7 @@ interface StageNoticesPanelProps {
   onCloseNotice?: (notice: StageNotice) => void;
   onScheduleHearing?: (notice: StageNotice) => void;
   isLoading?: boolean;
+  isReadOnly?: boolean;
   // Replies support
   noticeReplies?: Map<string, StageReply[]>;
   onLoadReplies?: (noticeId: string) => void;
@@ -151,6 +152,7 @@ export const StageNoticesPanel: React.FC<StageNoticesPanelProps> = ({
   onCloseNotice,
   onScheduleHearing,
   isLoading = false,
+  isReadOnly = false,
   noticeReplies,
   onLoadReplies
 }) => {
@@ -180,10 +182,12 @@ export const StageNoticesPanel: React.FC<StageNoticesPanelProps> = ({
               </Badge>
             )}
           </CardTitle>
-          <Button size="sm" onClick={onAddNotice} disabled={isLoading}>
-            <Plus className="h-4 w-4 mr-1" />
-            Add Notice
-          </Button>
+          {!isReadOnly && (
+            <Button size="sm" onClick={onAddNotice} disabled={isLoading}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add Notice
+            </Button>
+          )}
         </div>
       </CardHeader>
       
@@ -267,7 +271,7 @@ export const StageNoticesPanel: React.FC<StageNoticesPanelProps> = ({
                       
                       {/* Action Buttons */}
                       <div className="flex items-center gap-1">
-                        {notice.status !== 'Replied' && notice.status !== 'Closed' && (
+                        {!isReadOnly && notice.status !== 'Replied' && notice.status !== 'Closed' && (
                           <Button 
                             size="sm" 
                             variant="outline" 
@@ -383,45 +387,49 @@ export const StageNoticesPanel: React.FC<StageNoticesPanelProps> = ({
                               <Eye className="h-3 w-3 mr-1" />
                               View
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              onClick={() => onEditNotice(notice)}
-                              className="h-7 text-xs"
-                            >
-                              <Pencil className="h-3 w-3 mr-1" />
-                              Edit
-                            </Button>
-                            {notice.status !== 'Closed' && (
+                            {!isReadOnly && (
                               <>
-                                {onScheduleHearing && (
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline" 
-                                    onClick={() => onScheduleHearing(notice)}
-                                    className="h-7 text-xs"
-                                  >
-                                    <CalendarCheck className="h-3 w-3 mr-1" />
-                                    Hearing
-                                  </Button>
-                                )}
-                                {onCloseNotice && (
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline" 
-                                    onClick={() => onCloseNotice(notice)}
-                                    className="h-7 text-xs"
-                                  >
-                                    <XCircle className="h-3 w-3 mr-1" />
-                                    Close
-                                  </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  onClick={() => onEditNotice(notice)}
+                                  className="h-7 text-xs"
+                                >
+                                  <Pencil className="h-3 w-3 mr-1" />
+                                  Edit
+                                </Button>
+                                {notice.status !== 'Closed' && (
+                                  <>
+                                    {onScheduleHearing && (
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        onClick={() => onScheduleHearing(notice)}
+                                        className="h-7 text-xs"
+                                      >
+                                        <CalendarCheck className="h-3 w-3 mr-1" />
+                                        Hearing
+                                      </Button>
+                                    )}
+                                    {onCloseNotice && (
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        onClick={() => onCloseNotice(notice)}
+                                        className="h-7 text-xs"
+                                      >
+                                        <XCircle className="h-3 w-3 mr-1" />
+                                        Close
+                                      </Button>
+                                    )}
+                                  </>
                                 )}
                               </>
                             )}
-                            {!notice.is_original && (
+                            {!isReadOnly && !notice.is_original && (
                               <Button 
                                 size="sm" 
-                                variant="ghost" 
+                                variant="ghost"
                                 onClick={() => onDeleteNotice(notice.id)}
                                 className="h-7 text-xs text-destructive hover:text-destructive"
                               >

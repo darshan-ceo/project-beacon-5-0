@@ -22,6 +22,7 @@ import { casesService } from '@/services/casesService';
 import { dmsService } from '@/services/dmsService';
 import { formTemplatesService } from '@/services/formTemplatesService';
 import { normalizeStage } from '@/utils/stageUtils';
+import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format, parseISO, isValid, differenceInDays, isPast } from 'date-fns';
 import {
@@ -46,7 +47,9 @@ import {
   ExternalLink,
   ClipboardCheck,
   AlertCircle,
-  Activity
+  Activity,
+  Eye,
+  RotateCw
 } from 'lucide-react';
 import { HelpButton } from '@/components/ui/help-button';
 import { supabase } from '@/integrations/supabase/client';
@@ -147,6 +150,11 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   const [stageInstanceId, setStageInstanceId] = useState<string | null>(null);
   const [isClosingStage, setIsClosingStage] = useState(false);
   const [isSavingClosure, setIsSavingClosure] = useState(false);
+
+  // Stage Context: viewing state for historical navigation
+  const [viewingStageInstanceId, setViewingStageInstanceId] = useState<string | null>(null);
+  const [viewingStageKey, setViewingStageKey] = useState<string | null>(null);
+  const [isViewingHistorical, setIsViewingHistorical] = useState(false);
 
   // Helper function to format dates safely
   const formatDate = (dateStr?: string | null): string => {
@@ -257,7 +265,54 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
     }
     
     fetchStageInstance();
+    // Reset viewing context when case changes
+    setViewingStageInstanceId(null);
+    setViewingStageKey(null);
+    setIsViewingHistorical(false);
   }, [selectedCase?.id, selectedCase?.currentStage]);
+
+  // Effective IDs: use viewing context if set, otherwise active instance
+  const effectiveStageInstanceId = viewingStageInstanceId || stageInstanceId;
+  const effectiveStageKey = viewingStageKey || selectedCase?.currentStage || '';
+
+  // Handle clicking a stage tile to switch viewing context
+  const handleStageClick = useCallback(async (stageId: string) => {
+    if (!selectedCase?.id) return;
+    
+    try {
+      const { data: instances, error } = await supabase
+        .from('stage_instances')
+        .select('id, stage_key, status, cycle_no')
+        .eq('case_id', selectedCase.id)
+        .eq('stage_key', stageId)
+        .order('cycle_no', { ascending: false });
+      
+      if (error || !instances || instances.length === 0) {
+        toast({
+          title: "No History",
+          description: `No stage history exists for ${stageId} yet.`,
+        });
+        return;
+      }
+
+      // Use the most recent instance for that stage
+      const targetInstance = instances[0];
+      const isActive = targetInstance.id === stageInstanceId;
+      
+      setViewingStageInstanceId(targetInstance.id);
+      setViewingStageKey(targetInstance.stage_key);
+      setIsViewingHistorical(!isActive);
+    } catch (err) {
+      console.error('[CaseLifecycleFlow] Error fetching stage instances:', err);
+    }
+  }, [selectedCase?.id, stageInstanceId, toast]);
+
+  // Return to current/active stage
+  const handleReturnToCurrent = useCallback(() => {
+    setViewingStageInstanceId(null);
+    setViewingStageKey(null);
+    setIsViewingHistorical(false);
+  }, []);
 
   // Stage Workflow hook
   const {
@@ -275,9 +330,9 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
     skipStep,
     isFeatureEnabled: isStageWorkflowEnabled
   } = useStageWorkflow({
-    stageInstanceId,
+    stageInstanceId: effectiveStageInstanceId,
     caseId: selectedCase?.id || '',
-    stageKey: selectedCase?.currentStage || '',
+    stageKey: effectiveStageKey,
     enabled: !!selectedCase
   });
 
@@ -443,10 +498,10 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
     return state.hearings?.filter(h => {
       const hearingCaseId = h.caseId || h.case_id;
       const matchesCase = hearingCaseId === selectedCase.id;
-      const matchesStage = h.stage_instance_id === stageInstanceId || !h.stage_instance_id;
+      const matchesStage = h.stage_instance_id === effectiveStageInstanceId || !h.stage_instance_id;
       return matchesCase && matchesStage;
     }) || [];
-  }, [selectedCase?.id, stageInstanceId, state.hearings]);
+  }, [selectedCase?.id, effectiveStageInstanceId, state.hearings]);
 
   // Handler for navigating to create task
   const handleCreateTask = () => {
@@ -690,6 +745,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         {lifecycleStages.map((stage, index) => {
           const status = getStageStatus(index);
           const StageIcon = stage.icon;
+          const isViewingThis = viewingStageKey === stage.id;
           
           return (
             <motion.div
@@ -711,9 +767,15 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                 </div>
               )}
               
-              <Card className={`relative z-10 transition-all duration-300 ${
-                status === 'current' ? 'ring-2 ring-primary shadow-lg' : ''
-              } ${status === 'completed' ? 'bg-success/5' : ''}`}>
+              <Card 
+                className={cn(
+                  "relative z-10 transition-all duration-300 cursor-pointer hover:shadow-md",
+                  status === 'current' && !isViewingThis && 'ring-2 ring-primary shadow-lg',
+                  status === 'completed' && 'bg-success/5',
+                  isViewingThis && 'ring-2 ring-accent shadow-lg bg-accent/5'
+                )}
+                onClick={() => handleStageClick(stage.id)}
+              >
                 <CardContent className="p-4">
                   <div className="text-center space-y-3">
                     {/* Stage Icon */}
@@ -728,6 +790,14 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                         <StageIcon className="h-6 w-6" />
                       )}
                     </div>
+                    
+                    {/* Viewing indicator */}
+                    {isViewingThis && (
+                      <Badge variant="secondary" className="text-[10px]">
+                        <Eye className="h-2.5 w-2.5 mr-1" />
+                        Viewing
+                      </Badge>
+                    )}
                     
                     {/* Stage Details */}
                     <div>
@@ -757,12 +827,12 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                       </p>
                     </div>
                     
-                    {/* Action Button */}
-                    {status === 'current' && selectedCase?.status !== 'Completed' && (
+                    {/* Action Button - only on current stage when not viewing historical */}
+                    {status === 'current' && !isViewingHistorical && selectedCase?.status !== 'Completed' && (
                       <Button 
                         size="sm" 
                         className="w-full"
-                        onClick={() => setShowStageModal(true)}
+                        onClick={(e) => { e.stopPropagation(); setShowStageModal(true); }}
                       >
                         Manage Stage
                       </Button>
@@ -775,6 +845,30 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         })}
       </motion.div>
 
+      {/* Historical Stage Banner */}
+      {isViewingHistorical && selectedCase && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-lg border border-warning/50 bg-warning/10 p-3 flex items-center justify-between gap-3"
+        >
+          <div className="flex items-center gap-2">
+            <Info className="h-4 w-4 text-warning flex-shrink-0" />
+            <span className="text-sm font-medium">
+              Viewing: {viewingStageKey} (Historical)
+            </span>
+            <span className="text-xs text-muted-foreground">|</span>
+            <span className="text-xs text-muted-foreground">
+              Current Stage: {selectedCase.currentStage}
+            </span>
+          </div>
+          <Button size="sm" variant="outline" onClick={handleReturnToCurrent} className="h-7 text-xs">
+            <RotateCw className="h-3 w-3 mr-1" />
+            Return to Current Stage
+          </Button>
+        </motion.div>
+      )}
+
       {/* ★ Stage Workflow Timeline - Feature Flagged (HIGH PRIORITY - shown above Stage Dashboard) */}
       {selectedCase && isStageWorkflowEnabled && workflowState && (
         <motion.div 
@@ -785,20 +879,21 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         >
           {/* Workflow Timeline Stepper */}
           <StageWorkflowTimeline
-            stageKey={selectedCase.currentStage}
+            stageKey={effectiveStageKey}
             steps={workflowState.steps}
             currentStep={workflowState.currentStep}
             overallProgress={workflowState.overallProgress}
             activeStep={activeStep}
             onStepClick={setActiveStep}
             isLoading={false}
+            isReadOnly={isViewingHistorical}
           />
 
           {/* Active Step Panel */}
           {activeStep === 'notices' && (
             <StageNoticesPanel
               notices={workflowState.notices}
-              stageInstanceId={stageInstanceId}
+              stageInstanceId={effectiveStageInstanceId}
               caseId={selectedCase.id}
               onAddNotice={handleAddNotice}
               onEditNotice={handleEditNotice}
@@ -809,6 +904,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
               onScheduleHearing={() => { const idx = lifecycleStages.findIndex(s => s.id === normalizeStage(selectedCase?.currentStage)); setDefaultHearingType(idx === 0 ? 'Personal Hearing' : 'General'); setShowHearingModal(true); }}
               noticeReplies={noticeReplies}
               onLoadReplies={loadRepliesForNotice}
+              isReadOnly={isViewingHistorical}
             />
           )}
 
@@ -817,7 +913,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
             ? (
               <StageNoticesPanel
                 notices={workflowState.notices.filter(n => n.status === 'Reply Pending' || n.status === 'Received')}
-                stageInstanceId={stageInstanceId}
+                stageInstanceId={effectiveStageInstanceId}
                 caseId={selectedCase.id}
                 onAddNotice={handleAddNotice}
                 onEditNotice={handleEditNotice}
@@ -828,6 +924,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
                 onScheduleHearing={() => { const idx = lifecycleStages.findIndex(s => s.id === normalizeStage(selectedCase?.currentStage)); setDefaultHearingType(idx === 0 ? 'Personal Hearing' : 'General'); setShowHearingModal(true); }}
                 noticeReplies={noticeReplies}
                 onLoadReplies={loadRepliesForNotice}
+                isReadOnly={isViewingHistorical}
               />
             ) : (
               <Card className="border-dashed">
@@ -843,29 +940,31 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
           {activeStep === 'hearings' && (
             <StageHearingsPanel
               hearings={stageHearings}
-              stageInstanceId={stageInstanceId}
+              stageInstanceId={effectiveStageInstanceId}
               caseId={selectedCase.id}
               onScheduleHearing={() => { const idx = lifecycleStages.findIndex(s => s.id === normalizeStage(selectedCase?.currentStage)); setDefaultHearingType(idx === 0 ? 'Personal Hearing' : 'General'); setShowHearingModal(true); }}
+              isReadOnly={isViewingHistorical}
             />
           )}
 
           {activeStep === 'closure' && (
             <StageClosurePanel
-              stageKey={selectedCase.currentStage}
-              stageInstanceId={stageInstanceId}
+              stageKey={effectiveStageKey}
+              stageInstanceId={effectiveStageInstanceId}
               caseId={selectedCase.id}
               closureWarnings={workflowState.closureWarnings}
               onSaveClosure={handleSaveClosure}
               onCloseStage={handleCloseStage}
               isSaving={isSavingClosure}
               isClosing={isClosingStage}
+              isReadOnly={isViewingHistorical}
             />
           )}
         </motion.div>
       )}
 
       {/* Stage Dashboard - Collapsible (moved below Stage Workflow) */}
-      {selectedCase && (
+      {selectedCase && !isViewingHistorical && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

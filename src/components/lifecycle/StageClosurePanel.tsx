@@ -36,6 +36,7 @@ interface StageClosurePanelProps {
   onCloseStage: (data: StageClosureFormData) => Promise<void>;
   isSaving?: boolean;
   isClosing?: boolean;
+  isReadOnly?: boolean;
 }
 
 const CLOSURE_STATUSES: { value: ClosureStatus; label: string }[] = [
@@ -70,7 +71,8 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
   onSaveClosure,
   onCloseStage,
   isSaving = false,
-  isClosing = false
+  isClosing = false,
+  isReadOnly = false
 }) => {
   const [form, setForm] = useState<StageClosureFormData>({ ...INITIAL_CLOSURE_FORM });
   const [taxExpanded, setTaxExpanded] = useState(false);
@@ -400,33 +402,35 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
         </div>
 
         {/* Footer: Two Buttons */}
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => onSaveClosure(form)}
-            disabled={!form.closure_status || isSaving}
-          >
-            {isSaving ? 'Saving...' : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                Save Closure
-              </>
-            )}
-          </Button>
-          <Button
-            className="flex-1"
-            onClick={() => onCloseStage(form)}
-            disabled={!isValid || isClosing}
-          >
-            {isClosing ? 'Closing Stage...' : (
-              <>
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                Close Stage
-              </>
-            )}
-          </Button>
-        </div>
+        {!isReadOnly && (
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => onSaveClosure(form)}
+              disabled={!form.closure_status || isSaving}
+            >
+              {isSaving ? 'Saving...' : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Closure
+                </>
+              )}
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={() => onCloseStage(form)}
+              disabled={!isValid || isClosing}
+            >
+              {isClosing ? 'Closing Stage...' : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Close Stage
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
