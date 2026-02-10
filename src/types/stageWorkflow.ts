@@ -168,6 +168,7 @@ export interface UpdateWorkflowStepInput {
 
 export type ClosureOutcome = 
   | 'Order Passed' 
+  | 'Fully Dropped'
   | 'Case Dropped' 
   | 'Withdrawn' 
   | 'Settled' 
@@ -206,6 +207,7 @@ export interface StageWorkflowState {
   // Closure eligibility
   canClose: boolean;
   blockingReasons: string[];
+  closureWarnings: string[];
   
   // Metadata
   isLoading: boolean;

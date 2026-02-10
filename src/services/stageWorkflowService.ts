@@ -293,8 +293,8 @@ class StageWorkflowService {
       // Build timeline steps for display
       const steps = this.buildTimelineSteps(rawSteps, notices.length, repliesCount, hearingsCount);
 
-      // Determine closure eligibility
-      const canCloseResult = this.checkCanClose(rawSteps, notices);
+      // Determine closure eligibility -- decoupled: always canClose, warnings only
+      const closureCheck = this.checkCanClose(rawSteps, notices);
 
       return {
         stageInstanceId,
@@ -307,8 +307,9 @@ class StageWorkflowService {
         hearingsCount,
         currentStep,
         overallProgress,
-        canClose: canCloseResult.canClose,
-        blockingReasons: canCloseResult.blockingReasons,
+        canClose: true, // Always allow closure
+        blockingReasons: [],
+        closureWarnings: closureCheck.warningReasons,
         isLoading: false,
         error: null
       };
@@ -325,8 +326,9 @@ class StageWorkflowService {
         hearingsCount: 0,
         currentStep: 'notices',
         overallProgress: 0,
-        canClose: false,
-        blockingReasons: ['Failed to load workflow state'],
+        canClose: true,
+        blockingReasons: [],
+        closureWarnings: ['Failed to load workflow state'],
         isLoading: false,
         error: 'Failed to load workflow state'
       };
@@ -336,37 +338,25 @@ class StageWorkflowService {
   /**
    * Check if stage can be closed
    */
-  private checkCanClose(steps: StageWorkflowStep[], notices: any[]): { canClose: boolean; blockingReasons: string[] } {
-    const blockingReasons: string[] = [];
+  private checkCanClose(steps: StageWorkflowStep[], notices: any[]): { warningReasons: string[] } {
+    const warningReasons: string[] = [];
 
-    // Check if there are any notices
     if (notices.length === 0) {
-      blockingReasons.push('At least one notice must be recorded');
+      warningReasons.push('No notices have been recorded');
     }
 
-    // Check if there are any pending replies
     const pendingNotices = notices.filter(n => n.status === 'Received' || n.status === 'Reply Pending');
     if (pendingNotices.length > 0) {
-      blockingReasons.push(`${pendingNotices.length} notice(s) require a reply`);
+      warningReasons.push(`${pendingNotices.length} notice(s) still pending reply`);
     }
 
-    // Check if closure step is available (all prior steps should be done or skipped)
-    const closureStep = steps.find(s => s.step_key === 'closure');
     const nonClosureSteps = steps.filter(s => s.step_key !== 'closure');
     const incompletePriorSteps = nonClosureSteps.filter(s => s.status === 'Pending' || s.status === 'In Progress');
-    
-    if (incompletePriorSteps.length > 0 && closureStep?.status === 'Pending') {
-      // Allow closure if at least notices step is done
-      const noticesStep = steps.find(s => s.step_key === 'notices');
-      if (noticesStep?.status !== 'Completed' && noticesStep?.status !== 'Skipped') {
-        blockingReasons.push('Complete or skip preceding workflow steps first');
-      }
+    if (incompletePriorSteps.length > 0) {
+      warningReasons.push('Some workflow steps are incomplete');
     }
 
-    return {
-      canClose: blockingReasons.length === 0,
-      blockingReasons
-    };
+    return { warningReasons };
   }
 
   /**

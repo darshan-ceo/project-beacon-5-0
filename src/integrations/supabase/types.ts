@@ -4020,6 +4020,91 @@ export type Database = {
           },
         ]
       }
+      stage_closure_details: {
+        Row: {
+          case_id: string | null
+          closure_date: string | null
+          closure_notes: string | null
+          closure_ref_no: string | null
+          closure_status: string
+          created_at: string | null
+          final_interest_amount: number | null
+          final_penalty_amount: number | null
+          final_tax_amount: Json | null
+          final_total_demand: number | null
+          id: string
+          is_draft: boolean | null
+          issuing_authority: string | null
+          officer_designation: string | null
+          officer_name: string | null
+          stage_instance_id: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          case_id?: string | null
+          closure_date?: string | null
+          closure_notes?: string | null
+          closure_ref_no?: string | null
+          closure_status: string
+          created_at?: string | null
+          final_interest_amount?: number | null
+          final_penalty_amount?: number | null
+          final_tax_amount?: Json | null
+          final_total_demand?: number | null
+          id?: string
+          is_draft?: boolean | null
+          issuing_authority?: string | null
+          officer_designation?: string | null
+          officer_name?: string | null
+          stage_instance_id: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          case_id?: string | null
+          closure_date?: string | null
+          closure_notes?: string | null
+          closure_ref_no?: string | null
+          closure_status?: string
+          created_at?: string | null
+          final_interest_amount?: number | null
+          final_penalty_amount?: number | null
+          final_tax_amount?: Json | null
+          final_total_demand?: number | null
+          id?: string
+          is_draft?: boolean | null
+          issuing_authority?: string | null
+          officer_designation?: string | null
+          officer_name?: string | null
+          stage_instance_id?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_closure_details_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "case_activity_summary"
+            referencedColumns: ["case_id"]
+          },
+          {
+            foreignKeyName: "stage_closure_details_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_closure_details_stage_instance_id_fkey"
+            columns: ["stage_instance_id"]
+            isOneToOne: true
+            referencedRelation: "stage_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stage_instances: {
         Row: {
           case_id: string
