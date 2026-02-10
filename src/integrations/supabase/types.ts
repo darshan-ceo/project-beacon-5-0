@@ -1804,6 +1804,7 @@ export type Database = {
           review_remarks: string | null
           reviewer_id: string | null
           role: string | null
+          stage_instance_id: string | null
           storage_url: string | null
           task_id: string | null
           tenant_id: string
@@ -1835,6 +1836,7 @@ export type Database = {
           review_remarks?: string | null
           reviewer_id?: string | null
           role?: string | null
+          stage_instance_id?: string | null
           storage_url?: string | null
           task_id?: string | null
           tenant_id: string
@@ -1866,6 +1868,7 @@ export type Database = {
           review_remarks?: string | null
           reviewer_id?: string | null
           role?: string | null
+          stage_instance_id?: string | null
           storage_url?: string | null
           task_id?: string | null
           tenant_id?: string
@@ -1929,6 +1932,13 @@ export type Database = {
             columns: ["parent_document_id"]
             isOneToOne: false
             referencedRelation: "pending_review_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_stage_instance_id_fkey"
+            columns: ["stage_instance_id"]
+            isOneToOne: false
+            referencedRelation: "stage_instances"
             referencedColumns: ["id"]
           },
           {
@@ -5409,6 +5419,7 @@ export type Database = {
           priority: string | null
           sla_hours: number | null
           stage: string | null
+          stage_instance_id: string | null
           status: string | null
           tags: string[] | null
           task_category: string | null
@@ -5444,6 +5455,7 @@ export type Database = {
           priority?: string | null
           sla_hours?: number | null
           stage?: string | null
+          stage_instance_id?: string | null
           status?: string | null
           tags?: string[] | null
           task_category?: string | null
@@ -5479,6 +5491,7 @@ export type Database = {
           priority?: string | null
           sla_hours?: number | null
           stage?: string | null
+          stage_instance_id?: string | null
           status?: string | null
           tags?: string[] | null
           task_category?: string | null
@@ -5542,6 +5555,13 @@ export type Database = {
             columns: ["hearing_id"]
             isOneToOne: false
             referencedRelation: "hearings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_stage_instance_id_fkey"
+            columns: ["stage_instance_id"]
+            isOneToOne: false
+            referencedRelation: "stage_instances"
             referencedColumns: ["id"]
           },
           {

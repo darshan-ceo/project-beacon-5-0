@@ -32,6 +32,7 @@ interface StageWorkflowTimelineProps {
   activeStep: WorkflowStepKey | null;
   onStepClick: (stepKey: WorkflowStepKey) => void;
   isLoading?: boolean;
+  isReadOnly?: boolean;
 }
 
 const STEP_ICONS: Record<WorkflowStepKey, React.ComponentType<{ className?: string }>> = {
@@ -76,7 +77,8 @@ export const StageWorkflowTimeline: React.FC<StageWorkflowTimelineProps> = ({
   overallProgress,
   activeStep,
   onStepClick,
-  isLoading = false
+  isLoading = false,
+  isReadOnly = false
 }) => {
   return (
     <Card className="border-dashed">
@@ -128,7 +130,7 @@ export const StageWorkflowTimeline: React.FC<StageWorkflowTimelineProps> = ({
               >
                 <button
                   onClick={() => onStepClick(step.key)}
-                  disabled={!step.isClickable || isLoading}
+                  disabled={(!step.isClickable && !isReadOnly) || isLoading}
                   className={cn(
                     "relative w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-200",
                     getStatusColor(step.status),

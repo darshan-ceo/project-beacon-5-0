@@ -35,6 +35,7 @@ interface StageHearingsPanelProps {
   onRecordOutcome?: (hearing: Hearing) => void;
   onAdjournHearing?: (hearing: Hearing) => void;
   isLoading?: boolean;
+  isReadOnly?: boolean;
 }
 
 function getStatusColor(status: string): string {
@@ -106,7 +107,8 @@ export const StageHearingsPanel: React.FC<StageHearingsPanelProps> = ({
   onViewHearing,
   onRecordOutcome,
   onAdjournHearing,
-  isLoading = false
+  isLoading = false,
+  isReadOnly = false
 }) => {
   // Sort hearings: upcoming first, then past
   const sortedHearings = [...hearings].sort((a, b) => {
@@ -134,10 +136,12 @@ export const StageHearingsPanel: React.FC<StageHearingsPanelProps> = ({
               </Badge>
             )}
           </CardTitle>
-          <Button size="sm" onClick={onScheduleHearing} disabled={isLoading}>
-            <Plus className="h-4 w-4 mr-1" />
-            Schedule Hearing
-          </Button>
+          {!isReadOnly && (
+            <Button size="sm" onClick={onScheduleHearing} disabled={isLoading}>
+              <Plus className="h-4 w-4 mr-1" />
+              Schedule Hearing
+            </Button>
+          )}
         </div>
       </CardHeader>
       
@@ -230,7 +234,7 @@ export const StageHearingsPanel: React.FC<StageHearingsPanelProps> = ({
                       
                       {/* Action Buttons */}
                       <div className="flex items-center gap-1">
-                        {needsOutcome && (
+                        {!isReadOnly && needsOutcome && (
                           <Button 
                             size="sm" 
                             variant="outline" 
@@ -241,7 +245,7 @@ export const StageHearingsPanel: React.FC<StageHearingsPanelProps> = ({
                             Add Outcome
                           </Button>
                         )}
-                        {isUpcoming && hearing.status !== 'adjourned' && (
+                        {!isReadOnly && isUpcoming && hearing.status !== 'adjourned' && (
                           <Button 
                             size="sm" 
                             variant="ghost" 
