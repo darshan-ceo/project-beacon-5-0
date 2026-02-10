@@ -1,155 +1,165 @@
 
 
-# Stage-Aware Personal Hearing as a Hearing Type
+# Upgrade Stage Closure -- Embedded Form with Demand Breakdown
 
 ## Overview
-Extend the existing Hearing entity with a `hearing_type` field and PH-specific detail fields. Personal Hearing (PH) is treated as a type of hearing, NOT a separate module. The existing "Schedule New Hearing" modal remains the single entry point -- it gains a "Hearing Type" dropdown that defaults based on the current lifecycle stage.
-
-## Architecture Rule
-- ONE Hearing entity, ONE `hearings` table, ONE `HearingModal`
-- No separate `personal_hearings` table, no separate PH page or route
-- PH-specific fields are stored in an additive extension table `hearing_ph_details` linked 1:1 via `hearing_id`
+Replace the current minimal Stage Closure panel with a full embedded "Add Closure" form. This includes authority/officer fields, a Final Demand Amount Breakdown with GST components, decoupled workflow validation, two-action footer ("Save Closure" / "Close Stage"), and lifecycle mapping based on closure outcome.
 
 ---
 
-## Step 1: Database Migration -- `hearing_ph_details` Table
+## Step 1: Database Migration -- `stage_closure_details` Table
 
-Additive extension table (does NOT modify the existing `hearings` table):
+Create an additive table to persist closure data independently of the stage transition:
 
 ```text
-hearing_ph_details
-  id                      UUID PK DEFAULT gen_random_uuid()
-  tenant_id               UUID NOT NULL
-  hearing_id              UUID UNIQUE NOT NULL FK -> hearings(id) ON DELETE CASCADE
-  case_id                 UUID NOT NULL FK -> cases(id)
-  ph_notice_ref_no        TEXT NOT NULL
-  ph_notice_date          DATE NOT NULL
-  hearing_mode            TEXT DEFAULT 'Physical'   -- Physical / Virtual
-  place_of_hearing        TEXT
-  attended_by             TEXT
-  additional_submissions  JSONB DEFAULT '[]'         -- [{description, doc_id}]
-  created_at              TIMESTAMPTZ DEFAULT now()
-  updated_at              TIMESTAMPTZ DEFAULT now()
+stage_closure_details
+  id                       UUID PK
+  tenant_id                UUID NOT NULL
+  stage_instance_id        UUID UNIQUE FK -> stage_instances(id)
+  case_id                  UUID FK -> cases(id)
+  closure_status           TEXT NOT NULL  -- Order Passed | Fully Dropped | Withdrawn | Settled | Remanded
+  closure_ref_no           TEXT
+  closure_date             DATE
+  issuing_authority        TEXT
+  officer_name             TEXT
+  officer_designation      TEXT
+  final_tax_amount         JSONB DEFAULT '{}'  -- {igst, cgst, sgst, cess}
+  final_interest_amount    NUMERIC DEFAULT 0
+  final_penalty_amount     NUMERIC DEFAULT 0
+  final_total_demand       NUMERIC DEFAULT 0   -- auto-calculated on save
+  closure_notes            TEXT
+  is_draft                 BOOLEAN DEFAULT true
+  created_at               TIMESTAMPTZ DEFAULT now()
+  updated_at               TIMESTAMPTZ DEFAULT now()
 ```
 
-Also add a `hearing_type` column to the existing `hearings` table:
+RLS: tenant-scoped read/write matching existing `stage_instances` policies.
 
-```sql
-ALTER TABLE hearings ADD COLUMN IF NOT EXISTS hearing_type VARCHAR DEFAULT 'General';
-```
+This table stores the closure snapshot. "Fully Dropped" auto-zeros all amounts. No existing tables are modified.
 
-Valid values: `'Personal Hearing'`, `'Virtual Hearing'`, `'Final Hearing'`, `'Mention'`, `'General'`
+## Step 2: New Types -- `stageClosureDetails.ts`
 
-RLS policies on `hearing_ph_details`: tenant-scoped read/write matching existing `hearings` policies.
-
-## Step 2: Update Hearing Types
-
-**`src/types/hearings.ts`** -- Add:
+Location: `src/types/stageClosureDetails.ts`
 
 ```typescript
-export type HearingType = 'Personal Hearing' | 'Virtual Hearing' | 'Final Hearing' | 'Mention' | 'General';
-```
+export type ClosureStatus = 'Order Passed' | 'Fully Dropped' | 'Withdrawn' | 'Settled' | 'Remanded';
 
-Add `hearing_type` to the `Hearing` interface and `HearingFormData` interface.
+export interface TaxBreakdown {
+  igst: number;
+  cgst: number;
+  sgst: number;
+  cess: number;
+}
 
-**`src/types/hearingPhDetails.ts`** -- New file:
-
-```typescript
-export interface HearingPhDetails {
+export interface StageClosureDetailsRecord {
   id: string;
   tenant_id: string;
-  hearing_id: string;
+  stage_instance_id: string;
   case_id: string;
-  ph_notice_ref_no: string;
-  ph_notice_date: string;
-  hearing_mode: 'Physical' | 'Virtual';
-  place_of_hearing: string | null;
-  attended_by: string | null;
-  additional_submissions: { description: string; doc_id: string | null }[];
+  closure_status: ClosureStatus;
+  closure_ref_no: string | null;
+  closure_date: string | null;
+  issuing_authority: string | null;
+  officer_name: string | null;
+  officer_designation: string | null;
+  final_tax_amount: TaxBreakdown;
+  final_interest_amount: number;
+  final_penalty_amount: number;
+  final_total_demand: number;
+  closure_notes: string | null;
+  is_draft: boolean;
+  created_at: string;
+  updated_at: string;
 }
 ```
 
-## Step 3: New Service -- `hearingPhDetailsService.ts`
+## Step 3: New Service -- `stageClosureDetailsService.ts`
 
-Location: `src/services/hearingPhDetailsService.ts`
+Location: `src/services/stageClosureDetailsService.ts`
 
 Methods:
-- `getByHearingId(hearingId)` -- fetch PH details for a hearing
-- `save(data)` -- upsert into `hearing_ph_details`
-- `deleteByHearingId(hearingId)` -- remove PH details if type changes away from PH
+- `getByStageInstanceId(stageInstanceId)` -- fetch saved closure (draft or final)
+- `save(data)` -- upsert into `stage_closure_details` with `is_draft = true`
+- `finalize(stageInstanceId)` -- set `is_draft = false`
 
-## Step 4: Modify `HearingModal.tsx` -- Type-Driven Form
+Auto-calculation: `final_total_demand = sum(igst+cgst+sgst+cess) + interest + penalty`
 
-Changes to the existing hearing modal (no new modal or page):
+If `closure_status === 'Fully Dropped'`, all amounts are force-set to 0.
 
-1. **Add `hearing_type` to form state** -- New field defaulting based on stage context
-2. **Add "Hearing Type" dropdown** in Section 2 (Schedule Information), before Date/Time:
-   - Values: Personal Hearing, Virtual Hearing, Final Hearing, Mention, General
-   - Default: `'Personal Hearing'` when stage = Assessment (index 0), `'General'` otherwise
-3. **Conditionally show PH-specific section** (new Card) when `hearing_type === 'Personal Hearing'`:
-   - PH Notice Reference Number (required)
-   - PH Notice Date (required)
-   - Mode of Hearing (Physical / Virtual)
-   - Place of Hearing
-   - Attended By
-4. **Conditionally show Additional Submissions section** when `hearing_type === 'Personal Hearing'`:
-   - Repeatable rows: description text + optional document upload
-   - Reuses existing `HearingDocumentUpload` pattern
-5. **On submit**: After `hearingsService.createHearing()`, if type is PH, also save to `hearing_ph_details` via the new service
-6. **On edit/view**: Load PH details if `hearing_type === 'Personal Hearing'` and populate the fields
+## Step 4: Decouple `checkCanClose` in `stageWorkflowService.ts`
 
-### Stage-Aware Default Logic
+Current logic blocks closure when notices are missing or workflow steps are incomplete.
 
-The `HearingModal` receives `stageInstanceId` already. We add a new prop `defaultHearingType` (optional). In `CaseLifecycleFlow.tsx`, when opening the modal:
+Changed to:
+- Remove all blocking reasons
+- Return `canClose: true` always
+- Compute `warningReasons` instead (same text, different semantics)
+- Pass warnings to UI for informational display only
 
-```typescript
-// Determine default hearing type based on stage
-const stageIndex = lifecycleStages.findIndex(
-  s => s.id === normalizeStage(selectedCase?.currentStage)
-);
-const defaultType = stageIndex === 0 ? 'Personal Hearing' : 'General';
-```
+The `StageWorkflowState` interface gets a new field: `closureWarnings: string[]`
 
-Pass this as a prop. The user can still change the type -- it's a default, not a lock.
+## Step 5: Rewrite `StageClosurePanel.tsx`
 
-## Step 5: Modify `CaseLifecycleFlow.tsx`
+Replace the existing component with a full embedded form matching the reference screenshot.
 
-Replace the four `() => setShowHearingModal(true)` calls (lines 756, 775, 795, 1038) with a handler that computes the default hearing type:
+### Layout
 
-```typescript
-const handleScheduleHearing = useCallback(() => {
-  const stageIndex = lifecycleStages.findIndex(
-    s => s.id === normalizeStage(selectedCase?.currentStage)
-  );
-  setDefaultHearingType(stageIndex === 0 ? 'Personal Hearing' : 'General');
-  setShowHearingModal(true);
-}, [selectedCase]);
-```
+**Section 1: Closure Details (2-column grid)**
+- Row 1: Closure Status (dropdown, required) | Move to Next Level (read-only, auto-derived)
+- Row 2: Closure/Order Reference No (required) | Closure/Order Date (required, date picker)
+- Row 3: Issuing Authority (required) | Officer Name (required)
+- Row 4: Officer Designation (required)
 
-Add `defaultHearingType` state and pass it to `HearingModal`.
+**"Move to Next Level" logic** (read-only display):
+- Order Passed -> "Next Stage: [stage name]" or "Final Stage" if at Supreme Court
+- Fully Dropped / Withdrawn / Settled -> "No Movement (Case Closed at this Level)"
+- Remanded -> "Remand to Earlier Stage"
 
-## Step 6: Update `hearingsService.createHearing()`
+**Section 2: Final Demand Amount Breakdown**
+- Final Tax Amount (click-to-expand IGST/CGST/SGST/CESS breakdown, stored as JSON)
+- Final Interest (numeric) with "As Applicable" checkbox
+- Final Penalty (numeric) with "As Applicable" checkbox
+- Auto-calculated "Final Total Demand" display (red, bold)
+- If Closure Status = "Fully Dropped": all fields auto-zero with a green note: "This case will be marked as Closed as all demands are fully dropped."
 
-Add `hearing_type` to the `hearingData` object sent to storage:
+**Section 3: Closure Notes** (optional textarea)
 
-```typescript
-const hearingData = {
-  ...existingFields,
-  hearing_type: data.hearing_type || 'General',
-};
-```
+**Warnings Banner** (replaces blocking error):
+- Yellow info banner: "Some workflow steps are incomplete. You can still close this stage."
+- Never blocks the form
 
-No other changes to the service -- timeline, automation, notifications all work as before since they operate on the single `hearings` entity.
+**Footer: Two Buttons**
+- "Save Closure" (outline) -- validates and persists to `stage_closure_details` as draft
+- "Close Stage" (primary) -- validates, finalizes closure, then executes lifecycle transition
 
-## Step 7: Lifecycle Automation
+### Validation Rules
+- Closure Status: always required
+- Reference No, Date, Issuing Authority, Officer Name, Officer Designation: required for all statuses
+- Demand amounts: required unless "Fully Dropped" (auto-zeroed)
 
-No changes needed. The existing `hearingsService.createHearing()` already:
-- Creates timeline entry ("Hearing Scheduled")
-- Triggers task bundle automation
-- Sends notifications
-- Updates stage progress
+## Step 6: Update `handleCloseStage` in `CaseLifecycleFlow.tsx`
 
-All of this works identically regardless of hearing type.
+Split into two handlers:
+
+**`handleSaveClosure`**: Saves closure data as draft via `stageClosureDetailsService.save()`. Shows success toast.
+
+**`handleCloseStage`**: 
+1. Saves/finalizes closure data
+2. Completes the `closure` workflow step
+3. Based on `closure_status`:
+   - **Order Passed**: Creates stage transition to next stage (existing `stage_transitions` insert triggers `create_stage_instance_on_transition`)
+   - **Fully Dropped / Withdrawn / Settled**: Updates `stage_instances.status` to 'Completed', updates `cases.status` to 'Closed'
+   - **Remanded**: Creates stage transition with `transition_type = 'Remand'` back to an earlier stage
+4. Shows success toast, refreshes workflow
+
+## Step 7: Update Props Flow
+
+`StageClosurePanel` receives new props:
+- `onSaveClosure: (data) => void` -- for Save Closure button
+- `onCloseStage: (data) => void` -- for Close Stage button  
+- `closureWarnings: string[]` -- replaces `blockingReasons`
+- `caseId: string` -- for loading existing draft
+- Remove `canClose` prop (always enabled now)
 
 ---
 
@@ -157,20 +167,19 @@ All of this works identically regardless of hearing type.
 
 | File | Action | Purpose |
 |------|--------|---------|
-| New migration SQL | Create | `hearing_ph_details` table + `hearing_type` column on `hearings` |
-| `src/types/hearings.ts` | Edit | Add `HearingType` type and `hearing_type` field |
-| `src/types/hearingPhDetails.ts` | Create | PH details interface |
-| `src/services/hearingPhDetailsService.ts` | Create | CRUD for PH detail fields |
-| `src/services/hearingsService.ts` | Edit | Include `hearing_type` in create/update |
-| `src/components/modals/HearingModal.tsx` | Edit | Add type dropdown + conditional PH fields |
-| `src/components/cases/CaseLifecycleFlow.tsx` | Edit | Stage-aware default type when opening modal |
+| New migration SQL | Create | `stage_closure_details` table + RLS |
+| `src/types/stageClosureDetails.ts` | Create | Closure record types and form interfaces |
+| `src/types/stageWorkflow.ts` | Edit | Add `closureWarnings` to `StageWorkflowState`, update `ClosureOutcome` to include "Fully Dropped" |
+| `src/services/stageClosureDetailsService.ts` | Create | CRUD for closure details |
+| `src/services/stageWorkflowService.ts` | Edit | Decouple `checkCanClose` to return warnings instead of blockers |
+| `src/components/lifecycle/StageClosurePanel.tsx` | Rewrite | Full embedded closure form with demand breakdown |
+| `src/components/cases/CaseLifecycleFlow.tsx` | Edit | Add `handleSaveClosure`, update `handleCloseStage` with lifecycle mapping |
 
 ## Zero-Regression Guarantee
 
-- Existing `hearings` table is not modified destructively -- only one additive column (`hearing_type` with default `'General'`)
-- Existing `HearingModal` remains the single entry point -- enhanced, not replaced
-- All existing hearings continue to work with `hearing_type = 'General'` (default)
-- No new routes, no new pages, no separate PH workflow
-- Dashboards, timelines, reports, calendar views are unaffected -- they read from the same `hearings` table
-- Button label everywhere remains "Schedule Hearing" / "Add Hearing"
+- Existing `stage_instances`, `stage_workflow_steps`, `stage_notices`, `stage_replies` tables are untouched
+- Existing `stage_transitions` trigger (`create_stage_instance_on_transition`) handles lifecycle progression automatically
+- Existing timeline, hearings, and notices workflows are unaffected
+- "Case Dropped" renamed to "Fully Dropped" in UI only; backward-compatible since closure status is stored in the new table
+- Existing cases without closure data continue to work (form loads empty)
 
