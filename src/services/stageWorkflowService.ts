@@ -169,6 +169,11 @@ class StageWorkflowService {
         await this.updateStepStatus(stageInstanceId, nextStep, { status: 'In Progress' });
       }
 
+      // If closure step completed, create stage_transition to advance lifecycle
+      if (stepKey === 'closure') {
+        await this.handleClosureTransition(stageInstanceId);
+      }
+
       toast({
         title: 'Step Completed',
         description: `${STEP_LABELS[stepKey]} has been marked as completed.`
@@ -178,6 +183,57 @@ class StageWorkflowService {
     } catch (error) {
       console.error('[StageWorkflowService] Failed to complete step:', error);
       return false;
+    }
+  }
+
+  /**
+   * Handle lifecycle transition when closure step is completed
+   */
+  private async handleClosureTransition(stageInstanceId: string): Promise<void> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get stage instance details
+      const { data: instance } = await supabase
+        .from('stage_instances')
+        .select('case_id, stage_key, tenant_id')
+        .eq('id', stageInstanceId)
+        .maybeSingle();
+
+      if (!instance) return;
+
+      // Determine next stage
+      const STAGE_ORDER = ['Assessment', 'Adjudication', 'First Appeal', 'Tribunal', 'High Court', 'Supreme Court'];
+      const currentIdx = STAGE_ORDER.indexOf(instance.stage_key);
+      const nextStageKey = currentIdx >= 0 && currentIdx < STAGE_ORDER.length - 1 
+        ? STAGE_ORDER[currentIdx + 1] 
+        : null;
+
+      if (!nextStageKey) return; // Already at Supreme Court, no forward transition
+
+      // Create stage transition (this triggers existing trg_create_stage_instance_on_transition)
+      await supabase
+        .from('stage_transitions')
+        .insert({
+          tenant_id: instance.tenant_id,
+          case_id: instance.case_id,
+          from_stage: instance.stage_key,
+          to_stage: nextStageKey,
+          transition_type: 'Forward',
+          comments: `Stage ${instance.stage_key} workflow completed`,
+          created_by: user.id
+        });
+
+      // Update case stage_code to reflect new lifecycle stage
+      await supabase
+        .from('cases')
+        .update({ stage_code: nextStageKey })
+        .eq('id', instance.case_id);
+
+      console.log(`[StageWorkflowService] Lifecycle transitioned: ${instance.stage_key} → ${nextStageKey}`);
+    } catch (error) {
+      console.error('[StageWorkflowService] Closure transition failed:', error);
     }
   }
 

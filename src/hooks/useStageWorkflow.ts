@@ -3,12 +3,13 @@
  * Provides reactive state management for the micro-workflow within stages
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { StageWorkflowState, WorkflowStepKey, StageNotice, StageReply } from '@/types/stageWorkflow';
 import { stageWorkflowService } from '@/services/stageWorkflowService';
 import { stageNoticesService } from '@/services/stageNoticesService';
 import { stageRepliesService } from '@/services/stageRepliesService';
 import { featureFlagService } from '@/services/featureFlagService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UseStageWorkflowOptions {
   stageInstanceId: string | null;
@@ -53,22 +54,79 @@ interface UseStageWorkflowReturn {
 }
 
 export function useStageWorkflow({
-  stageInstanceId,
+  stageInstanceId: externalStageInstanceId,
   caseId,
   stageKey,
   enabled = true
 }: UseStageWorkflowOptions): UseStageWorkflowReturn {
+  const [resolvedInstanceId, setResolvedInstanceId] = useState<string | null>(externalStageInstanceId);
   const [workflowState, setWorkflowState] = useState<StageWorkflowState | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState<WorkflowStepKey | null>(null);
   const [noticeReplies, setNoticeReplies] = useState<Map<string, StageReply[]>>(new Map());
+  const resolveAttempted = useRef(false);
   
   const isFeatureEnabled = featureFlagService.isEnabled('stage_workflow_v1');
 
+  // Auto-resolve stageInstanceId from caseId if missing
+  useEffect(() => {
+    if (externalStageInstanceId) {
+      setResolvedInstanceId(externalStageInstanceId);
+      return;
+    }
+    if (!caseId || !enabled || !isFeatureEnabled || resolveAttempted.current) return;
+    resolveAttempted.current = true;
+
+    (async () => {
+      try {
+        // Query for active stage instance
+        const { data } = await supabase
+          .from('stage_instances')
+          .select('id')
+          .eq('case_id', caseId)
+          .eq('status', 'Active')
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (data) {
+          setResolvedInstanceId(data.id);
+        } else {
+          // Fallback: create one (belt-and-suspenders)
+          const { data: { user } } = await supabase.auth.getUser();
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('tenant_id')
+            .eq('id', user?.id || '')
+            .maybeSingle();
+
+          if (profile) {
+            const { data: newInstance } = await supabase
+              .from('stage_instances')
+              .insert({
+                tenant_id: profile.tenant_id,
+                case_id: caseId,
+                stage_key: stageKey || 'Assessment',
+                cycle_no: 1,
+                started_at: new Date().toISOString(),
+                status: 'Active',
+                created_by: user?.id || null
+              })
+              .select('id')
+              .maybeSingle();
+            if (newInstance) setResolvedInstanceId(newInstance.id);
+          }
+        }
+      } catch (err) {
+        console.error('[useStageWorkflow] Failed to resolve stage instance:', err);
+      }
+    })();
+  }, [externalStageInstanceId, caseId, enabled, isFeatureEnabled, stageKey]);
+
   // Load workflow state
   const refresh = useCallback(async () => {
-    if (!stageInstanceId || !enabled || !isFeatureEnabled) {
+    if (!resolvedInstanceId || !enabled || !isFeatureEnabled) {
       return;
     }
 
@@ -76,7 +134,7 @@ export function useStageWorkflow({
     setError(null);
 
     try {
-      const state = await stageWorkflowService.getWorkflowState(stageInstanceId, caseId, stageKey);
+      const state = await stageWorkflowService.getWorkflowState(resolvedInstanceId, caseId, stageKey);
       setWorkflowState(state);
       
       // Auto-open current step if none selected
@@ -89,7 +147,7 @@ export function useStageWorkflow({
     } finally {
       setIsLoading(false);
     }
-  }, [stageInstanceId, caseId, stageKey, enabled, isFeatureEnabled, activeStep]);
+  }, [resolvedInstanceId, caseId, stageKey, enabled, isFeatureEnabled, activeStep]);
 
   // Initial load
   useEffect(() => {
@@ -110,13 +168,13 @@ export function useStageWorkflow({
   const addNotice = useCallback(async (data: Parameters<typeof stageNoticesService.createNotice>[0]) => {
     const notice = await stageNoticesService.createNotice({
       ...data,
-      stage_instance_id: stageInstanceId || undefined
+      stage_instance_id: resolvedInstanceId || undefined
     });
     if (notice) {
       await refresh();
     }
     return notice;
-  }, [stageInstanceId, refresh]);
+  }, [resolvedInstanceId, refresh]);
 
   const updateNotice = useCallback(async (id: string, data: Parameters<typeof stageNoticesService.updateNotice>[1]) => {
     const notice = await stageNoticesService.updateNotice(id, data);
@@ -138,14 +196,14 @@ export function useStageWorkflow({
   const addReply = useCallback(async (data: Parameters<typeof stageRepliesService.createReply>[0]) => {
     const reply = await stageRepliesService.createReply({
       ...data,
-      stage_instance_id: stageInstanceId || undefined
+      stage_instance_id: resolvedInstanceId || undefined
     });
     if (reply) {
       await loadRepliesForNotice(data.notice_id);
       await refresh();
     }
     return reply;
-  }, [stageInstanceId, refresh, loadRepliesForNotice]);
+  }, [resolvedInstanceId, refresh, loadRepliesForNotice]);
 
   const updateReply = useCallback(async (id: string, data: Parameters<typeof stageRepliesService.updateReply>[1]) => {
     const reply = await stageRepliesService.updateReply(id, data);
@@ -165,22 +223,22 @@ export function useStageWorkflow({
 
   // Step actions
   const completeStep = useCallback(async (stepKey: WorkflowStepKey) => {
-    if (!stageInstanceId) return false;
-    const success = await stageWorkflowService.completeStep(stageInstanceId, stepKey);
+    if (!resolvedInstanceId) return false;
+    const success = await stageWorkflowService.completeStep(resolvedInstanceId, stepKey);
     if (success) {
       await refresh();
     }
     return success;
-  }, [stageInstanceId, refresh]);
+  }, [resolvedInstanceId, refresh]);
 
   const skipStep = useCallback(async (stepKey: WorkflowStepKey, reason: string) => {
-    if (!stageInstanceId) return false;
-    const success = await stageWorkflowService.skipStep(stageInstanceId, stepKey, reason);
+    if (!resolvedInstanceId) return false;
+    const success = await stageWorkflowService.skipStep(resolvedInstanceId, stepKey, reason);
     if (success) {
       await refresh();
     }
     return success;
-  }, [stageInstanceId, refresh]);
+  }, [resolvedInstanceId, refresh]);
 
   return {
     workflowState,
