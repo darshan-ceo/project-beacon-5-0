@@ -1,214 +1,146 @@
 
 
-# Fix Notice OCR: Direct PDF Input to Vision API (Pipeline Replacement)
+# Fix: Stage Workflow Auto-Initialization and Lifecycle Sync
 
 ## Problem Summary
 
-The current OCR flow fails for scanned PDFs because it attempts **browser-side PDF-to-canvas-to-image conversion**, which produces invalid images and causes Vision OCR to fail before any API call is made.
+When cases are created (manually or via Notice Intake Wizard), no `stage_instances` row is inserted. The Stage Workflow depends on an active `stage_instance` to function. Currently, stage instances are **only** created when a `stage_transitions` record is inserted (via a database trigger), but no transition is created at case creation time.
 
-**Error Seen**: "Vision OCR failed. OpenAI: Failed to process PDF. Lovable AI: Failed to process PDF"
-
-**Root Cause**: Both `extractWithAI()` and `extractWithLovableAI()` call `pdfToBase64Images()` which uses browser canvas rendering. This fails silently for scanned PDFs, so neither Vision API is ever called.
+Database evidence: 4 out of 5 recent cases have **zero** stage instances.
 
 ---
 
-## Solution: Direct PDF Input to Vision APIs
-
-Both OpenAI (gpt-4o) and Google Gemini (gemini-2.5-flash) now support **direct PDF file input as base64**. This eliminates the need for browser-side canvas rendering entirely.
-
-### New Flow
+## Root Cause
 
 ```text
-OLD (BROKEN):
-  PDF → PDF.js → Browser Canvas → PNG Images → Vision API
-                    ↑
-              [FAILS HERE for scanned PDFs]
-
-NEW (FIXED):
-  PDF → Base64 encode raw file → Edge Function → Vision API (direct PDF input)
+Case Created (casesService.create / Wizard)
+    |
+    v
+Cases table updated with stage_code
+    |
+    X --- No stage_instances row created
+    X --- No stage_workflow_steps rows created
+    |
+    v
+Stage Workflow UI finds no stageInstanceId --> renders empty
 ```
+
+The trigger `trg_create_stage_instance_on_transition` only fires on `INSERT INTO stage_transitions`. Since case creation never inserts a transition, no stage instance is bootstrapped.
 
 ---
 
-## Implementation Details
+## Solution: Database Trigger on Case Insert
 
-### Part 1: Create New Edge Function for Direct PDF OCR
+Create a new database trigger that fires `AFTER INSERT ON cases` to automatically:
+1. Insert the first `stage_instances` row (cycle 1, status Active)
+2. This ensures every new case immediately has an active stage instance
 
-**New file: `supabase/functions/notice-ocr-pdf/index.ts`**
+Additionally, add a **one-time backfill** migration for existing cases that lack stage instances.
 
-This function accepts raw PDF bytes (base64) and passes them directly to Gemini 2.5 Flash with `mimeType: application/pdf`.
-
-Key implementation:
-- Accept `{ pdfBase64: string }` instead of `{ images: string[] }`
-- Send to Gemini with `type: "image_url"` and `url: "data:application/pdf;base64,${pdfBase64}"`
-- Gemini handles all rasterization, DPI, page sizing internally
-- Return extracted fields with confidence scores
-
-### Part 2: Update noticeExtractionService.ts
-
-#### Change 1: Add New Direct PDF Extraction Method
-
-```typescript
-/**
- * Extract using Lovable AI with DIRECT PDF input (no browser rendering)
- * Gemini 2.5 Flash natively supports PDF files as input
- */
-private async extractWithDirectPDF(file: File): Promise<{ text: string; fieldConfidence: Record<string, FieldConfidence> }> {
-  console.log('📄 [Direct PDF OCR] Sending raw PDF to Lovable AI...');
-  
-  // Read file as base64 - NO canvas rendering
-  const arrayBuffer = await file.arrayBuffer();
-  const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-  
-  // Call new edge function that accepts PDF directly
-  const response = await fetch(`${supabaseUrl}/functions/v1/notice-ocr-pdf`, {
-    method: 'POST',
-    headers: { 
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${supabaseKey}` 
-    },
-    body: JSON.stringify({ pdfBase64: base64, filename: file.name })
-  });
-  
-  // ... process response
-}
-```
-
-#### Change 2: Update OpenAI Vision to Use Direct PDF
-
-OpenAI gpt-4o now supports direct PDF input:
-```typescript
-// NEW: Direct PDF input to OpenAI
-{
-  type: "file",
-  file: {
-    filename: file.name,
-    file_data: `data:application/pdf;base64,${base64}`
-  }
-}
-```
-
-#### Change 3: Restructure extractFromPDF Flow
-
-For scanned PDFs (isScannedPdf = true):
-1. Skip `pdfToBase64Images()` entirely
-2. Try `extractWithDirectPDF()` first (Lovable AI with raw PDF)
-3. Fall back to OpenAI with direct PDF input
-4. Remove all canvas rendering from OCR path
-
-### Part 3: Delete Broken Code
-
-Remove from OCR flow (keep for text-based PDFs only):
-- `pdfToBase64Images()` usage in `extractWithAI()` 
-- `pdfToBase64Images()` usage in `extractWithLovableAI()`
-- Any retry logic that reuses browser-rendered images
+For the frontend, add a lightweight "ensure stage instance" check in the `useStageWorkflow` hook so that if a case somehow still lacks an instance, one is created on first access (belt-and-suspenders).
 
 ---
 
-## Files to Create/Modify
+## Implementation Steps
 
-| File | Action | Changes |
-|------|--------|---------|
-| `supabase/functions/notice-ocr-pdf/index.ts` | **CREATE** | New edge function that accepts raw PDF base64 and sends to Gemini 2.5 Flash |
-| `supabase/config.toml` | **MODIFY** | Add `[functions.notice-ocr-pdf]` entry |
-| `src/services/noticeExtractionService.ts` | **MODIFY** | Add `extractWithDirectPDF()`, update scanned PDF flow to bypass canvas |
+### Step 1: Database Migration (Trigger + Backfill)
+
+Create a migration with:
+
+**A) Trigger function** `initialize_stage_instance_on_case_create()`
+- Fires `AFTER INSERT ON cases`
+- Reads `NEW.stage_code` (or defaults to `'Assessment'`)
+- Inserts into `stage_instances` with `cycle_no = 1`, `status = 'Active'`
+- Uses `NEW.tenant_id`, `NEW.id` as case_id, `NEW.stage_code` as stage_key
+
+**B) Backfill query** for existing cases without stage instances:
+```sql
+INSERT INTO stage_instances (tenant_id, case_id, stage_key, cycle_no, started_at, status, created_by)
+SELECT c.tenant_id, c.id, COALESCE(c.stage_code, 'Assessment'), 1, c.created_at, 'Active', c.owner_user_id
+FROM cases c
+WHERE NOT EXISTS (
+  SELECT 1 FROM stage_instances si WHERE si.case_id = c.id
+)
+AND c.status != 'Completed';
+```
+
+### Step 2: Frontend - Ensure Stage Instance in useStageWorkflow
+
+Modify `src/hooks/useStageWorkflow.ts`:
+- When `stageInstanceId` is null but `caseId` is provided, query for an active stage instance
+- If none exists, create one via a direct Supabase insert (fallback safety net)
+- Pass the resolved `stageInstanceId` to the workflow service
+
+### Step 3: Update Case Creation Flows to Pass stageInstanceId
+
+Modify `src/services/casesService.ts` `create()` method:
+- After creating the case, the DB trigger handles stage instance creation automatically
+- No code change needed here since the trigger handles it
+
+Modify `src/components/notices/NoticeIntakeWizardV2.tsx`:
+- After `casesService.create()`, the stage instance exists via trigger
+- The notice creation (`stageNoticesService.createNotice`) should query for the active stage instance and attach `stage_instance_id`
+
+### Step 4: Lifecycle Sync on Stage Workflow Closure
+
+Modify `src/services/stageWorkflowService.ts` `completeStep()`:
+- When the `closure` step is completed, automatically create a `stage_transitions` record (Forward type)
+- This triggers the existing `trg_create_stage_instance_on_transition` to close the current instance and open the next stage
+- Also dispatch `UPDATE_CASE` to sync `currentStage` on the case record
 
 ---
 
 ## Technical Details
 
-### Gemini 2.5 Flash Direct PDF Input Format
+### New Database Trigger
 
-```typescript
-{
-  model: 'google/gemini-2.5-flash',
-  messages: [
-    { role: 'system', content: '...' },
-    {
-      role: 'user',
-      content: [
-        { type: 'text', text: 'Extract all information...' },
-        { 
-          type: 'image_url', 
-          image_url: { 
-            url: 'data:application/pdf;base64,${pdfBase64}' 
-          }
-        }
-      ]
-    }
-  ]
-}
+```sql
+CREATE OR REPLACE FUNCTION public.initialize_stage_instance_on_case_create()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.stage_instances (
+    tenant_id, case_id, stage_key, cycle_no, 
+    started_at, status, created_by
+  ) VALUES (
+    NEW.tenant_id, NEW.id, 
+    COALESCE(NEW.stage_code, 'Assessment'), 
+    1, now(), 'Active', 
+    COALESCE(NEW.owner_user_id, NEW.created_by, auth.uid())
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE TRIGGER trg_initialize_stage_instance
+AFTER INSERT ON public.cases
+FOR EACH ROW EXECUTE FUNCTION public.initialize_stage_instance_on_case_create();
 ```
 
-### OpenAI Direct PDF Input Format (gpt-4o)
+### useStageWorkflow Enhancement
 
-```typescript
-{
-  model: 'gpt-4o',
-  messages: [{
-    role: 'user',
-    content: [
-      { type: 'text', text: 'Extract notice fields...' },
-      { 
-        type: 'file', 
-        file: { 
-          filename: 'notice.pdf',
-          file_data: 'data:application/pdf;base64,${base64}' 
-        }
-      }
-    ]
-  }]
-}
-```
+Add a `resolveStageInstanceId` function that:
+1. Queries `stage_instances` for an active instance matching the caseId
+2. If found, returns its id
+3. If not found, inserts a new one and returns the id
+4. This runs once on hook mount when `stageInstanceId` is null
 
----
+### Files Changed
 
-## Updated Extraction Flow
+| File | Change |
+|------|--------|
+| New migration SQL | Trigger + backfill |
+| `src/hooks/useStageWorkflow.ts` | Auto-resolve missing stageInstanceId |
+| `src/services/stageWorkflowService.ts` | Closure step triggers lifecycle transition |
+| `src/components/notices/NoticeIntakeWizardV2.tsx` | Attach stage_instance_id to notice |
 
-```text
-1. User uploads PDF
-2. Try PDF.js text extraction (fast, no API)
-3. IF text length >= 100 chars → regex extraction (text-based PDF)
-4. IF text length < 100 chars → SCANNED PDF detected:
-   a. Show UI message: "Scanned notice detected. AI OCR is processing..."
-   b. Read PDF as raw base64 (NO canvas rendering)
-   c. Try Lovable AI (notice-ocr-pdf with direct PDF input)
-   d. If fails → Try OpenAI (with direct PDF input)
-   e. If both fail → Show specific error
-5. Parse extracted text into notice fields
-6. Return results for review
-```
+### Acceptance Criteria Mapping
 
----
-
-## Acceptance Criteria
-
-| Requirement | How Verified |
-|-------------|--------------|
-| No browser canvas rendering for OCR | Console shows no canvas errors |
-| Vision OCR called with PDF input | Edge function logs show `application/pdf` |
-| ASMT-10 scanned PDF processes successfully | Extraction returns valid fields |
-| OCR succeeds even when PDF.js cannot render | Works with any valid PDF |
-| Clear user feedback during processing | Toast shows "AI OCR Processing..." |
-
----
-
-## Security & Audit
-
-- Original PDF stored (already implemented via upload flow)
-- Raw OCR text stored in `rawText` field
-- Extraction source tracked: `pdf_text` vs `ai_ocr`
-- Confidence scores preserved for each field
-
----
-
-## What This Fix Does NOT Include
-
-These are explicitly out of scope as per the instruction:
-- More error classification
-- More PDF.js worker tweaks  
-- More retry wrappers
-- More fallback chains using the same canvas logic
-
-This is a **pipeline replacement**, not an incremental improvement.
+| Criteria | How Solved |
+|----------|-----------|
+| Manual case creation auto-initializes lifecycle | DB trigger on `cases` INSERT |
+| Notice intake auto-initializes | Same DB trigger |
+| Stage completion updates lifecycle | Closure step creates transition |
+| No case without lifecycle-linked workflow | Backfill + trigger guarantee |
+| No duplicate lifecycle logic | Single trigger, single source of truth |
+| Backward compatibility | Backfill migration + hook fallback |
 
