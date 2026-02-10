@@ -500,6 +500,9 @@ interface Hearing {
   created_at: string;
   updated_at: string;
   
+  // Hearing type (Personal Hearing, Virtual Hearing, etc.)
+  hearing_type?: string;
+  
   // Phase 1: Authority & Forum Integration
   authority_id?: string;
   forum_id?: string;

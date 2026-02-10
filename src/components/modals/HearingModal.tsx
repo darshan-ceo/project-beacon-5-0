@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, MapPin, Scale, Calendar as CalendarCheckIcon, FileText, Loader2, AlertCircle } from 'lucide-react';
+import { CalendarIcon, MapPin, Scale, Calendar as CalendarCheckIcon, FileText, Loader2, AlertCircle, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import { Hearing, useAppState } from '@/contexts/AppStateContext';
@@ -30,6 +30,9 @@ import { detectHearingConflicts } from '@/utils/hearingConflicts';
 import { supabase } from '@/integrations/supabase/client';
 import { uploadDocument } from '@/services/supabaseDocumentService';
 import { useAdvancedRBAC } from '@/hooks/useAdvancedRBAC';
+import { HearingType } from '@/types/hearings';
+import { HearingPhDetailsFormData, AdditionalSubmission } from '@/types/hearingPhDetails';
+import { hearingPhDetailsService } from '@/services/hearingPhDetailsService';
 
 interface HearingModalProps {
   isOpen: boolean;
@@ -39,6 +42,7 @@ interface HearingModalProps {
   contextCaseId?: string;
   contextClientId?: string;
   stageInstanceId?: string | null;
+  defaultHearingType?: HearingType;
 }
 
 export const HearingModal: React.FC<HearingModalProps> = ({ 
@@ -48,7 +52,8 @@ export const HearingModal: React.FC<HearingModalProps> = ({
   mode,
   contextCaseId,
   contextClientId,
-  stageInstanceId
+  stageInstanceId,
+  defaultHearingType = 'General'
 }) => {
   const { state, dispatch } = useAppState();
   const { hasPermission } = useAdvancedRBAC();
@@ -108,6 +113,20 @@ export const HearingModal: React.FC<HearingModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Hearing type state
+  const [hearingType, setHearingType] = useState<HearingType>(defaultHearingType);
+  
+  // PH-specific form state
+  const [phFormData, setPhFormData] = useState<HearingPhDetailsFormData>({
+    ph_notice_ref_no: '',
+    ph_notice_date: '',
+    hearing_mode: 'Physical',
+    place_of_hearing: '',
+    attended_by: '',
+    additional_submissions: []
+  });
+  
   const [conflicts, setConflicts] = useState<{
     hasConflicts: boolean;
     conflicts: Array<{
@@ -143,6 +162,25 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         nextHearingDate: hearingData.next_hearing_date ? new Date(hearingData.next_hearing_date) : undefined,
         autoCreateNextHearing: false
       });
+      // Set hearing type from existing data
+      setHearingType((hearingData.hearing_type as HearingType) || 'General');
+      
+      // Load PH details if hearing type is Personal Hearing
+      if (hearingData.hearing_type === 'Personal Hearing' && hearingData.id) {
+        hearingPhDetailsService.getByHearingId(hearingData.id).then(phDetails => {
+          if (phDetails) {
+            setPhFormData({
+              ph_notice_ref_no: phDetails.ph_notice_ref_no || '',
+              ph_notice_date: phDetails.ph_notice_date || '',
+              hearing_mode: phDetails.hearing_mode || 'Physical',
+              place_of_hearing: phDetails.place_of_hearing || '',
+              attended_by: phDetails.attended_by || '',
+              additional_submissions: phDetails.additional_submissions || []
+            });
+          }
+        });
+      }
+      
       updateContext({ 
         caseId: hearingData.case_id || hearingData.caseId, 
         clientId: hearingData.clientId,
@@ -156,8 +194,17 @@ export const HearingModal: React.FC<HearingModalProps> = ({
     if (!isOpen) {
       setIsInitialized(false);
       setAttachments([]);
+      setHearingType(defaultHearingType);
+      setPhFormData({
+        ph_notice_ref_no: '',
+        ph_notice_date: '',
+        hearing_mode: 'Physical',
+        place_of_hearing: '',
+        attended_by: '',
+        additional_submissions: []
+      });
     }
-  }, [hearingData, mode, updateContext, isOpen, isInitialized]);
+  }, [hearingData, mode, updateContext, isOpen, isInitialized, defaultHearingType]);
 
   // Check for conflicts when date, time, or court changes
   useEffect(() => {
@@ -220,7 +267,28 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         return;
       }
 
-      // Phase 1: Validate past date using local midnight
+      // Validate PH-specific fields when hearing type is Personal Hearing
+      if (hearingType === 'Personal Hearing') {
+        if (!phFormData.ph_notice_ref_no.trim()) {
+          toast({
+            title: "Validation Error",
+            description: "PH Notice Reference No is required for Personal Hearing",
+            variant: "destructive"
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        if (!phFormData.ph_notice_date) {
+          toast({
+            title: "Validation Error",
+            description: "PH Notice Date is required for Personal Hearing",
+            variant: "destructive"
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       // Only validate for new hearings OR when the date has been changed during edit
       const selectedLocalDate = new Date(formData.date.getFullYear(), formData.date.getMonth(), formData.date.getDate());
       const todayLocalDate = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
@@ -341,10 +409,34 @@ export const HearingModal: React.FC<HearingModalProps> = ({
           authority_name: authority?.name,
           forum_name: forum?.name,
           judge_name: judge?.name,
-          bench_details: judge?.bench
+          bench_details: judge?.bench,
+          hearing_type: hearingType
         };
 
         const newHearing = await hearingsService.createHearing(hearingFormData, dispatch);
+
+        // Save PH details if Personal Hearing
+        if (hearingType === 'Personal Hearing' && newHearing?.id) {
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single();
+            if (profile?.tenant_id) {
+              await hearingPhDetailsService.save({
+                tenant_id: profile.tenant_id,
+                hearing_id: newHearing.id,
+                case_id: formData.caseId,
+                ph_notice_ref_no: phFormData.ph_notice_ref_no,
+                ph_notice_date: phFormData.ph_notice_date,
+                hearing_mode: phFormData.hearing_mode,
+                place_of_hearing: phFormData.place_of_hearing || null,
+                attended_by: phFormData.attended_by || null,
+                additional_submissions: phFormData.additional_submissions.filter(s => s.description.trim())
+              });
+            }
+          } catch (phError) {
+            console.error('[HearingModal] Failed to save PH details:', phError);
+          }
+        }
 
         // Upload attached documents
         if (attachments.length > 0 && newHearing?.id) {
@@ -671,6 +763,27 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 p-6">
+                {/* Hearing Type Dropdown */}
+                <div className="space-y-2">
+                  <Label>Hearing Type</Label>
+                  <Select
+                    value={hearingType}
+                    onValueChange={(value) => setHearingType(value as HearingType)}
+                    disabled={mode === 'view'}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select hearing type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Personal Hearing">Personal Hearing</SelectItem>
+                      <SelectItem value="Virtual Hearing">Virtual Hearing</SelectItem>
+                      <SelectItem value="Final Hearing">Final Hearing</SelectItem>
+                      <SelectItem value="Mention">Mention</SelectItem>
+                      <SelectItem value="General">General</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Date Picker */}
                   <div className="space-y-2">
@@ -721,6 +834,147 @@ export const HearingModal: React.FC<HearingModalProps> = ({
                 </div>
               </CardContent>
             </Card>
+
+            {/* PH Notice Details - Only for Personal Hearing */}
+            {hearingType === 'Personal Hearing' && (
+              <Card className="rounded-beacon-lg border bg-card shadow-beacon-md border-primary/20">
+                <CardHeader className="border-b border-border p-6 pb-4">
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    PH Notice Details
+                    <Badge variant="secondary" className="text-xs">Personal Hearing</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="ph_notice_ref">PH Notice Reference No <span className="text-destructive">*</span></Label>
+                      <Input
+                        id="ph_notice_ref"
+                        value={phFormData.ph_notice_ref_no}
+                        onChange={(e) => setPhFormData(prev => ({ ...prev, ph_notice_ref_no: e.target.value }))}
+                        placeholder="Enter PH Notice Ref No"
+                        disabled={mode === 'view'}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="ph_notice_date">PH Notice Date <span className="text-destructive">*</span></Label>
+                      <Input
+                        id="ph_notice_date"
+                        type="date"
+                        value={phFormData.ph_notice_date}
+                        onChange={(e) => setPhFormData(prev => ({ ...prev, ph_notice_date: e.target.value }))}
+                        disabled={mode === 'view'}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Mode of Hearing</Label>
+                      <Select
+                        value={phFormData.hearing_mode}
+                        onValueChange={(value) => setPhFormData(prev => ({ ...prev, hearing_mode: value as 'Physical' | 'Virtual' }))}
+                        disabled={mode === 'view'}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Physical">Physical</SelectItem>
+                          <SelectItem value="Virtual">Virtual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="place_of_hearing">Place of Hearing</Label>
+                      <Input
+                        id="place_of_hearing"
+                        value={phFormData.place_of_hearing}
+                        onChange={(e) => setPhFormData(prev => ({ ...prev, place_of_hearing: e.target.value }))}
+                        placeholder="Enter place of hearing"
+                        disabled={mode === 'view'}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="attended_by">Attended By</Label>
+                    <Input
+                      id="attended_by"
+                      value={phFormData.attended_by}
+                      onChange={(e) => setPhFormData(prev => ({ ...prev, attended_by: e.target.value }))}
+                      placeholder="Name / Role of representative"
+                      disabled={mode === 'view'}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Additional Submissions - Only for Personal Hearing */}
+            {hearingType === 'Personal Hearing' && (
+              <Card className="rounded-beacon-lg border bg-card shadow-beacon-md border-primary/20">
+                <CardHeader className="border-b border-border p-6 pb-4">
+                  <CardTitle className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Additional Submissions During Hearing
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 p-6">
+                  {phFormData.additional_submissions.map((sub, idx) => (
+                    <div key={idx} className="flex gap-3 items-start">
+                      <div className="flex-1">
+                        <Input
+                          value={sub.description}
+                          onChange={(e) => {
+                            const updated = [...phFormData.additional_submissions];
+                            updated[idx] = { ...updated[idx], description: e.target.value };
+                            setPhFormData(prev => ({ ...prev, additional_submissions: updated }));
+                          }}
+                          placeholder="Describe submission..."
+                          disabled={mode === 'view'}
+                        />
+                      </div>
+                      {mode !== 'view' && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const updated = phFormData.additional_submissions.filter((_, i) => i !== idx);
+                            setPhFormData(prev => ({ ...prev, additional_submissions: updated }));
+                          }}
+                          className="text-destructive"
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  {mode !== 'view' && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setPhFormData(prev => ({
+                          ...prev,
+                          additional_submissions: [...prev.additional_submissions, { description: '', doc_id: null }]
+                        }));
+                      }}
+                    >
+                      + Add Submission
+                    </Button>
+                  )}
+                  {phFormData.additional_submissions.length === 0 && mode === 'view' && (
+                    <p className="text-sm text-muted-foreground">No additional submissions recorded.</p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Conflict Warning Section */}
             {conflicts.hasConflicts && (

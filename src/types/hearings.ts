@@ -6,6 +6,7 @@
 export type HearingStatus = 'scheduled' | 'concluded' | 'adjourned' | 'no-board' | 'withdrawn';
 export type HearingPurpose = 'PH' | 'mention' | 'final' | 'other';
 export type HearingOutcome = 'Adjournment' | 'Submission Done' | 'Order Passed' | 'Closed' | 'Part-heard' | 'Allowed' | 'Dismissed' | 'Withdrawn' | 'Other';
+export type HearingType = 'Personal Hearing' | 'Virtual Hearing' | 'Final Hearing' | 'Mention' | 'General';
 
 export interface HearingAttendance {
   our_counsel_id?: string;
@@ -30,6 +31,7 @@ export interface Hearing {
   court_id: string;
   courtroom?: string;
   judge_ids: string[];
+  hearing_type?: string;
   purpose: HearingPurpose;
   status: HearingStatus;
   outcome?: HearingOutcome;
@@ -78,6 +80,7 @@ export interface HearingFormData {
   court_id: string;
   courtroom?: string;
   judge_ids: string[];
+  hearing_type?: string;
   purpose: HearingPurpose;
   notes?: string;
   attendance?: HearingAttendance;
