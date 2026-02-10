@@ -302,9 +302,18 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   }, []);
 
   const handleFileReply = useCallback((notice: StageNotice) => {
-    setSelectedNotice(notice);
-    setShowFileReplyModal(true);
-  }, []);
+    const stageIndex = lifecycleStages.findIndex(
+      s => s.id === normalizeStage(selectedCase?.currentStage)
+    );
+    if (stageIndex >= 2 && selectedCase) {
+      // Appeal stage: navigate to full-page structured reply
+      navigate(`/cases/${selectedCase.id}/reply/edit?noticeId=${notice.id}&stageInstanceId=${stageInstanceId}`);
+    } else {
+      // Pre-appeal: use existing modal
+      setSelectedNotice(notice);
+      setShowFileReplyModal(true);
+    }
+  }, [selectedCase, stageInstanceId, navigate]);
 
   const handleCloseNotice = useCallback((notice: StageNotice) => {
     setClosingNotice(notice);
