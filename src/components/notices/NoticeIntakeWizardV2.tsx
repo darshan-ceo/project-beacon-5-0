@@ -25,6 +25,7 @@ import { clientsService } from '@/services/clientsService';
 import { casesService } from '@/services/casesService';
 import { dmsService } from '@/services/dmsService';
 import { stageNoticesService } from '@/services/stageNoticesService';
+import { supabase } from '@/integrations/supabase/client';
 import { taskBundleTriggerService } from '@/services/taskBundleTriggerService';
 import { useToast } from '@/hooks/use-toast';
 import { useAppState } from '@/contexts/AppStateContext';
@@ -351,9 +352,26 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
         setCreatedCaseId(selectedCaseId);
       }
       
+      // Query active stage instance for this case (created by DB trigger)
+      let stageInstanceId: string | undefined;
+      try {
+        const { data: activeInstance } = await supabase
+          .from('stage_instances')
+          .select('id')
+          .eq('case_id', caseId)
+          .eq('status', 'Active')
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        stageInstanceId = activeInstance?.id;
+      } catch (err) {
+        console.warn('Could not fetch stage instance:', err);
+      }
+
       // Create stage notice
       const noticeInput: CreateStageNoticeInput = {
         case_id: caseId,
+        stage_instance_id: stageInstanceId,
         notice_type: extractedData.notice_type,
         notice_number: extractedData.notice_number,
         offline_reference_no: extractedData.offline_reference_no,
