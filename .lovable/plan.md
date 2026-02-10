@@ -1,165 +1,140 @@
 
 
-# Upgrade Stage Closure -- Embedded Form with Demand Breakdown
+# Lifecycle Stage Context and Historical View
 
 ## Overview
-Replace the current minimal Stage Closure panel with a full embedded "Add Closure" form. This includes authority/officer fields, a Final Demand Amount Breakdown with GST components, decoupled workflow validation, two-action footer ("Save Closure" / "Close Stage"), and lifecycle mapping based on closure outcome.
+Add a **stage context switcher** so clicking any lifecycle stage tile loads its historical data (notices, replies, hearings, closure, tasks, documents) without mutating case status. The current view always defaults to the latest/active stage instance on load.
+
+## Current State
+- `CaseLifecycleFlow.tsx` (1356 lines) renders 6 stage tiles but clicking only triggers "Manage Stage" on the current stage -- no context switching exists
+- `stageInstanceId` is fetched once for the **active** stage instance only (line 240: `.eq('status', 'Active')`)
+- All child panels (`StageNoticesPanel`, `StageHearingsPanel`, `StageClosurePanel`, workflow timeline) consume this single `stageInstanceId`
+- Stage tiles for completed/pending stages show no interactive behavior
+- `stage_notices` and `hearings` tables have `stage_instance_id` columns; `documents` and `tasks` do NOT have `stage_instance_id`
 
 ---
 
-## Step 1: Database Migration -- `stage_closure_details` Table
+## Step 1: Database Migration -- Add `stage_instance_id` to `tasks` and `documents`
 
-Create an additive table to persist closure data independently of the stage transition:
+Add nullable FK columns so entities can be tagged with stage ownership:
 
-```text
-stage_closure_details
-  id                       UUID PK
-  tenant_id                UUID NOT NULL
-  stage_instance_id        UUID UNIQUE FK -> stage_instances(id)
-  case_id                  UUID FK -> cases(id)
-  closure_status           TEXT NOT NULL  -- Order Passed | Fully Dropped | Withdrawn | Settled | Remanded
-  closure_ref_no           TEXT
-  closure_date             DATE
-  issuing_authority        TEXT
-  officer_name             TEXT
-  officer_designation      TEXT
-  final_tax_amount         JSONB DEFAULT '{}'  -- {igst, cgst, sgst, cess}
-  final_interest_amount    NUMERIC DEFAULT 0
-  final_penalty_amount     NUMERIC DEFAULT 0
-  final_total_demand       NUMERIC DEFAULT 0   -- auto-calculated on save
-  closure_notes            TEXT
-  is_draft                 BOOLEAN DEFAULT true
-  created_at               TIMESTAMPTZ DEFAULT now()
-  updated_at               TIMESTAMPTZ DEFAULT now()
+```sql
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS stage_instance_id UUID REFERENCES stage_instances(id);
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS stage_instance_id UUID REFERENCES stage_instances(id);
 ```
 
-RLS: tenant-scoped read/write matching existing `stage_instances` policies.
+No existing data is modified. New records will optionally carry `stage_instance_id`.
 
-This table stores the closure snapshot. "Fully Dropped" auto-zeros all amounts. No existing tables are modified.
+## Step 2: Create `ActiveStageContext` State in `CaseLifecycleFlow.tsx`
 
-## Step 2: New Types -- `stageClosureDetails.ts`
-
-Location: `src/types/stageClosureDetails.ts`
+Add new state variables to track which stage the user is *viewing*:
 
 ```typescript
-export type ClosureStatus = 'Order Passed' | 'Fully Dropped' | 'Withdrawn' | 'Settled' | 'Remanded';
+const [viewingStageInstanceId, setViewingStageInstanceId] = useState<string | null>(null);
+const [viewingStageKey, setViewingStageKey] = useState<string | null>(null);
+const [isViewingHistorical, setIsViewingHistorical] = useState(false);
+```
 
-export interface TaxBreakdown {
-  igst: number;
-  cgst: number;
-  sgst: number;
-  cess: number;
-}
+**On mount / case change**: Default to the active stage instance (current behavior).
 
-export interface StageClosureDetailsRecord {
-  id: string;
-  tenant_id: string;
+**On stage tile click**: Fetch the stage instance for that stage, update viewing context.
+
+The `useStageWorkflow` hook and all child panels will consume `viewingStageInstanceId` instead of `stageInstanceId`.
+
+## Step 3: Make Stage Tiles Clickable
+
+Currently (lines 690-775), stage tiles only show "Manage Stage" for the current stage. Change to:
+
+1. **All tiles become clickable** -- clicking any tile calls `handleStageClick(stage.id)`
+2. `handleStageClick` queries `stage_instances` for the clicked stage's instance(s):
+   - If exactly one instance exists, switch context to it
+   - If multiple instances exist (remand cycles), show a small dropdown/popover to pick which cycle
+   - If no instance exists (future stage), show a toast: "This stage has no history yet"
+3. Add a visual indicator (ring/highlight) on the currently *viewed* stage tile, distinct from the *current* stage marker
+4. The "Manage Stage" button only appears when `viewingStageInstanceId === activeStageInstanceId`
+
+## Step 4: Historical Stage Banner (UX Indicator)
+
+When `isViewingHistorical === true`, render a persistent banner below the stage tiles:
+
+```text
+[Info icon] Viewing: {viewingStageKey} (Closed) | Current Stage: {selectedCase.currentStage}
+            [Button: Return to Current Stage]
+```
+
+- Uses yellow/amber background with clear text
+- "Return to Current Stage" resets context to the active instance
+- Persists across workflow tabs (notices, replies, hearings, closure)
+
+## Step 5: Read-Only Mode for Historical Stages
+
+When `isViewingHistorical === true`:
+
+- **StageWorkflowTimeline**: Steps render as view-only (no click actions to add/edit)
+- **StageNoticesPanel**: Hide "Add Notice" button; existing notices display in read-only mode
+- **StageHearingsPanel**: Hide "Schedule Hearing" button; hearings are view-only
+- **StageClosurePanel**: Display closure data read-only (no Save/Close buttons)
+- **Stage Dashboard**: "Manage Stage" button is hidden; "Create Task" and "Upload Response" are hidden
+- All action handlers receive an `isReadOnly` prop to disable mutations
+
+Implementation: Pass `isReadOnly={isViewingHistorical}` to each panel. Each panel already has conditional rendering patterns -- extend them.
+
+## Step 6: Update `useStageWorkflow` Hook
+
+The hook currently takes `stageInstanceId` and loads workflow state. No changes needed to the hook itself -- the parent (`CaseLifecycleFlow`) will simply pass `viewingStageInstanceId` instead of `stageInstanceId`. The hook already handles arbitrary instance IDs.
+
+Update the call site:
+
+```typescript
+// Before
+const { workflowState, ... } = useStageWorkflow({
+  stageInstanceId,
+  caseId: selectedCase?.id || '',
+  stageKey: selectedCase?.currentStage || '',
+  ...
+});
+
+// After  
+const { workflowState, ... } = useStageWorkflow({
+  stageInstanceId: viewingStageInstanceId || stageInstanceId,
+  caseId: selectedCase?.id || '',
+  stageKey: viewingStageKey || selectedCase?.currentStage || '',
+  ...
+});
+```
+
+## Step 7: Stage-Filtered Hearings for Viewed Context
+
+Update the `stageHearings` memo (line 441) to filter by `viewingStageInstanceId`:
+
+```typescript
+const stageHearings = useMemo(() => {
+  const effectiveInstanceId = viewingStageInstanceId || stageInstanceId;
+  return state.hearings?.filter(h => {
+    const hearingCaseId = h.caseId || h.case_id;
+    const matchesCase = hearingCaseId === selectedCase?.id;
+    const matchesStage = h.stage_instance_id === effectiveInstanceId || !h.stage_instance_id;
+    return matchesCase && matchesStage;
+  }) || [];
+}, [selectedCase?.id, viewingStageInstanceId, stageInstanceId, state.hearings]);
+```
+
+## Step 8: Stage Summary Placeholder (Future-Ready)
+
+Create a lightweight type file `src/types/stageSummary.ts`:
+
+```typescript
+export interface StageSummary {
   stage_instance_id: string;
-  case_id: string;
-  closure_status: ClosureStatus;
-  closure_ref_no: string | null;
-  closure_date: string | null;
-  issuing_authority: string | null;
-  officer_name: string | null;
-  officer_designation: string | null;
-  final_tax_amount: TaxBreakdown;
-  final_interest_amount: number;
-  final_penalty_amount: number;
-  final_total_demand: number;
-  closure_notes: string | null;
-  is_draft: boolean;
-  created_at: string;
-  updated_at: string;
+  notice_count: number;
+  hearing_count: number;
+  reply_count: number;
+  financial_impact: number | null;
+  outcome_summary: string | null;
 }
 ```
 
-## Step 3: New Service -- `stageClosureDetailsService.ts`
-
-Location: `src/services/stageClosureDetailsService.ts`
-
-Methods:
-- `getByStageInstanceId(stageInstanceId)` -- fetch saved closure (draft or final)
-- `save(data)` -- upsert into `stage_closure_details` with `is_draft = true`
-- `finalize(stageInstanceId)` -- set `is_draft = false`
-
-Auto-calculation: `final_total_demand = sum(igst+cgst+sgst+cess) + interest + penalty`
-
-If `closure_status === 'Fully Dropped'`, all amounts are force-set to 0.
-
-## Step 4: Decouple `checkCanClose` in `stageWorkflowService.ts`
-
-Current logic blocks closure when notices are missing or workflow steps are incomplete.
-
-Changed to:
-- Remove all blocking reasons
-- Return `canClose: true` always
-- Compute `warningReasons` instead (same text, different semantics)
-- Pass warnings to UI for informational display only
-
-The `StageWorkflowState` interface gets a new field: `closureWarnings: string[]`
-
-## Step 5: Rewrite `StageClosurePanel.tsx`
-
-Replace the existing component with a full embedded form matching the reference screenshot.
-
-### Layout
-
-**Section 1: Closure Details (2-column grid)**
-- Row 1: Closure Status (dropdown, required) | Move to Next Level (read-only, auto-derived)
-- Row 2: Closure/Order Reference No (required) | Closure/Order Date (required, date picker)
-- Row 3: Issuing Authority (required) | Officer Name (required)
-- Row 4: Officer Designation (required)
-
-**"Move to Next Level" logic** (read-only display):
-- Order Passed -> "Next Stage: [stage name]" or "Final Stage" if at Supreme Court
-- Fully Dropped / Withdrawn / Settled -> "No Movement (Case Closed at this Level)"
-- Remanded -> "Remand to Earlier Stage"
-
-**Section 2: Final Demand Amount Breakdown**
-- Final Tax Amount (click-to-expand IGST/CGST/SGST/CESS breakdown, stored as JSON)
-- Final Interest (numeric) with "As Applicable" checkbox
-- Final Penalty (numeric) with "As Applicable" checkbox
-- Auto-calculated "Final Total Demand" display (red, bold)
-- If Closure Status = "Fully Dropped": all fields auto-zero with a green note: "This case will be marked as Closed as all demands are fully dropped."
-
-**Section 3: Closure Notes** (optional textarea)
-
-**Warnings Banner** (replaces blocking error):
-- Yellow info banner: "Some workflow steps are incomplete. You can still close this stage."
-- Never blocks the form
-
-**Footer: Two Buttons**
-- "Save Closure" (outline) -- validates and persists to `stage_closure_details` as draft
-- "Close Stage" (primary) -- validates, finalizes closure, then executes lifecycle transition
-
-### Validation Rules
-- Closure Status: always required
-- Reference No, Date, Issuing Authority, Officer Name, Officer Designation: required for all statuses
-- Demand amounts: required unless "Fully Dropped" (auto-zeroed)
-
-## Step 6: Update `handleCloseStage` in `CaseLifecycleFlow.tsx`
-
-Split into two handlers:
-
-**`handleSaveClosure`**: Saves closure data as draft via `stageClosureDetailsService.save()`. Shows success toast.
-
-**`handleCloseStage`**: 
-1. Saves/finalizes closure data
-2. Completes the `closure` workflow step
-3. Based on `closure_status`:
-   - **Order Passed**: Creates stage transition to next stage (existing `stage_transitions` insert triggers `create_stage_instance_on_transition`)
-   - **Fully Dropped / Withdrawn / Settled**: Updates `stage_instances.status` to 'Completed', updates `cases.status` to 'Closed'
-   - **Remanded**: Creates stage transition with `transition_type = 'Remand'` back to an earlier stage
-4. Shows success toast, refreshes workflow
-
-## Step 7: Update Props Flow
-
-`StageClosurePanel` receives new props:
-- `onSaveClosure: (data) => void` -- for Save Closure button
-- `onCloseStage: (data) => void` -- for Close Stage button  
-- `closureWarnings: string[]` -- replaces `blockingReasons`
-- `caseId: string` -- for loading existing draft
-- Remove `canClose` prop (always enabled now)
+No service implementation yet -- this is a structural placeholder for future AI summarization.
 
 ---
 
@@ -167,19 +142,29 @@ Split into two handlers:
 
 | File | Action | Purpose |
 |------|--------|---------|
-| New migration SQL | Create | `stage_closure_details` table + RLS |
-| `src/types/stageClosureDetails.ts` | Create | Closure record types and form interfaces |
-| `src/types/stageWorkflow.ts` | Edit | Add `closureWarnings` to `StageWorkflowState`, update `ClosureOutcome` to include "Fully Dropped" |
-| `src/services/stageClosureDetailsService.ts` | Create | CRUD for closure details |
-| `src/services/stageWorkflowService.ts` | Edit | Decouple `checkCanClose` to return warnings instead of blockers |
-| `src/components/lifecycle/StageClosurePanel.tsx` | Rewrite | Full embedded closure form with demand breakdown |
-| `src/components/cases/CaseLifecycleFlow.tsx` | Edit | Add `handleSaveClosure`, update `handleCloseStage` with lifecycle mapping |
+| Migration SQL | Create | Add `stage_instance_id` to `tasks` and `documents` |
+| `src/components/cases/CaseLifecycleFlow.tsx` | Edit | Add viewing context state, make tiles clickable, pass `isReadOnly` to panels, historical banner |
+| `src/components/lifecycle/StageNoticesPanel.tsx` | Edit | Accept `isReadOnly` prop, hide action buttons when true |
+| `src/components/lifecycle/StageHearingsPanel.tsx` | Edit | Accept `isReadOnly` prop, hide action buttons when true |
+| `src/components/lifecycle/StageClosurePanel.tsx` | Edit | Accept `isReadOnly` prop, render view-only when true |
+| `src/components/lifecycle/StageWorkflowTimeline.tsx` | Edit | Accept `isReadOnly` prop, disable step click actions when true |
+| `src/types/stageSummary.ts` | Create | Placeholder interface for future stage summaries |
 
-## Zero-Regression Guarantee
+## What This Does NOT Change
 
-- Existing `stage_instances`, `stage_workflow_steps`, `stage_notices`, `stage_replies` tables are untouched
-- Existing `stage_transitions` trigger (`create_stage_instance_on_transition`) handles lifecycle progression automatically
-- Existing timeline, hearings, and notices workflows are unaffected
-- "Case Dropped" renamed to "Fully Dropped" in UI only; backward-compatible since closure status is stored in the new table
-- Existing cases without closure data continue to work (form loads empty)
+- Case creation flow -- untouched
+- Notice intake wizard -- untouched
+- Existing dashboards, reports, calendar -- untouched
+- Case status, stage status, stage instance status -- remain independent; clicking a tile never mutates any status
+- Timeline tab -- continues to show merged chronological view across all stages
+- Default load behavior -- always shows the active/latest stage
+
+## Scope Boundaries (Deferred Items)
+
+The following items from the prompt are noted but deferred to avoid overengineering:
+
+- **Role-stage permission map** (item 12): Requires a permissions framework refactor; not blocking the context view feature
+- **Backend immutability enforcement** (item 8): Currently UI-only via `isReadOnly`; database-level triggers can be added later
+- **Cross-stage read-only references** (item 9): The data model supports this via `stage_instance_id` FK; UI for cross-referencing is a separate feature
+- **Communication tagging** (Email/WhatsApp): The communications module does not yet exist in the stage workflow
 
