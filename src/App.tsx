@@ -47,6 +47,7 @@ import { BestPracticesPage } from "@/pages/help/BestPracticesPage";
 import { ArticlePage } from "@/pages/help/ArticlePage";
 import { PendingRecordsPage } from "@/pages/PendingRecordsPage";
 import StageContextPage from "@/pages/StageContextPage";
+import StructuredReplyPage from "@/pages/StructuredReplyPage";
 import { DevModeDashboard } from "@/pages/DevModeDashboard";
 import { ClientPortal } from "./components/portal/ClientPortal";
 import { ClientPortalUserManagement } from "./components/admin/ClientPortalUserManagement";
@@ -420,6 +421,11 @@ const AppContent = () => {
               <Route path="/cases/:caseId/stages/:instanceId/context" element={
                 <ProtectedRoute>
                   <StageContextPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/cases/:caseId/reply/edit" element={
+                <ProtectedRoute>
+                  <StructuredReplyPage />
                 </ProtectedRoute>
               } />
               <Route path="/help/diagnostics" element={

@@ -4631,6 +4631,114 @@ export type Database = {
           },
         ]
       }
+      structured_reply_details: {
+        Row: {
+          ack_reference_id: string | null
+          additional_submissions: Json | null
+          case_id: string
+          condonation_filed: boolean | null
+          created_at: string
+          cross_obj_date: string | null
+          cross_obj_ref: string | null
+          delay_reason: string | null
+          expected_outcome: string | null
+          filed_by_name: string | null
+          filing_proof_doc_ids: Json | null
+          id: string
+          key_arguments: string | null
+          pre_deposit_amount: number | null
+          pre_deposit_pct: number | null
+          pre_deposit_remarks: string | null
+          prepared_by: string | null
+          reply_id: string
+          strength_weakness: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ack_reference_id?: string | null
+          additional_submissions?: Json | null
+          case_id: string
+          condonation_filed?: boolean | null
+          created_at?: string
+          cross_obj_date?: string | null
+          cross_obj_ref?: string | null
+          delay_reason?: string | null
+          expected_outcome?: string | null
+          filed_by_name?: string | null
+          filing_proof_doc_ids?: Json | null
+          id?: string
+          key_arguments?: string | null
+          pre_deposit_amount?: number | null
+          pre_deposit_pct?: number | null
+          pre_deposit_remarks?: string | null
+          prepared_by?: string | null
+          reply_id: string
+          strength_weakness?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ack_reference_id?: string | null
+          additional_submissions?: Json | null
+          case_id?: string
+          condonation_filed?: boolean | null
+          created_at?: string
+          cross_obj_date?: string | null
+          cross_obj_ref?: string | null
+          delay_reason?: string | null
+          expected_outcome?: string | null
+          filed_by_name?: string | null
+          filing_proof_doc_ids?: Json | null
+          id?: string
+          key_arguments?: string | null
+          pre_deposit_amount?: number | null
+          pre_deposit_pct?: number | null
+          pre_deposit_remarks?: string | null
+          prepared_by?: string | null
+          reply_id?: string
+          strength_weakness?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "structured_reply_details_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "case_activity_summary"
+            referencedColumns: ["case_id"]
+          },
+          {
+            foreignKeyName: "structured_reply_details_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "structured_reply_details_reply_id_fkey"
+            columns: ["reply_id"]
+            isOneToOne: true
+            referencedRelation: "stage_replies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "structured_reply_details_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "structured_reply_details_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_settings: {
         Row: {
           category: string | null
