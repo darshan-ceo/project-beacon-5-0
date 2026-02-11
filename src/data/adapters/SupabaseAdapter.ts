@@ -1763,7 +1763,7 @@ export class SupabaseAdapter implements StoragePort {
           }
           
           // Keep only valid columns
-          const validHearingFields = ['id', 'case_id', 'hearing_date', 'next_hearing_date', 'status', 'notes', 'outcome', 'outcome_text', 'forum_id', 'authority_id', 'court_id', 'court_name', 'judge_name', 'judge_ids', 'hearing_type', 'hearing_purpose', 'hearing_outcome', 'stage_instance_id', 'created_at', 'updated_at', 'tenant_id', 'is_demo'];
+          const validHearingFields = ['id', 'case_id', 'hearing_date', 'next_hearing_date', 'status', 'notes', 'outcome', 'outcome_text', 'forum_id', 'authority_id', 'court_id', 'court_name', 'judge_name', 'hearing_type', 'hearing_purpose', 'hearing_outcome', 'stage_instance_id', 'notice_id', 'order_file_path', 'order_file_url', 'is_demo', 'demo_batch_id', 'created_at', 'updated_at', 'tenant_id'];
           Object.keys(normalized).forEach(key => {
             if (!validHearingFields.includes(key)) delete normalized[key];
           });
