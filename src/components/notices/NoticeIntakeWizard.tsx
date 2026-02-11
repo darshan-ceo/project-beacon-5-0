@@ -584,11 +584,31 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
         .single();
       if (!profile?.tenant_id) throw new Error('No tenant found');
 
-      await uploadDocument(uploadedFile, {
+      const result = await uploadDocument(uploadedFile, {
         tenant_id: profile.tenant_id,
         case_id: createdCase.id,
         client_id: createdCase.clientId || undefined,
         category: 'Notice',
+      });
+
+      // Dispatch to Redux so Documents tab shows it immediately
+      dispatch({
+        type: 'ADD_DOCUMENT',
+        payload: {
+          id: result.id,
+          name: result.file_name,
+          type: result.file_type,
+          size: result.file_size,
+          path: result.file_path,
+          caseId: createdCase.id,
+          clientId: createdCase.clientId || '',
+          category: 'Notice',
+          uploadedById: user.id,
+          uploadedByName: 'User',
+          uploadedAt: new Date().toISOString(),
+          isShared: false,
+          tags: []
+        } as any
       });
 
       // Log to timeline
