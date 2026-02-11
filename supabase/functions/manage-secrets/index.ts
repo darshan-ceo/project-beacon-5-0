@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }, {
-            onConflict: 'setting_key'
+            onConflict: 'tenant_id,setting_key'
           })
 
         if (upsertError) {
@@ -338,7 +338,7 @@ Deno.serve(async (req) => {
               tenant_id: tenantId,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
-            }, { onConflict: 'setting_key' })
+            }, { onConflict: 'tenant_id,setting_key' })
           delete config.appPassword
         }
 
@@ -353,7 +353,7 @@ Deno.serve(async (req) => {
               tenant_id: tenantId,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
-            }, { onConflict: 'setting_key' })
+            }, { onConflict: 'tenant_id,setting_key' })
           delete config.password
         }
 
@@ -371,7 +371,7 @@ Deno.serve(async (req) => {
             tenant_id: tenantId,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
-          }, { onConflict: 'setting_key' })
+          }, { onConflict: 'tenant_id,setting_key' })
 
         if (configError) {
           console.error('[manage-secrets] Save email config error:', configError)
@@ -425,7 +425,7 @@ Deno.serve(async (req) => {
             tenant_id: tenantId,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
-          }, { onConflict: 'setting_key' })
+          }, { onConflict: 'tenant_id,setting_key' })
 
         // Update calendar_integrations status
         await supabaseAdmin
