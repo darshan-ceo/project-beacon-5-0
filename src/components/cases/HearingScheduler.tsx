@@ -202,7 +202,7 @@ export const HearingScheduler: React.FC<HearingSchedulerProps> = ({ cases, selec
       time: h.time || h.start_time || '10:00',
       court: (state.courts.find(c => c.id === h.court_id)?.name) || 'Court',
       judge: (state.judges.find(j => h.judge_ids?.includes(j.id))?.name) || 'Judge',
-      type: (h.type === 'Preliminary' ? 'Final' : h.type) as 'Adjourned' | 'Final' | 'Argued' || 'Final',
+      type: ((h as any).hearing_type || h.type || 'General') as 'Adjourned' | 'Final' | 'Argued',
       status: h.status === 'scheduled' ? 'Scheduled' : h.status === 'concluded' ? 'Completed' : 'Postponed',
       reminder: '1 day' as '1 day' | '3 days' | '7 days',
       location: h.courtroom || '',

@@ -133,6 +133,8 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   const [showStageModal, setShowStageModal] = useState(false);
   const [showHearingModal, setShowHearingModal] = useState(false);
   const [defaultHearingType, setDefaultHearingType] = useState<string>('General');
+  const [viewingHearing, setViewingHearing] = useState<any>(null);
+  const [hearingModalMode, setHearingModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const [showFormModal, setShowFormModal] = useState(false);
   const [selectedFormCode, setSelectedFormCode] = useState<string>('');
   const [formTemplate, setFormTemplate] = useState<any>(null);
@@ -942,7 +944,10 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
               hearings={stageHearings}
               stageInstanceId={effectiveStageInstanceId}
               caseId={selectedCase.id}
-              onScheduleHearing={() => { const idx = lifecycleStages.findIndex(s => s.id === normalizeStage(selectedCase?.currentStage)); setDefaultHearingType(idx === 0 ? 'Personal Hearing' : 'General'); setShowHearingModal(true); }}
+              onScheduleHearing={() => { const idx = lifecycleStages.findIndex(s => s.id === normalizeStage(selectedCase?.currentStage)); setDefaultHearingType(idx === 0 ? 'Personal Hearing' : 'General'); setViewingHearing(null); setHearingModalMode('create'); setShowHearingModal(true); }}
+              onViewHearing={(hearing) => { setViewingHearing(hearing); setHearingModalMode('view'); setShowHearingModal(true); }}
+              onRecordOutcome={(hearing) => { setViewingHearing(hearing); setHearingModalMode('edit'); setShowHearingModal(true); }}
+              onAdjournHearing={(hearing) => { setViewingHearing(hearing); setHearingModalMode('edit'); setShowHearingModal(true); }}
               isReadOnly={isViewingHistorical}
             />
           )}
@@ -1379,9 +1384,12 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         isOpen={showHearingModal}
         onClose={() => {
           setShowHearingModal(false);
+          setViewingHearing(null);
+          setHearingModalMode('create');
           refreshWorkflow(); // Refresh workflow to pick up new hearing
         }}
-        mode="create"
+        mode={hearingModalMode}
+        hearing={viewingHearing}
         contextCaseId={selectedCase?.id}
         contextClientId={selectedCase?.clientId}
         stageInstanceId={stageInstanceId}
