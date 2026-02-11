@@ -111,12 +111,12 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
             <Target className="h-4 w-4 text-muted-foreground" />
             Inquiry Type
           </Label>
-          <Select value={inquiryType} onValueChange={setInquiryType}>
+          <Select value={inquiryType || '__none__'} onValueChange={(v) => setInquiryType(v === '__none__' ? '' : v)}>
             <SelectTrigger>
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent className="bg-popover">
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="__none__">None</SelectItem>
               {INQUIRY_TYPE_OPTIONS.map((type) => (
                 <SelectItem key={type.value} value={type.value}>
                   {type.label}
@@ -132,12 +132,12 @@ export const EditLeadModal: React.FC<EditLeadModalProps> = ({
             <Target className="h-4 w-4 text-muted-foreground" />
             Source
           </Label>
-          <Select value={leadSource} onValueChange={setLeadSource}>
+          <Select value={leadSource || '__none__'} onValueChange={(v) => setLeadSource(v === '__none__' ? '' : v)}>
             <SelectTrigger>
               <SelectValue placeholder="Select source" />
             </SelectTrigger>
             <SelectContent className="bg-popover">
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="__none__">None</SelectItem>
               {LEAD_SOURCE_OPTIONS.map((source) => (
                 <SelectItem key={source.value} value={source.value}>
                   {source.label}
