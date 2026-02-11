@@ -524,26 +524,11 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
     }
   };
 
-  // Handler for viewing original notice document
+  // Handler for viewing original notice document - navigate to case Documents tab
   const handleViewOriginalNotice = () => {
     if (!selectedCase) return;
-    
-    const noticeDoc = state.documents?.find(
-      doc => doc.caseId === selectedCase.id && 
-      (doc.category === 'Notice' || doc.category === 'Original Notice' || 
-       doc.name?.toLowerCase().includes('notice'))
-    );
-    
-    if (noticeDoc) {
-      // Navigate to documents tab with the notice selected
-      navigate(`/documents?docId=${noticeDoc.id}`);
-    } else {
-      toast({
-        title: "No Notice Document Found",
-        description: "Upload the original notice document in the Documents tab.",
-        variant: "default"
-      });
-    }
+    // Navigate to the case-specific Documents tab (filtered to this case)
+    navigate(`/cases?caseId=${selectedCase.id}&tab=documents`);
   };
 
   // Toggle context panel
