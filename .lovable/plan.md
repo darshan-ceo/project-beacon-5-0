@@ -1,55 +1,40 @@
 
 
-# Fix: Hearing Type Not Persisting to Database
+# Fix: Remove Non-Existent `judge_ids` from Hearing Fields Whitelist
 
-## Root Cause
+## Problem
 
-The `SupabaseAdapter.normalizeForBackend()` method (line 1766) uses a **whitelist** of valid hearing columns. `hearing_type` is **missing from this whitelist**, so it gets silently deleted before every INSERT and UPDATE operation. This is why the database always shows `General` (the column default) despite the UI correctly setting `hearing_type: 'Personal Hearing'`.
+The error message is: **"Could not find the 'judge_ids' column of 'hearings' in the schema cache"**
 
-Several other hearing columns are also missing from the whitelist, which would cause similar silent data loss:
-- `hearing_type`
-- `stage_instance_id`
-- `hearing_outcome`
-- `hearing_purpose`
-- `outcome_text`
-- `judge_ids`
-- `is_demo`
+The `judge_ids` column does not exist in the `hearings` database table. It was incorrectly added to the `validHearingFields` whitelist in the previous fix. When a hearing is saved, the adapter includes `judge_ids` in the payload, causing the database to reject the entire INSERT.
+
+## Actual Database Columns
+
+The `hearings` table has these columns:
+`id`, `tenant_id`, `case_id`, `hearing_date`, `court_name`, `judge_name`, `status`, `notes`, `outcome`, `next_hearing_date`, `created_at`, `updated_at`, `forum_id`, `authority_id`, `court_id`, `order_file_path`, `order_file_url`, `outcome_text`, `is_demo`, `demo_batch_id`, `stage_instance_id`, `notice_id`, `hearing_purpose`, `hearing_outcome`, `hearing_type`
 
 ## Fix
 
 **File**: `src/data/adapters/SupabaseAdapter.ts` (line 1766)
 
-Update the `validHearingFields` array to include all actual database columns:
+Update the whitelist to match actual database columns exactly:
+
+- **Remove**: `judge_ids` (does not exist in the table)
+- **Add missing**: `notice_id`, `order_file_path`, `order_file_url`, `demo_batch_id`
 
 ```typescript
-// Before
-const validHearingFields = ['id', 'case_id', 'hearing_date', 'next_hearing_date', 
-  'status', 'notes', 'outcome', 'forum_id', 'authority_id', 'court_id', 
-  'court_name', 'judge_name', 'created_at', 'updated_at', 'tenant_id'];
-
-// After
-const validHearingFields = ['id', 'case_id', 'hearing_date', 'next_hearing_date', 
-  'status', 'notes', 'outcome', 'outcome_text', 'forum_id', 'authority_id', 
-  'court_id', 'court_name', 'judge_name', 'judge_ids', 'hearing_type', 
-  'hearing_purpose', 'hearing_outcome', 'stage_instance_id', 
-  'created_at', 'updated_at', 'tenant_id', 'is_demo'];
+const validHearingFields = [
+  'id', 'case_id', 'hearing_date', 'next_hearing_date', 'status', 'notes', 
+  'outcome', 'outcome_text', 'forum_id', 'authority_id', 'court_id', 
+  'court_name', 'judge_name', 'hearing_type', 'hearing_purpose', 
+  'hearing_outcome', 'stage_instance_id', 'notice_id', 'order_file_path', 
+  'order_file_url', 'is_demo', 'demo_batch_id', 
+  'created_at', 'updated_at', 'tenant_id'
+];
 ```
-
-This single-line change will:
-1. Allow `hearing_type: 'Personal Hearing'` to persist to the database on create and update
-2. Ensure the Edit Hearing modal correctly loads and displays the hearing type
-3. Ensure PH-specific fields (PH Notice, Mode, Place, Attended By, Submissions) display correctly in edit/view mode since they depend on `hearing_type === 'Personal Hearing'`
-4. Fix several other silently-dropped fields (`stage_instance_id`, `outcome_text`, etc.)
-
-## Verification
-
-After this fix:
-- Creating a hearing with type "Personal Hearing" from Lifecycle will persist `hearing_type = 'Personal Hearing'` in the database
-- Opening the same hearing from the Hearings module will show "Personal Hearing" (not "General") and display all PH detail fields
-- Existing hearings with PH details in the `hearing_ph_details` table will also display correctly since their parent hearing will now retain the correct type on future edits
 
 ## Impact
 
+- Single line change in `src/data/adapters/SupabaseAdapter.ts`
 - No database migration needed
-- No UI component changes needed
-- Only one file modified: `src/data/adapters/SupabaseAdapter.ts`
+- Hearings will save successfully with all valid fields including `hearing_type`
