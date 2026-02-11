@@ -27,6 +27,7 @@ import { uploadDocument } from '@/services/supabaseDocumentService';
 import { stageNoticesService } from '@/services/stageNoticesService';
 import { supabase } from '@/integrations/supabase/client';
 import { taskBundleTriggerService } from '@/services/taskBundleTriggerService';
+import { tasksService } from '@/services/tasksService';
 import { useToast } from '@/hooks/use-toast';
 import { useAppState } from '@/contexts/AppStateContext';
 import { formatFileSize } from '@/utils/formatFileSize';
@@ -480,6 +481,44 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
     }
   };
 
+  // Hardcoded fallback tasks matching StageAwarenessStep.tsx STAGE_OPTIONS
+  const STAGE_TASK_DEFINITIONS: Record<string, Array<{ title: string; priority: string }>> = {
+    SCN: [
+      { title: 'Draft Reply', priority: 'High' },
+      { title: 'Collect Supporting Documents', priority: 'Medium' },
+      { title: 'Review & Approval', priority: 'High' },
+      { title: 'File Response', priority: 'Critical' }
+    ],
+    Reminder: [
+      { title: 'Review Requirements', priority: 'Medium' },
+      { title: 'Prepare Response', priority: 'High' },
+      { title: 'Submit Compliance', priority: 'High' }
+    ],
+    Hearing: [
+      { title: 'Prepare Hearing Brief', priority: 'High' },
+      { title: 'Organize Documents', priority: 'Medium' },
+      { title: 'Hearing Attendance', priority: 'Critical' },
+      { title: 'Record Proceedings', priority: 'Medium' }
+    ],
+    Order: [
+      { title: 'Analyze Order', priority: 'High' },
+      { title: 'Calculate Appeal Timeline', priority: 'Critical' },
+      { title: 'Draft Appeal (if applicable)', priority: 'High' },
+      { title: 'Compliance Action', priority: 'Medium' }
+    ]
+  };
+
+  const calculateDueDate = (replyDueDate?: string): string => {
+    if (replyDueDate) return replyDueDate;
+    const date = new Date();
+    let added = 0;
+    while (added < 7) {
+      date.setDate(date.getDate() + 1);
+      if (date.getDay() !== 0 && date.getDay() !== 6) added++;
+    }
+    return date.toISOString().split('T')[0];
+  };
+
   // Generate tasks
   const handleGenerateTasks = async () => {
     if (!createdCaseId) return;
@@ -487,26 +526,56 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
     setIsLoading(true);
     try {
       const caseData = selectedCase || (state.cases || []).find((c: any) => c.id === createdCaseId);
-      
-      const result = await taskBundleTriggerService.triggerTaskBundles(
-        {
-          id: createdCaseId,
-          currentStage: caseData?.currentStage || 'Assessment',
-          clientId: clientId,
-          caseNumber: caseData?.caseNumber || '',
-          assignedToId: assignedToId || 'emp-1',
-          assignedToName: 'Assigned User'
-        },
-        mode === 'new_case' ? 'case_created' : 'notice_added',
-        caseData?.currentStage || 'Assessment',
-        dispatch
-      );
-      
-      setTasksCreated(result.totalTasksCreated);
+      const currentStage = caseData?.currentStage || 'Assessment';
+
+      // 1. Try task bundles first (for configured bundles)
+      let totalCreated = 0;
+      try {
+        const result = await taskBundleTriggerService.triggerTaskBundles(
+          {
+            id: createdCaseId,
+            currentStage,
+            clientId,
+            caseNumber: caseData?.caseNumber || '',
+            assignedToId: assignedToId || 'emp-1',
+            assignedToName: 'Assigned User'
+          },
+          mode === 'new_case' ? 'case_created' : 'notice_added',
+          currentStage,
+          dispatch
+        );
+        totalCreated = result.totalTasksCreated;
+      } catch (e) {
+        console.warn('[Wizard] Bundle trigger failed, falling back to stage tasks', e);
+      }
+
+      // 2. If no bundle tasks, create from hardcoded stage definitions
+      if (totalCreated === 0) {
+        const fallbackTasks = STAGE_TASK_DEFINITIONS[stageTag] || [];
+        for (const taskDef of fallbackTasks) {
+          await tasksService.create({
+            title: taskDef.title,
+            description: `[Auto-created from Notice Intake Wizard - ${stageTag}]`,
+            caseId: createdCaseId,
+            clientId,
+            caseNumber: caseData?.caseNumber || '',
+            stage: currentStage,
+            priority: taskDef.priority as any,
+            status: 'Not Started',
+            assignedToId: assignedToId || 'emp-1',
+            assignedToName: 'Assigned User',
+            dueDate: calculateDueDate(extractedData.due_date),
+            estimatedHours: 8
+          } as any, dispatch);
+          totalCreated++;
+        }
+      }
+
+      setTasksCreated(totalCreated);
       
       toast({
         title: "Tasks generated",
-        description: `${result.totalTasksCreated} task(s) created.`,
+        description: `${totalCreated} task(s) created.`,
       });
       
       setCurrentStep('completion');
