@@ -1,151 +1,72 @@
 
-# Fix: "Generate Tasks" Creates 0 Tasks in Notice Intake Wizard
 
-## Problem
+# Fix Plan: Notice Intake Wizard -- 3 Issues
 
-Step 9 ("Stage & Task Generation") shows a list of tasks like "Draft Reply", "Collect Supporting Documents", etc. These are **hardcoded in `StageAwarenessStep.tsx`** based on the selected notice classification (SCN, Reminder, Hearing, Order). They are purely cosmetic previews.
+## Issue 1: Duplicate Case Still Getting Created (Back + Create)
 
-When "Generate Tasks" is clicked, `handleGenerateTasks` in `NoticeIntakeWizardV2.tsx` calls `taskBundleTriggerService.triggerTaskBundles()`, which searches for **configured task bundles in the database**. Since no bundles have been configured for the trigger/stage combination, 0 tasks are returned and 0 tasks are created.
+**Analysis:** The guard `if (createdCaseId) { setCurrentStep('stage_tasks'); return; }` at line 303 IS present and correct. However, the problem is that when navigating back from `stage_tasks`, `getPreviousStep` returns `financial_validation` (Step 7). At this step, the button label shows "Create" (line 1237) and clicking it calls `handleCreateCaseAndNotice()`. The guard should work... UNLESS the `createdCaseId` state is being reset.
 
-**The displayed tasks and the generated tasks are completely disconnected.**
+Looking at the completion step's "Add Another Notice" handler (line 1162-1167), `setCreatedCaseId('')` is called there. But that's only on "Add Another". The real issue is more subtle: when `handleCreateCaseAndNotice` succeeds and moves to `stage_tasks`, pressing Back goes to `financial_validation`. The guard checks `createdCaseId` which should be set. Let me verify the `handlePrevious` function -- it just calls `setCurrentStep(prev)` with `getPreviousStep`. This should be `create_link` (step 8), not `financial_validation` (step 7).
 
-## Root Cause
+Wait -- looking at the step flow: `financial_validation` -> `create_link` -> `stage_tasks`. The `create_link` step exists in `WIZARD_STEPS` but has no render case. The navigation from `financial_validation` skips `create_link` and jumps straight to `stage_tasks` via `handleCreateCaseAndNotice`. But `getPreviousStep('stage_tasks')` returns `create_link`, and `getPreviousStep('create_link')` returns `financial_validation`. So Back from `stage_tasks` goes to `create_link`, then Back again goes to `financial_validation`. At `financial_validation`, clicking Create calls `handleCreateCaseAndNotice` again -- and the guard SHOULD catch it.
 
-- `StageAwarenessStep.tsx` has a `STAGE_OPTIONS` array with hardcoded task names per classification
-- `handleGenerateTasks` ignores these entirely and delegates to `taskBundleTriggerService`
-- The `tasksToGenerate` prop is passed as `[]` and never used
-- `taskBundleTriggerService.getFootprints()` is stubbed (returns `[]`) so idempotency is broken too
+The fix needs to be more robust. Two changes:
 
-## Fix
+1. **Disable the Create button** after case is created by checking `createdCaseId` in `canGoNext` or button disabled state
+2. **Change the button label** from "Create" to "Next" when case already exists
+3. **Make the guard also handle navigation correctly** -- when at `financial_validation` with `createdCaseId` set, skip past `create_link` to `stage_tasks`
 
-Modify `handleGenerateTasks` in `NoticeIntakeWizardV2.tsx` to:
+**Changes in `NoticeIntakeWizardV2.tsx`:**
+- Update `handleNext` for `financial_validation` case: if `createdCaseId` is already set, skip to `stage_tasks` directly instead of calling `handleCreateCaseAndNotice`
+- Update button label logic: show "Next" instead of "Create" when `createdCaseId` is set
+- Remove `create_link` from the step list or skip it in navigation since it has no UI
 
-1. **First**, attempt task bundle trigger (existing behavior -- for users who have configured bundles)
-2. **If 0 tasks created from bundles**, fall back to creating tasks from the hardcoded `STAGE_OPTIONS` task list based on the current `stageTag`
-3. Use `tasksService.create()` directly (consistent with the centralized service pattern) to persist each task to the database and dispatch to state
+---
 
-### Implementation Details
+## Issue 2: OCR Preview / Verification
 
-**File: `src/components/notices/NoticeIntakeWizardV2.tsx`**
+**Analysis:** Currently after OCR extraction (upload step), the wizard jumps directly to `resolve_gaps` (Step 4) which IS the verification/edit screen. However, there is no dedicated "preview" of the raw extracted data or side-by-side comparison with the PDF.
 
-Import the `STAGE_OPTIONS` task definitions (or duplicate them inline) and update `handleGenerateTasks`:
+**Solution:** Add an `extract` step render that shows:
+- A summary card of all extracted fields with confidence indicators
+- Highlighted low-confidence fields
+- A "View PDF" button to open the uploaded document in a new tab
+- This step already exists in the step definitions but has no render case
 
-```typescript
-// Hardcoded fallback tasks matching StageAwarenessStep.tsx STAGE_OPTIONS
-const STAGE_TASK_DEFINITIONS: Record<string, Array<{ title: string; priority: string }>> = {
-  SCN: [
-    { title: 'Draft Reply', priority: 'High' },
-    { title: 'Collect Supporting Documents', priority: 'Medium' },
-    { title: 'Review & Approval', priority: 'High' },
-    { title: 'File Response', priority: 'Critical' }
-  ],
-  Reminder: [
-    { title: 'Review Requirements', priority: 'Medium' },
-    { title: 'Prepare Response', priority: 'High' },
-    { title: 'Submit Compliance', priority: 'High' }
-  ],
-  Hearing: [
-    { title: 'Prepare Hearing Brief', priority: 'High' },
-    { title: 'Organize Documents', priority: 'Medium' },
-    { title: 'Hearing Attendance', priority: 'Critical' },
-    { title: 'Record Proceedings', priority: 'Medium' }
-  ],
-  Order: [
-    { title: 'Analyze Order', priority: 'High' },
-    { title: 'Calculate Appeal Timeline', priority: 'Critical' },
-    { title: 'Draft Appeal (if applicable)', priority: 'High' },
-    { title: 'Compliance Action', priority: 'Medium' }
-  ]
-};
-```
+**Changes in `NoticeIntakeWizardV2.tsx`:**
+- Add a `case 'extract':` render block in `renderStepContent()` that displays:
+  - Extracted fields in a structured card layout (grouped by category)
+  - Confidence badges (High/Medium/Low) per field
+  - A preview button to view the PDF in a new browser tab via `URL.createObjectURL`
+  - Clear indication of which fields were AI-extracted vs. empty
 
-Update `handleGenerateTasks`:
+---
 
-```typescript
-const handleGenerateTasks = async () => {
-  if (!createdCaseId) return;
+## Issue 3: UI/UX Consistency
 
-  setIsLoading(true);
-  try {
-    const caseData = selectedCase || (state.cases || []).find(c => c.id === createdCaseId);
-    const currentStage = caseData?.currentStage || 'Assessment';
+**Analysis:** The wizard uses a basic `Dialog` with `max-w-2xl`. The New Client Form likely uses the `AdaptiveFormShell` pattern (full-page overlay on desktop). The wizard steps have inconsistent card layouts, spacing, and button placement.
 
-    // 1. Try task bundles first (for configured bundles)
-    let totalCreated = 0;
-    try {
-      const result = await taskBundleTriggerService.triggerTaskBundles(
-        { id: createdCaseId, currentStage, clientId, caseNumber: caseData?.caseNumber || '', assignedToId: assignedToId || '', assignedToName: 'Assigned User' },
-        mode === 'new_case' ? 'case_created' : 'notice_added',
-        currentStage,
-        dispatch
-      );
-      totalCreated = result.totalTasksCreated;
-    } catch (e) {
-      console.warn('[Wizard] Bundle trigger failed, falling back to stage tasks', e);
-    }
+**Solution:** Standardize the wizard UI:
+- Use consistent card styling across all steps
+- Standardize padding, spacing (space-y-4 for form fields, space-y-6 for sections)
+- Ensure header structure is uniform (icon + title + description centered)
+- Fix button alignment in the footer (Back left-aligned, Next/Create right-aligned with gap)
+- Apply consistent form field styling (Label size, Input height, Select styling)
+- Keep the Dialog approach (wizard is inherently multi-step, not a form modal) but ensure max-width and padding match the design system
 
-    // 2. If no bundle tasks, create from hardcoded stage definitions
-    if (totalCreated === 0) {
-      const fallbackTasks = STAGE_TASK_DEFINITIONS[stageTag] || [];
-      for (const taskDef of fallbackTasks) {
-        await tasksService.create({
-          title: taskDef.title,
-          description: `[Auto-created from Notice Intake Wizard - ${stageTag}]`,
-          caseId: createdCaseId,
-          clientId,
-          caseNumber: caseData?.caseNumber || '',
-          stage: currentStage,
-          priority: taskDef.priority,
-          status: 'Not Started',
-          assignedToId: assignedToId || '',
-          assignedToName: 'Assigned User',
-          dueDate: calculateDueDate(extractedData.due_date),
-          estimatedHours: 8
-        }, dispatch);
-        totalCreated++;
-      }
-    }
+**Changes in `NoticeIntakeWizardV2.tsx`:**
+- Standardize all step renders to use a consistent template:
+  - Centered icon + title + subtitle header
+  - Card-wrapped form sections with consistent `CardHeader` + `CardContent`
+  - Consistent grid layouts (grid-cols-2 gap-4)
+  - Footer buttons with proper alignment and spacing
+- Remove redundant spacing variations
 
-    setTasksCreated(totalCreated);
-    toast({ title: "Tasks generated", description: `${totalCreated} task(s) created.` });
-    setCurrentStep('completion');
-  } catch (error) {
-    console.error('Task generation error:', error);
-    toast({ title: "Task generation warning", description: "Could not auto-generate tasks. You can add them manually.", variant: "destructive" });
-    setCurrentStep('completion');
-  } finally {
-    setIsLoading(false);
-  }
-};
-```
+---
 
-Add a helper to calculate due date from the notice reply due date:
+## Technical Summary
 
-```typescript
-const calculateDueDate = (replyDueDate?: string): string => {
-  if (replyDueDate) return replyDueDate;
-  // Fallback: 7 business days from today
-  const date = new Date();
-  let added = 0;
-  while (added < 7) {
-    date.setDate(date.getDate() + 1);
-    if (date.getDay() !== 0 && date.getDay() !== 6) added++;
-  }
-  return date.toISOString().split('T')[0];
-};
-```
+| File | Changes |
+|------|---------|
+| `src/components/notices/NoticeIntakeWizardV2.tsx` | 1. Fix duplicate guard: skip to `stage_tasks` if `createdCaseId` exists when at `financial_validation`, change button label dynamically. 2. Add `extract` step render with field preview, confidence indicators, and PDF viewer. 3. Standardize UI across all wizard steps for consistent spacing, card layouts, and typography. |
 
-Also import `tasksService` (already imported via `taskBundleTriggerService` dependency, but add explicit import for clarity).
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/components/notices/NoticeIntakeWizardV2.tsx` | Add `STAGE_TASK_DEFINITIONS` constant, update `handleGenerateTasks` with fallback logic, add `calculateDueDate` helper, import `tasksService` |
-
-## What This Fixes
-
-- Tasks displayed on Step 9 will now actually be created when "Generate Tasks" is clicked
-- Created tasks will appear in Task Management module (persisted via `tasksService.create` which writes to the database)
-- If task bundles are configured in the system, those take priority (preserves existing bundle automation)
-- Task due dates are derived from the notice reply due date when available
