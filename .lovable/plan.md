@@ -1,47 +1,70 @@
 
+# Fix: Notice Intake Wizard Document Upload Not Working
 
-# Fix: Edit Inquiry Double-Click + Missing Owner Filter
+## Problem
 
-## Issue 1: Edit Inquiry Requires Two Clicks
+When a notice is added to an existing case via the Notice Intake Wizard, the uploaded document appears in the Documents tab but cannot be previewed, downloaded, or deleted. After refresh, it disappears entirely.
 
-**Root Cause**: When "Edit Inquiry" is clicked, the drawer calls `onClose()` first, then opens the edit modal after 200ms. However, `onClose()` in LeadsPage sets `selectedLead` to `null` (line 161-164). By the time the edit modal opens, `currentLead` is already null, so `EditLeadModal` receives `lead={null}` and returns nothing. On the second click, the lead gets re-selected, and the modal finally works.
+## Root Cause
 
-**Fix** (in `src/components/crm/LeadDetailDrawer.tsx`):
-- Remove the `onClose()` call before opening the edit modal. Instead, just open the edit modal directly without closing the drawer first.
-- The `EditLeadModal` is already rendered outside the `LargeSlideOver`, so we just need to ensure the drawer stays open (keeping `currentLead` alive) while the edit modal is shown on top.
-- Alternatively, close only the visual drawer without nullifying the lead reference.
+There are **two separate document upload systems** in the codebase:
 
-The simplest fix: stop calling `onClose()` before opening edit. Just open the modal directly:
+1. **`dmsService.files.upload()`** (legacy) -- Creates documents with non-UUID IDs like `doc-1770796660746`, stores file content as base64 in app state/IndexedDB, and dispatches to Redux.
+
+2. **`supabaseDocumentService.uploadDocument()`** (production) -- Creates documents with proper UUID IDs, uploads actual files to Supabase Storage, and creates records in the `documents` database table.
+
+The Notice Intake Wizard V2 uses the **legacy** `dmsService` (option 1), but the Case Documents tab uses the **production** `supabaseDocumentService` for all view/download/delete operations. This mismatch causes:
+
+- **Preview/Download fails**: `documentDownloadService.preview()` tries to fetch from Supabase Storage using a path like `/documents/doc-1770796660746` which doesn't exist in Storage.
+- **Delete fails**: `supabaseDocumentService.deleteDocument()` calls `isValidUUID(id)` on `doc-1770796660746`, which fails immediately with "Invalid document ID".
+- **Disappears on refresh**: The document only exists in transient Redux state (dispatched via `ADD_DOCUMENT`). The persistence layer may partially save it, but the Documents tab queries Supabase, where no record exists.
+
+## Fix
+
+Update `NoticeIntakeWizardV2.tsx` to use `supabaseDocumentService.uploadDocument()` instead of `dmsService.files.upload()`. This ensures:
+
+- File is uploaded to Supabase Storage (real blob storage)
+- Database record is created with proper UUID
+- Preview, download, and delete all work correctly
+- Document persists across refreshes
+- Real-time subscription picks up the new document automatically
+
+### Changes Required
+
+**File: `src/components/notices/NoticeIntakeWizardV2.tsx`**
+
+Replace the document upload block (around lines 408-426):
 
 ```typescript
-onClick={() => setIsEditModalOpen(true)}
+// BEFORE (broken):
+await dmsService.files.upload('system', uploadedFile, {
+  caseId, stage: 'Assessment', folderId: 'gst-notices',
+  tags: [extractedData.notice_type || 'Notice', 'Wizard-Upload']
+}, dispatch);
+
+// AFTER (correct):
+import { uploadDocument } from '@/services/supabaseDocumentService';
+
+// Get tenant_id from user profile
+const { data: { user } } = await supabase.auth.getUser();
+const { data: profile } = await supabase.from('profiles')
+  .select('tenant_id').eq('id', user.id).single();
+
+await uploadDocument(uploadedFile, {
+  tenant_id: profile.tenant_id,
+  case_id: caseId,
+  client_id: clientId,
+  category: 'Notice',
+});
 ```
 
-Since `EditLeadModal` is rendered outside the `LargeSlideOver` component (it's a sibling, not a child), it won't create nested dialog conflicts. The previous fix over-corrected by closing the drawer.
+This is a targeted one-file change. The real-time subscription in `CaseDocuments.tsx` will automatically pick up the new document from the database INSERT event, so no other files need modification.
 
----
+### Also Check
 
-## Issue 2: Owner Filter Not Appearing
-
-**Root Cause**: The database stores employee status as `"Active"` (capitalized), but the query filters with `.eq('status', 'active')` (lowercase). Since Postgres string comparison is case-sensitive, zero rows are returned. The `LeadFilters` component conditionally hides the Owner dropdown when `ownerOptions.length === 0`.
-
-**Fix** (in `src/pages/LeadsPage.tsx`):
-- Change the filter to match the actual database value: `.eq('status', 'Active')` (capitalized) or use `.ilike('status', 'active')` for case-insensitive matching.
-
-```typescript
-const { data, error } = await supabase
-  .from('employees')
-  .select('id, full_name')
-  .ilike('status', 'active')   // case-insensitive match
-  .order('full_name');
-```
-
-Additionally, the filter dropdown currently shows the raw owner ID as the button label instead of the owner name. Update the button display to show the selected owner's name.
-
----
+The original `NoticeIntakeWizard.tsx` (V1) has the same issue at line ~577. If V1 is still in use, it should receive the same fix.
 
 ## Files to Modify
 
-1. **`src/components/crm/LeadDetailDrawer.tsx`** -- Remove the `onClose()` + `setTimeout` pattern; open edit modal directly
-2. **`src/pages/LeadsPage.tsx`** -- Fix case-sensitive status filter from `'active'` to case-insensitive match
-
+1. **`src/components/notices/NoticeIntakeWizardV2.tsx`** -- Switch from `dmsService.files.upload()` to `supabaseDocumentService.uploadDocument()`
+2. **`src/components/notices/NoticeIntakeWizard.tsx`** -- Same fix for V1 wizard (if still active)
