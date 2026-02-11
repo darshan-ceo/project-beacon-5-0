@@ -18,7 +18,7 @@ import { AdminLayout } from "./components/layout/AdminLayout";
 import { EnhancedDashboard } from "@/components/dashboard/EnhancedDashboard";
 import { ClientMasters } from "@/components/masters/ClientMasters";
 import { ContactsPage } from "@/pages/ContactsPage";
-import { ClientGroupMasters } from "@/components/masters/ClientGroupMasters";
+
 import { CourtMasters } from "@/components/masters/CourtMasters";
 import JudgeMasters from "@/components/masters/JudgeMasters";
 import { EmployeeMasters } from "@/components/masters/EmployeeMasters";
@@ -197,13 +197,6 @@ const AppContent = () => {
                 <ProtectedRoute>
                   <AdminLayout>
                     <LeadsPage />
-                  </AdminLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/client-groups" element={
-                <ProtectedRoute>
-                  <AdminLayout>
-                    <ClientGroupMasters />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
