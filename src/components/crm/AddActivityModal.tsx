@@ -1,6 +1,6 @@
 /**
  * AddActivityModal
- * Dialog for logging new lead activities
+ * Dialog for logging new lead activities with type-specific fields
  */
 
 import React, { useState } from 'react';
@@ -36,6 +36,74 @@ const ACTIVITY_TYPES: { type: ActivityType; label: string; icon: React.ElementTy
   { type: 'task', label: 'Task', icon: CheckSquare },
 ];
 
+const FIELD_CONFIG: Partial<Record<ActivityType, {
+  showSubject: boolean;
+  subjectLabel: string;
+  subjectPlaceholder: string;
+  descriptionLabel: string;
+  descriptionPlaceholder: string;
+  showOutcome: boolean;
+  outcomeLabel: string;
+  showNextAction: boolean;
+  showDueDate: boolean;
+}>> = {
+  call: {
+    showSubject: true,
+    subjectLabel: 'Call With / About',
+    subjectPlaceholder: 'e.g., Discussed GST notice details',
+    descriptionLabel: 'Call Notes',
+    descriptionPlaceholder: 'Key points from the call...',
+    showOutcome: true,
+    outcomeLabel: 'Call Outcome',
+    showNextAction: true,
+    showDueDate: true,
+  },
+  email: {
+    showSubject: true,
+    subjectLabel: 'Email Subject',
+    subjectPlaceholder: 'e.g., Follow-up on document submission',
+    descriptionLabel: 'Email Summary',
+    descriptionPlaceholder: 'Brief summary of the email...',
+    showOutcome: false,
+    outcomeLabel: '',
+    showNextAction: false,
+    showDueDate: false,
+  },
+  meeting: {
+    showSubject: true,
+    subjectLabel: 'Meeting Topic',
+    subjectPlaceholder: 'e.g., Initial consultation on appeal',
+    descriptionLabel: 'Meeting Notes',
+    descriptionPlaceholder: 'Discussion points and decisions...',
+    showOutcome: true,
+    outcomeLabel: 'Meeting Outcome',
+    showNextAction: true,
+    showDueDate: true,
+  },
+  note: {
+    showSubject: false,
+    subjectLabel: '',
+    subjectPlaceholder: '',
+    descriptionLabel: 'Note',
+    descriptionPlaceholder: 'Add your note here...',
+    showOutcome: false,
+    outcomeLabel: '',
+    showNextAction: false,
+    showDueDate: false,
+  },
+  task: {
+    showSubject: true,
+    subjectLabel: 'Task Title',
+    subjectPlaceholder: 'e.g., Prepare reply to notice',
+    descriptionLabel: 'Task Details',
+    descriptionPlaceholder: 'Describe what needs to be done...',
+    showOutcome: false,
+    outcomeLabel: '',
+    showNextAction: false,
+    showDueDate: true,
+  },
+};
+
 export const AddActivityModal: React.FC<AddActivityModalProps> = ({
   contactId,
   isOpen,
@@ -48,6 +116,8 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
   const [outcome, setOutcome] = useState('');
   const [nextAction, setNextAction] = useState('');
   const [nextActionDate, setNextActionDate] = useState('');
+
+  const config = FIELD_CONFIG[activityType] || FIELD_CONFIG['note']!;
 
   const addActivityMutation = useMutation({
     mutationFn: () =>
@@ -120,65 +190,75 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
             </div>
           </div>
 
-          {/* Subject */}
-          <div className="space-y-2">
-            <Label htmlFor="subject">Subject</Label>
-            <Input
-              id="subject"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder="e.g., Discussed pricing options"
-            />
-          </div>
+          {/* Subject - conditional */}
+          {config.showSubject && (
+            <div className="space-y-2">
+              <Label htmlFor="subject">{config.subjectLabel}</Label>
+              <Input
+                id="subject"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder={config.subjectPlaceholder}
+              />
+            </div>
+          )}
 
-          {/* Description */}
+          {/* Description - always shown */}
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">{config.descriptionLabel}</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add details about the interaction..."
+              placeholder={config.descriptionPlaceholder}
               rows={3}
             />
           </div>
 
-          {/* Outcome */}
-          <div className="space-y-2">
-            <Label htmlFor="outcome">Outcome (optional)</Label>
-            <Input
-              id="outcome"
-              value={outcome}
-              onChange={(e) => setOutcome(e.target.value)}
-              placeholder="e.g., Client interested, needs proposal"
-            />
-          </div>
-
-          {/* Next Action */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Outcome - conditional */}
+          {config.showOutcome && (
             <div className="space-y-2">
-              <Label htmlFor="nextAction">Next Action</Label>
+              <Label htmlFor="outcome">{config.outcomeLabel} (optional)</Label>
               <Input
-                id="nextAction"
-                value={nextAction}
-                onChange={(e) => setNextAction(e.target.value)}
-                placeholder="e.g., Send proposal"
+                id="outcome"
+                value={outcome}
+                onChange={(e) => setOutcome(e.target.value)}
+                placeholder="e.g., Client interested, needs proposal"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="nextActionDate">Due Date</Label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="nextActionDate"
-                  type="date"
-                  value={nextActionDate}
-                  onChange={(e) => setNextActionDate(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+          )}
+
+          {/* Next Action + Due Date - conditional */}
+          {(config.showNextAction || config.showDueDate) && (
+            <div className={cn('grid gap-3', config.showNextAction && config.showDueDate ? 'grid-cols-2' : 'grid-cols-1')}>
+              {config.showNextAction && (
+                <div className="space-y-2">
+                  <Label htmlFor="nextAction">Next Action</Label>
+                  <Input
+                    id="nextAction"
+                    value={nextAction}
+                    onChange={(e) => setNextAction(e.target.value)}
+                    placeholder="e.g., Send proposal"
+                  />
+                </div>
+              )}
+              {config.showDueDate && (
+                <div className="space-y-2">
+                  <Label htmlFor="nextActionDate">Due Date</Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="nextActionDate"
+                      type="date"
+                      value={nextActionDate}
+                      onChange={(e) => setNextActionDate(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>

@@ -53,8 +53,9 @@ export const LeadsPage: React.FC = () => {
     queryKey: ['lead-owners'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('employees')
         .select('id, full_name')
+        .eq('status', 'active')
         .order('full_name');
       if (error) throw error;
       return data || [];
