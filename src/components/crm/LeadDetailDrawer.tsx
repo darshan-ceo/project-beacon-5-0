@@ -267,10 +267,13 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setIsEditModalOpen(true)}
+                    onClick={() => {
+                      onClose();
+                      setTimeout(() => setIsEditModalOpen(true), 200);
+                    }}
                   >
                     <Edit className="h-4 w-4 mr-2" />
-                    Edit Lead
+                    Edit Inquiry
                   </Button>
                   {canConvert && (
                     <Button
@@ -325,12 +328,15 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
         onClose={() => setIsActivityModalOpen(false)}
       />
 
-      {/* Edit Lead Modal */}
+      {/* Edit Lead Modal - rendered outside drawer to avoid nested dialog conflicts */}
       <EditLeadModal
         lead={currentLead}
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        onSuccess={onRefresh}
+        onSuccess={() => {
+          onRefresh?.();
+          setIsEditModalOpen(false);
+        }}
       />
 
       {/* Mark as Lost Dialog */}
