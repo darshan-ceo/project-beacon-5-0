@@ -1,77 +1,47 @@
 
 
-# Fix: Three Inquiry Module Issues
+# Fix: Edit Inquiry Double-Click + Missing Owner Filter
 
-## Issue 1: Owner Filter Shows Non-Team Profiles
+## Issue 1: Edit Inquiry Requires Two Clicks
 
-**Root Cause**: The LeadsPage fetches owners from the `profiles` table, which contains ALL users who have ever signed up (including test accounts like "345", "a35", "aaa"). The correct source is the `employees` table, which contains only actual team members for the tenant.
-
-**Fix** (in `src/pages/LeadsPage.tsx`):
-- Replace the `profiles` query with an `employees` query filtered by `tenant_id` and `status = 'active'`
-- Use `full_name` from the `employees` table
-
-```typescript
-// Before: fetches ALL profiles
-const { data: ownersData } = useQuery({
-  queryKey: ['lead-owners'],
-  queryFn: async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, full_name')
-      .order('full_name');
-    return data || [];
-  },
-});
-
-// After: fetches only active employees for the tenant
-const { data: ownersData } = useQuery({
-  queryKey: ['lead-owners'],
-  queryFn: async () => {
-    const { data } = await supabase
-      .from('employees')
-      .select('id, full_name')
-      .eq('status', 'active')
-      .order('full_name');
-    return data || [];
-  },
-});
-```
-
----
-
-## Issue 2: Log Activity Shows Same Fields for All Tabs
-
-**Root Cause**: The `AddActivityModal` renders identical fields (Subject, Description, Outcome, Next Action, Due Date) regardless of the selected activity type. Each type should show contextually relevant fields.
-
-**Fix** (in `src/components/crm/AddActivityModal.tsx`):
-- Add conditional field rendering based on `activityType`:
-  - **Call**: Subject (as "Call With/About"), Description ("Call Notes"), Outcome ("Call Outcome"), Next Action + Due Date
-  - **Email**: Subject ("Email Subject"), Description ("Email Summary"), no Outcome field
-  - **Meeting**: Subject ("Meeting Topic"), Description ("Meeting Notes"), Outcome ("Meeting Outcome"), Next Action + Due Date
-  - **Note**: No Subject field, Description only (as "Note"), no Outcome, no Next Action
-  - **Task**: Subject ("Task Title"), Description ("Task Details"), Due Date only (no Outcome, no Next Action)
-
-Each tab will show only the fields relevant to that activity type, with appropriate labels and placeholders.
-
----
-
-## Issue 3: Edit Lead Causes Blank Screen
-
-**Root Cause**: The `EditLeadModal` uses a `Dialog` (via `ModalLayout`) which is rendered inside the `LeadDetailDrawer` (a `LargeSlideOver`, also a `Dialog`). Opening a nested Dialog causes React/Radix focus-trap conflicts that result in a blank screen.
+**Root Cause**: When "Edit Inquiry" is clicked, the drawer calls `onClose()` first, then opens the edit modal after 200ms. However, `onClose()` in LeadsPage sets `selectedLead` to `null` (line 161-164). By the time the edit modal opens, `currentLead` is already null, so `EditLeadModal` receives `lead={null}` and returns nothing. On the second click, the lead gets re-selected, and the modal finally works.
 
 **Fix** (in `src/components/crm/LeadDetailDrawer.tsx`):
-- Move the `EditLeadModal` rendering outside of the `LargeSlideOver` by restructuring the component so the modal only renders when the drawer is conceptually "backgrounded"
-- Alternatively, render `EditLeadModal` with a portal approach or close the drawer before opening the edit modal
+- Remove the `onClose()` call before opening the edit modal. Instead, just open the edit modal directly without closing the drawer first.
+- The `EditLeadModal` is already rendered outside the `LargeSlideOver`, so we just need to ensure the drawer stays open (keeping `currentLead` alive) while the edit modal is shown on top.
+- Alternatively, close only the visual drawer without nullifying the lead reference.
 
-The simplest reliable fix: close the slide-over when "Edit Lead" is clicked, open the edit modal independently, and re-open the drawer on edit completion/cancel. This avoids nested dialog conflicts entirely.
+The simplest fix: stop calling `onClose()` before opening edit. Just open the modal directly:
 
-Additionally, rename the button label from "Edit Lead" to "Edit Inquiry" for terminology consistency.
+```typescript
+onClick={() => setIsEditModalOpen(true)}
+```
+
+Since `EditLeadModal` is rendered outside the `LargeSlideOver` component (it's a sibling, not a child), it won't create nested dialog conflicts. The previous fix over-corrected by closing the drawer.
+
+---
+
+## Issue 2: Owner Filter Not Appearing
+
+**Root Cause**: The database stores employee status as `"Active"` (capitalized), but the query filters with `.eq('status', 'active')` (lowercase). Since Postgres string comparison is case-sensitive, zero rows are returned. The `LeadFilters` component conditionally hides the Owner dropdown when `ownerOptions.length === 0`.
+
+**Fix** (in `src/pages/LeadsPage.tsx`):
+- Change the filter to match the actual database value: `.eq('status', 'Active')` (capitalized) or use `.ilike('status', 'active')` for case-insensitive matching.
+
+```typescript
+const { data, error } = await supabase
+  .from('employees')
+  .select('id, full_name')
+  .ilike('status', 'active')   // case-insensitive match
+  .order('full_name');
+```
+
+Additionally, the filter dropdown currently shows the raw owner ID as the button label instead of the owner name. Update the button display to show the selected owner's name.
 
 ---
 
 ## Files to Modify
 
-1. **`src/pages/LeadsPage.tsx`** -- Change owner query from `profiles` to `employees`
-2. **`src/components/crm/AddActivityModal.tsx`** -- Add conditional field rendering per activity type
-3. **`src/components/crm/LeadDetailDrawer.tsx`** -- Fix nested dialog issue for Edit modal; rename button label
+1. **`src/components/crm/LeadDetailDrawer.tsx`** -- Remove the `onClose()` + `setTimeout` pattern; open edit modal directly
+2. **`src/pages/LeadsPage.tsx`** -- Fix case-sensitive status filter from `'active'` to case-insensitive match
 
