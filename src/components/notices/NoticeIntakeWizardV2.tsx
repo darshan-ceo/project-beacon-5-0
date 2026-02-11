@@ -298,6 +298,12 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
 
   // Create case and notice
   const handleCreateCaseAndNotice = async () => {
+    // Guard: prevent duplicate case creation on Back + Create
+    if (createdCaseId) {
+      setCurrentStep('stage_tasks');
+      return;
+    }
+    
     setIsLoading(true);
     try {
       let caseId = selectedCaseId;
@@ -335,12 +341,19 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
           priority: priority,
           status: 'Active',
           noticeNo: extractedData.notice_number,
+          // Snake_case for DB persistence
           form_type: extractedData.notice_type,
           section_invoked: extractedData.section_invoked,
           financial_year: extractedData.financial_year,
-          notice_date: extractedData.notice_date,
-          reply_due_date: extractedData.due_date,
+          notice_date: extractedData.notice_date || undefined,
+          reply_due_date: extractedData.due_date || undefined,
           tax_demand: extractedData.total_demand,
+          // CamelCase for frontend state/hydration
+          formType: extractedData.notice_type,
+          noticeDate: extractedData.notice_date || undefined,
+          replyDueDate: extractedData.due_date || undefined,
+          taxDemand: extractedData.total_demand,
+          noticeType: extractedData.notice_type,
           assignedToId: assignedToId || undefined
         };
         
@@ -1008,9 +1021,9 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
                         <SelectValue placeholder="Select assignee" />
                       </SelectTrigger>
                       <SelectContent>
-                        {(state.employees || []).map((member: any) => (
+                    {(state.employees || []).filter((member: any) => member.status === 'Active' || !member.status).map((member: any) => (
                           <SelectItem key={member.id} value={member.id}>
-                            {member.name}
+                            {member.full_name || member.fullName || member.name || 'Unnamed'}
                           </SelectItem>
                         ))}
                       </SelectContent>
