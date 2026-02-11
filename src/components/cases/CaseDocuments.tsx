@@ -33,12 +33,66 @@ interface CaseDocumentsProps {
   selectedCase: Case | null;
 }
 
+// Helper to map a DB document row to the app state Document shape
+const mapDbDocToState = (doc: any) => ({
+  id: doc.id,
+  name: doc.file_name,
+  fileName: doc.file_name,
+  type: doc.file_type,
+  fileType: doc.file_type,
+  size: doc.file_size,
+  fileSize: doc.file_size,
+  path: doc.file_path,
+  filePath: doc.file_path,
+  mimeType: doc.mime_type,
+  storageUrl: doc.storage_url,
+  caseId: doc.case_id,
+  clientId: doc.client_id,
+  folderId: doc.folder_id,
+  category: doc.category,
+  uploadedBy: doc.uploaded_by,
+  uploadedById: doc.uploaded_by,
+  uploadedByName: 'User',
+  uploadTimestamp: doc.upload_timestamp,
+  uploadedAt: doc.upload_timestamp || doc.created_at,
+  isShared: false,
+  tags: []
+});
+
 export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) => {
   const { state, dispatch, rawDispatch } = useAppState();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | string>('all');
   const [hasReturnCtx, setHasReturnCtx] = useState(false);
+
+  // Fetch case documents from DB on mount / case change
+  useEffect(() => {
+    if (!selectedCase) return;
+
+    const fetchCaseDocuments = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('documents')
+          .select('*')
+          .eq('case_id', selectedCase.id)
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          data.forEach(doc => {
+            const exists = state.documents.some(d => d.id === doc.id);
+            if (!exists) {
+              rawDispatch({ type: 'ADD_DOCUMENT', payload: mapDbDocToState(doc) });
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('[CaseDocuments] Failed to fetch documents from DB:', err);
+      }
+    };
+
+    fetchCaseDocuments();
+  }, [selectedCase?.id]);
 
   // Check for return context
   useEffect(() => {
@@ -74,31 +128,7 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
           
           const newDoc = payload.new;
           
-          // Map database fields to app state format
-          const mappedDoc = {
-            id: newDoc.id,
-            name: newDoc.file_name,
-            fileName: newDoc.file_name,
-            type: newDoc.file_type,
-            fileType: newDoc.file_type,
-            size: newDoc.file_size,
-            fileSize: newDoc.file_size,
-            path: newDoc.file_path,
-            filePath: newDoc.file_path,
-            mimeType: newDoc.mime_type,
-            storageUrl: newDoc.storage_url,
-            caseId: newDoc.case_id,
-            clientId: newDoc.client_id,
-            folderId: newDoc.folder_id,
-            category: newDoc.category,
-            uploadedBy: newDoc.uploaded_by,
-            uploadedById: newDoc.uploaded_by,
-            uploadedByName: 'User',
-            uploadTimestamp: newDoc.upload_timestamp,
-            uploadedAt: newDoc.upload_timestamp,
-            isShared: false,
-            tags: []
-          };
+          const mappedDoc = mapDbDocToState(newDoc);
           
           // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
           rawDispatch({
@@ -125,30 +155,7 @@ export const CaseDocuments: React.FC<CaseDocumentsProps> = ({ selectedCase }) =>
           
           const updatedDoc = payload.new;
           
-          const mappedDoc = {
-            id: updatedDoc.id,
-            name: updatedDoc.file_name,
-            fileName: updatedDoc.file_name,
-            type: updatedDoc.file_type,
-            fileType: updatedDoc.file_type,
-            size: updatedDoc.file_size,
-            fileSize: updatedDoc.file_size,
-            path: updatedDoc.file_path,
-            filePath: updatedDoc.file_path,
-            mimeType: updatedDoc.mime_type,
-            storageUrl: updatedDoc.storage_url,
-            caseId: updatedDoc.case_id,
-            clientId: updatedDoc.client_id,
-            folderId: updatedDoc.folder_id,
-            category: updatedDoc.category,
-            uploadedBy: updatedDoc.uploaded_by,
-            uploadedById: updatedDoc.uploaded_by,
-            uploadedByName: 'User',
-            uploadTimestamp: updatedDoc.upload_timestamp,
-            uploadedAt: updatedDoc.upload_timestamp,
-            isShared: false,
-            tags: []
-          };
+          const mappedDoc = mapDbDocToState(updatedDoc);
           
           // ⚠️ IMPORTANT: Use rawDispatch for real-time events!
           rawDispatch({
