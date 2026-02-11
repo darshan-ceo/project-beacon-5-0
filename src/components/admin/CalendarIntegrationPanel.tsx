@@ -215,6 +215,16 @@ export const CalendarIntegrationPanel: React.FC = () => {
         );
       }
 
+      // Store OAuth credentials in sessionStorage so OAuthCallback can retrieve them after redirect
+      if (settings.provider === 'google') {
+        sessionStorage.setItem('oauth_google_client_id', oauthCredentials.googleClientId);
+        sessionStorage.setItem('oauth_google_client_secret', oauthCredentials.googleClientSecret);
+      } else {
+        sessionStorage.setItem('oauth_microsoft_client_id', oauthCredentials.microsoftClientId);
+        sessionStorage.setItem('oauth_microsoft_client_secret', oauthCredentials.microsoftClientSecret);
+        sessionStorage.setItem('oauth_microsoft_tenant', oauthCredentials.microsoftTenant || 'common');
+      }
+
       await OAuthManager.startOAuth(settings.provider === 'outlook' ? 'microsoft' : 'google', config);
     } catch (error) {
       console.error('OAuth start failed:', error);
