@@ -247,7 +247,7 @@ export const clientsService = {
         category: clientData.category || 'Regular Dealer',
         registrationNo: clientData.registrationNo,
         gstin: savedClient.gstin || clientData.gstin?.toUpperCase(),
-        pan: savedClient.pan || clientData.pan!.toUpperCase(),
+        pan: savedClient.pan || clientData.pan?.toUpperCase(),
         email: savedClient.email || clientData.email,
         phone: savedClient.phone || clientData.phone,
         address: clientData.address 
