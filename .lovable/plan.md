@@ -1,40 +1,77 @@
 
 
-# Fix: Remove Non-Existent `judge_ids` from Hearing Fields Whitelist
+# Fix: Three Inquiry Module Issues
 
-## Problem
+## Issue 1: Owner Filter Shows Non-Team Profiles
 
-The error message is: **"Could not find the 'judge_ids' column of 'hearings' in the schema cache"**
+**Root Cause**: The LeadsPage fetches owners from the `profiles` table, which contains ALL users who have ever signed up (including test accounts like "345", "a35", "aaa"). The correct source is the `employees` table, which contains only actual team members for the tenant.
 
-The `judge_ids` column does not exist in the `hearings` database table. It was incorrectly added to the `validHearingFields` whitelist in the previous fix. When a hearing is saved, the adapter includes `judge_ids` in the payload, causing the database to reject the entire INSERT.
-
-## Actual Database Columns
-
-The `hearings` table has these columns:
-`id`, `tenant_id`, `case_id`, `hearing_date`, `court_name`, `judge_name`, `status`, `notes`, `outcome`, `next_hearing_date`, `created_at`, `updated_at`, `forum_id`, `authority_id`, `court_id`, `order_file_path`, `order_file_url`, `outcome_text`, `is_demo`, `demo_batch_id`, `stage_instance_id`, `notice_id`, `hearing_purpose`, `hearing_outcome`, `hearing_type`
-
-## Fix
-
-**File**: `src/data/adapters/SupabaseAdapter.ts` (line 1766)
-
-Update the whitelist to match actual database columns exactly:
-
-- **Remove**: `judge_ids` (does not exist in the table)
-- **Add missing**: `notice_id`, `order_file_path`, `order_file_url`, `demo_batch_id`
+**Fix** (in `src/pages/LeadsPage.tsx`):
+- Replace the `profiles` query with an `employees` query filtered by `tenant_id` and `status = 'active'`
+- Use `full_name` from the `employees` table
 
 ```typescript
-const validHearingFields = [
-  'id', 'case_id', 'hearing_date', 'next_hearing_date', 'status', 'notes', 
-  'outcome', 'outcome_text', 'forum_id', 'authority_id', 'court_id', 
-  'court_name', 'judge_name', 'hearing_type', 'hearing_purpose', 
-  'hearing_outcome', 'stage_instance_id', 'notice_id', 'order_file_path', 
-  'order_file_url', 'is_demo', 'demo_batch_id', 
-  'created_at', 'updated_at', 'tenant_id'
-];
+// Before: fetches ALL profiles
+const { data: ownersData } = useQuery({
+  queryKey: ['lead-owners'],
+  queryFn: async () => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .order('full_name');
+    return data || [];
+  },
+});
+
+// After: fetches only active employees for the tenant
+const { data: ownersData } = useQuery({
+  queryKey: ['lead-owners'],
+  queryFn: async () => {
+    const { data } = await supabase
+      .from('employees')
+      .select('id, full_name')
+      .eq('status', 'active')
+      .order('full_name');
+    return data || [];
+  },
+});
 ```
 
-## Impact
+---
 
-- Single line change in `src/data/adapters/SupabaseAdapter.ts`
-- No database migration needed
-- Hearings will save successfully with all valid fields including `hearing_type`
+## Issue 2: Log Activity Shows Same Fields for All Tabs
+
+**Root Cause**: The `AddActivityModal` renders identical fields (Subject, Description, Outcome, Next Action, Due Date) regardless of the selected activity type. Each type should show contextually relevant fields.
+
+**Fix** (in `src/components/crm/AddActivityModal.tsx`):
+- Add conditional field rendering based on `activityType`:
+  - **Call**: Subject (as "Call With/About"), Description ("Call Notes"), Outcome ("Call Outcome"), Next Action + Due Date
+  - **Email**: Subject ("Email Subject"), Description ("Email Summary"), no Outcome field
+  - **Meeting**: Subject ("Meeting Topic"), Description ("Meeting Notes"), Outcome ("Meeting Outcome"), Next Action + Due Date
+  - **Note**: No Subject field, Description only (as "Note"), no Outcome, no Next Action
+  - **Task**: Subject ("Task Title"), Description ("Task Details"), Due Date only (no Outcome, no Next Action)
+
+Each tab will show only the fields relevant to that activity type, with appropriate labels and placeholders.
+
+---
+
+## Issue 3: Edit Lead Causes Blank Screen
+
+**Root Cause**: The `EditLeadModal` uses a `Dialog` (via `ModalLayout`) which is rendered inside the `LeadDetailDrawer` (a `LargeSlideOver`, also a `Dialog`). Opening a nested Dialog causes React/Radix focus-trap conflicts that result in a blank screen.
+
+**Fix** (in `src/components/crm/LeadDetailDrawer.tsx`):
+- Move the `EditLeadModal` rendering outside of the `LargeSlideOver` by restructuring the component so the modal only renders when the drawer is conceptually "backgrounded"
+- Alternatively, render `EditLeadModal` with a portal approach or close the drawer before opening the edit modal
+
+The simplest reliable fix: close the slide-over when "Edit Lead" is clicked, open the edit modal independently, and re-open the drawer on edit completion/cancel. This avoids nested dialog conflicts entirely.
+
+Additionally, rename the button label from "Edit Lead" to "Edit Inquiry" for terminology consistency.
+
+---
+
+## Files to Modify
+
+1. **`src/pages/LeadsPage.tsx`** -- Change owner query from `profiles` to `employees`
+2. **`src/components/crm/AddActivityModal.tsx`** -- Add conditional field rendering per activity type
+3. **`src/components/crm/LeadDetailDrawer.tsx`** -- Fix nested dialog issue for Edit modal; rename button label
+
