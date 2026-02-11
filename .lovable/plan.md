@@ -1,102 +1,54 @@
 
 
-# Fix: Documents Not Appearing After Notice Intake Upload + Preview/Download/Delete Reliability
+# Fix: Document Preview Blocked by Chrome (ERR_BLOCKED_BY_CLIENT)
 
 ## Problem
 
-When a document is uploaded via the Notice Intake Wizard ("Add this Notice to an Existing Case"), the upload succeeds (DB record confirmed), but the document does not appear in the case Documents tab. Preview, download, and delete buttons fail for some documents.
+When clicking the View (eye) button on a document in the Documents tab, Chrome shows "This page has been blocked by Chrome" with error `ERR_BLOCKED_BY_CLIENT`. The download button works fine.
 
 ## Root Cause
 
-**CaseDocuments relies solely on `state.documents` (Redux)**, which is populated once at app startup by DataInitializer. When the wizard uploads a document mid-session:
+The `previewDocument` function in `documentDownloadService.ts` creates a `blob:` URL via `URL.createObjectURL()` and opens it with `window.open(url, '_blank')`. Browser extensions (ad blockers) and Chrome's built-in popup blocker frequently block `window.open()` calls with `blob:` URLs, resulting in the blocked page.
 
-1. `uploadDocument()` inserts into the database successfully
-2. But no `ADD_DOCUMENT` dispatch happens to update Redux state
-3. CaseDocuments has a realtime subscription, but it only fires while the Documents tab is actively mounted -- during the wizard flow, it is NOT mounted, so the INSERT event is missed
-4. Result: the document exists in the DB but is invisible in the UI until a full page refresh
+## Fix
 
-After page refresh, DataInitializer reloads all documents from the DB, so they should appear. The user reports they do not appear even after refresh, which could indicate a timing or navigation issue where the case is not re-selected after refresh.
+Replace the blob URL approach with **signed URLs** for preview. Signed URLs are standard HTTPS URLs served from the storage backend -- they are never blocked by ad blockers or popup blockers.
 
-## Fix Strategy
+### File: `src/services/documentDownloadService.ts`
 
-### Fix 1: CaseDocuments should fetch documents from DB on mount
+Update the `previewDocument` function to use signed URLs for all previewable types instead of blob URLs:
 
-Instead of relying only on stale `state.documents`, CaseDocuments should perform an initial fetch from the `documents` table when it mounts (or when `selectedCase` changes). This ensures any documents uploaded while the tab was unmounted are loaded.
+**Current flow (broken):**
+1. Download file as blob
+2. Create blob URL via `URL.createObjectURL()`
+3. `window.open(blobUrl)` -- BLOCKED by Chrome
 
-**File: `src/components/cases/CaseDocuments.tsx`**
+**New flow (reliable):**
+1. Create signed URL from storage (valid 1 hour)
+2. `window.open(signedUrl)` -- Standard HTTPS, never blocked
 
-Add a `useEffect` that fetches documents from the DB directly:
-
-```typescript
-useEffect(() => {
-  if (!selectedCase) return;
-  
-  const fetchCaseDocuments = async () => {
-    const { data, error } = await supabase
-      .from('documents')
-      .select('*')
-      .eq('case_id', selectedCase.id)
-      .order('created_at', { ascending: false });
-    
-    if (!error && data) {
-      // Map and dispatch each document to Redux state
-      data.forEach(doc => {
-        const exists = state.documents.some(d => d.id === doc.id);
-        if (!exists) {
-          rawDispatch({ type: 'ADD_DOCUMENT', payload: mapDbDocToState(doc) });
-        }
-      });
-    }
-  };
-  
-  fetchCaseDocuments();
-}, [selectedCase?.id]);
-```
-
-Extract the DB-to-state mapping into a shared helper function (used by both the realtime handler and the initial fetch) to avoid duplication.
-
-### Fix 2: Wizard should dispatch to Redux after upload
-
-**File: `src/components/notices/NoticeIntakeWizardV2.tsx`**
-
-After `uploadDocument()` succeeds, dispatch the result to Redux state so documents appear immediately without waiting for realtime or tab remount:
+For PDFs and images, the signed URL approach works natively in all browsers -- Chrome will render PDFs inline and display images directly.
 
 ```typescript
-const result = await uploadDocument(uploadedFile, { ... });
+// BEFORE (blocked):
+if (nativePreviewableTypes.includes(fileExt || '')) {
+  const { data: blob } = await supabase.storage.from('documents').download(filePath);
+  const url = URL.createObjectURL(typedBlob);
+  window.open(url, '_blank');  // BLOCKED
+}
 
-// Dispatch to Redux so Documents tab shows it immediately
-dispatch({
-  type: 'ADD_DOCUMENT',
-  payload: {
-    id: result.id,
-    name: result.file_name,
-    type: result.file_type,
-    size: result.file_size,
-    path: result.file_path,
-    caseId: caseId,
-    clientId: clientId,
-    category: 'Notice',
-    // ... mapped fields
-  }
-});
+// AFTER (reliable):
+if (nativePreviewableTypes.includes(fileExt || '')) {
+  const { data: signedData } = await supabase.storage
+    .from('documents')
+    .createSignedUrl(filePath, 3600);
+  window.open(signedData.signedUrl, '_blank');  // Standard HTTPS - works
+}
 ```
 
-Same fix for `NoticeIntakeWizard.tsx` (V1).
-
-### Fix 3: Prevent duplicate documents in state
-
-The realtime subscription and initial fetch could both add the same document. Add a guard in the `ADD_DOCUMENT` reducer (or in the dispatch call) to skip if a document with the same `id` already exists in state.
+This also simplifies the code by removing the blob download step and the cleanup timer for revoking object URLs.
 
 ## Files to Modify
 
-1. **`src/components/cases/CaseDocuments.tsx`** -- Add initial DB fetch on mount; extract mapping helper
-2. **`src/components/notices/NoticeIntakeWizardV2.tsx`** -- Dispatch ADD_DOCUMENT after successful upload
-3. **`src/components/notices/NoticeIntakeWizard.tsx`** -- Same dispatch fix for V1
-
-## What This Fixes
-
-- Documents uploaded via wizard appear immediately in the Documents tab
-- Documents uploaded while Documents tab was unmounted appear when tab is opened
-- Preview, download, and delete continue to work (they already use `filePath` from state, which will now be correctly populated from DB data)
-- No duplicate documents in state
+1. **`src/services/documentDownloadService.ts`** -- Replace blob-based preview with signed URL approach for native previewable types (PDF, images, text)
 
