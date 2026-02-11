@@ -267,10 +267,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      onClose();
-                      setTimeout(() => setIsEditModalOpen(true), 200);
-                    }}
+                    onClick={() => setIsEditModalOpen(true)}
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Inquiry
