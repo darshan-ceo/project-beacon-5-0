@@ -81,13 +81,13 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
   // Get dispatch safely - will be undefined if context is not available
   const dispatch = appStateContext?.dispatch;
   
-  // Handle hot reload gracefully - if context is not available, just render children
-  if (!appStateContext) {
-    console.warn('[DataInitializer] AppState context not available (likely during hot reload)');
-    return <>{children}</>;
-  }
-
   useEffect(() => {
+    // Handle hot reload gracefully - if context is not available, skip loading
+    if (!appStateContext) {
+      console.warn('[DataInitializer] AppState context not available (likely during hot reload)');
+      return;
+    }
+
     const loadData = async () => {
       // Reset global flags when user logs out to ensure fresh data load on next login
       if (!user || !tenantId) {
@@ -693,7 +693,12 @@ export const DataInitializer = ({ children }: { children: React.ReactNode }) => 
     };
 
     loadData();
-  }, [user, tenantId, dispatch]);
+  }, [user, tenantId, dispatch, appStateContext]);
+
+  // Handle hot reload gracefully - if context is not available, just render children
+  if (!appStateContext) {
+    return <>{children}</>;
+  }
 
   if (isLoading) {
     return (
