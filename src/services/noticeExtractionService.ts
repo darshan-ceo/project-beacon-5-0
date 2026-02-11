@@ -243,7 +243,7 @@ class NoticeExtractionService {
     amount: /(?:Total\s*(?:Tax|Amount|Demand)?|Tax[\s:]*Amount|Demand[\s:]*Amount|(?:IGST|CGST|SGST)[\s:]*)(?:Rs\.?|₹)?\s*([\d,]+(?:\.\d{2})?)/i,
     
     // Notice type - all GST notice types including FORM prefix
-    noticeType: /((?:FORM\s+)?GST\s+)?(?:ASMT[-\s]?(?:10|11|12)|DRC[-\s]?(?:01A?|03|07)|GSTR[-\s]?[0-9A-Z]+)/i,
+    noticeType: /(?:(?:FORM\s+)?GST\s+)?(ASMT[-\s]?(?:10|11|12)|DRC[-\s]?(?:01A?|03|07)|GSTR[-\s]?[0-9A-Z]+)/i,
     
     // Taxpayer name - look for "Name" or "M/s." label
     taxpayerName: /(?:Name|M\/s\.?)[\s:]+([A-Z][A-Z\s&.,()'\-]+(?:PVT\.?|PRIVATE|LTD\.?|LIMITED|ENTERPRISES?|TRADERS?|CO\.?|COMPANY)?[A-Z\s&.,()'\-]*)/i
