@@ -148,29 +148,7 @@ export const previewDocument = async (
       return { success: true, isOfficeViewer: true } as DownloadResult & { isOfficeViewer?: boolean };
     }
     
-    // Handle native browser previewable types (PDF, images, txt)
-    if (nativePreviewableTypes.includes(fileExt || '')) {
-      const { data: blob, error } = await supabase.storage
-        .from('documents')
-        .download(filePath);
-      
-      if (!error && blob) {
-        const mimeType = getMimeType(fileExt || '');
-        const typedBlob = new Blob([blob], { type: mimeType });
-        const url = URL.createObjectURL(typedBlob);
-        
-        window.open(url, '_blank');
-        
-        // Revoke after delay to allow browser to load
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-        console.log('✅ [documentDownloadService] Native preview opened via blob');
-        return { success: true };
-      }
-      
-      console.log('⚠️ [documentDownloadService] Blob preview failed, falling back to signed URL');
-    }
-    
-    // Fallback: Use signed URL directly (may trigger download for unsupported types)
+    // Use signed URL for all previewable types (avoids blob: URL blocking by Chrome/ad blockers)
     const { data: signedData, error: signedError } = await supabase.storage
       .from('documents')
       .createSignedUrl(filePath, 3600);
