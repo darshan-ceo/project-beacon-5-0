@@ -1,103 +1,55 @@
 
 
-# Fix: Hearing Type Persistence and Lifecycle Hearing Actions
+# Fix: Hearing Type Not Persisting to Database
 
-## Issues Identified
+## Root Cause
 
-### Issue 1: Hearing Type defaults to "General" in Hearings Module
-In `HearingScheduler.tsx` (line 205), the hearing list maps `h.type` (a legacy field with values like 'Preliminary', 'Final') instead of `h.hearing_type` (the actual database field storing 'Personal Hearing', 'General', etc.). This means even though `hearing_type: 'Personal Hearing'` is correctly saved to the database, the Hearings module list view ignores it.
+The `SupabaseAdapter.normalizeForBackend()` method (line 1766) uses a **whitelist** of valid hearing columns. `hearing_type` is **missing from this whitelist**, so it gets silently deleted before every INSERT and UPDATE operation. This is why the database always shows `General` (the column default) despite the UI correctly setting `hearing_type: 'Personal Hearing'`.
 
-**Root cause**: `type: (h.type === 'Preliminary' ? 'Final' : h.type)` -- uses legacy `type` field, not `hearing_type`.
+Several other hearing columns are also missing from the whitelist, which would cause similar silent data loss:
+- `hearing_type`
+- `stage_instance_id`
+- `hearing_outcome`
+- `hearing_purpose`
+- `outcome_text`
+- `judge_ids`
+- `is_demo`
 
-### Issue 2: "Add Outcome" button and side arrow not clickable in Lifecycle Hearings
-In `CaseLifecycleFlow.tsx` (lines 940-947), the `StageHearingsPanel` component is rendered without `onViewHearing`, `onRecordOutcome`, or `onAdjournHearing` callback props. These are required by the panel's buttons but are passed as `undefined`, causing clicks to silently fail (calling `undefined(hearing)` throws an error).
+## Fix
 
----
+**File**: `src/data/adapters/SupabaseAdapter.ts` (line 1766)
 
-## Fix 1: Map `hearing_type` in HearingScheduler
-
-**File**: `src/components/cases/HearingScheduler.tsx` (line 205)
-
-Change the hearing list mapping to use `hearing_type` from the database instead of the legacy `type` field:
+Update the `validHearingFields` array to include all actual database columns:
 
 ```typescript
 // Before
-type: (h.type === 'Preliminary' ? 'Final' : h.type) as 'Adjourned' | 'Final' | 'Argued' || 'Final',
+const validHearingFields = ['id', 'case_id', 'hearing_date', 'next_hearing_date', 
+  'status', 'notes', 'outcome', 'forum_id', 'authority_id', 'court_id', 
+  'court_name', 'judge_name', 'created_at', 'updated_at', 'tenant_id'];
 
-// After  
-type: (h as any).hearing_type || h.type || 'General',
+// After
+const validHearingFields = ['id', 'case_id', 'hearing_date', 'next_hearing_date', 
+  'status', 'notes', 'outcome', 'outcome_text', 'forum_id', 'authority_id', 
+  'court_id', 'court_name', 'judge_name', 'judge_ids', 'hearing_type', 
+  'hearing_purpose', 'hearing_outcome', 'stage_instance_id', 
+  'created_at', 'updated_at', 'tenant_id', 'is_demo'];
 ```
 
-This ensures "Personal Hearing" and other hearing types display correctly in the Hearings module list.
+This single-line change will:
+1. Allow `hearing_type: 'Personal Hearing'` to persist to the database on create and update
+2. Ensure the Edit Hearing modal correctly loads and displays the hearing type
+3. Ensure PH-specific fields (PH Notice, Mode, Place, Attended By, Submissions) display correctly in edit/view mode since they depend on `hearing_type === 'Personal Hearing'`
+4. Fix several other silently-dropped fields (`stage_instance_id`, `outcome_text`, etc.)
 
-## Fix 2: Wire up Hearing Action Callbacks in CaseLifecycleFlow
+## Verification
 
-**File**: `src/components/cases/CaseLifecycleFlow.tsx` (lines 940-947)
+After this fix:
+- Creating a hearing with type "Personal Hearing" from Lifecycle will persist `hearing_type = 'Personal Hearing'` in the database
+- Opening the same hearing from the Hearings module will show "Personal Hearing" (not "General") and display all PH detail fields
+- Existing hearings with PH details in the `hearing_ph_details` table will also display correctly since their parent hearing will now retain the correct type on future edits
 
-Add state and handlers for viewing hearings and recording outcomes:
+## Impact
 
-1. Add a state variable to track the hearing being viewed/edited:
-   ```typescript
-   const [viewingHearing, setViewingHearing] = useState<Hearing | null>(null);
-   const [hearingModalMode, setHearingModalMode] = useState<'create' | 'edit' | 'view'>('create');
-   ```
-
-2. Pass the missing callback props to `StageHearingsPanel`:
-   ```typescript
-   <StageHearingsPanel
-     hearings={stageHearings}
-     stageInstanceId={effectiveStageInstanceId}
-     caseId={selectedCase.id}
-     onScheduleHearing={...}
-     onViewHearing={(hearing) => {
-       setViewingHearing(hearing);
-       setHearingModalMode('view');
-       setShowHearingModal(true);
-     }}
-     onRecordOutcome={(hearing) => {
-       setViewingHearing(hearing);
-       setHearingModalMode('edit');
-       setShowHearingModal(true);
-     }}
-     onAdjournHearing={(hearing) => {
-       setViewingHearing(hearing);
-       setHearingModalMode('edit');
-       setShowHearingModal(true);
-     }}
-     isReadOnly={isViewingHistorical}
-   />
-   ```
-
-3. Update the `HearingModal` usage to support both create and view/edit modes:
-   ```typescript
-   <HearingModal
-     isOpen={showHearingModal}
-     onClose={() => {
-       setShowHearingModal(false);
-       setViewingHearing(null);
-       setHearingModalMode('create');
-       refreshWorkflow();
-     }}
-     mode={hearingModalMode}
-     hearing={viewingHearing}
-     contextCaseId={selectedCase?.id}
-     stageInstanceId={stageInstanceId}
-     defaultHearingType={defaultHearingType}
-   />
-   ```
-
----
-
-## Files Changed
-
-| File | Change |
-|------|--------|
-| `src/components/cases/HearingScheduler.tsx` | Map `hearing_type` instead of legacy `type` in list view |
-| `src/components/cases/CaseLifecycleFlow.tsx` | Add `viewingHearing` state, wire `onViewHearing`, `onRecordOutcome`, `onAdjournHearing` callbacks, update HearingModal to support view/edit modes |
-
-## What This Does NOT Change
-
-- Hearing creation flow (unchanged)
-- PH details persistence (already working correctly)
-- Database schema (no migration needed)
-- Other modules (HearingCalendar, Dashboard, etc.)
+- No database migration needed
+- No UI component changes needed
+- Only one file modified: `src/data/adapters/SupabaseAdapter.ts`
