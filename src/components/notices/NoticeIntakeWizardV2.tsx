@@ -23,7 +23,7 @@ import {
 import { noticeExtractionService } from '@/services/noticeExtractionService';
 import { clientsService } from '@/services/clientsService';
 import { casesService } from '@/services/casesService';
-import { dmsService } from '@/services/dmsService';
+import { uploadDocument } from '@/services/supabaseDocumentService';
 import { stageNoticesService } from '@/services/stageNoticesService';
 import { supabase } from '@/integrations/supabase/client';
 import { taskBundleTriggerService } from '@/services/taskBundleTriggerService';
@@ -405,20 +405,24 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
         setCreatedNoticeId(createdNotice.id);
       }
       
-      // Upload document
+      // Upload document to Supabase Storage
       if (uploadedFile) {
         try {
-          await dmsService.files.upload(
-            'system',
-            uploadedFile,
-            {
-              caseId: caseId,
-              stage: 'Assessment',
-              folderId: 'gst-notices',
-              tags: [extractedData.notice_type || 'Notice', 'Wizard-Upload']
-            },
-            dispatch
-          );
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error('Not authenticated');
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('tenant_id')
+            .eq('id', user.id)
+            .single();
+          if (!profile?.tenant_id) throw new Error('No tenant found');
+
+          await uploadDocument(uploadedFile, {
+            tenant_id: profile.tenant_id,
+            case_id: caseId,
+            client_id: clientId || (selectedCase?.clientId) || undefined,
+            category: 'Notice',
+          });
           setDocumentUploaded(true);
         } catch (err) {
           console.warn('Document upload failed:', err);

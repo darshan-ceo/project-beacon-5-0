@@ -14,7 +14,8 @@ import { CheckCircle, Upload, FileText, User, FolderOpen, Calendar, AlertCircle,
 import { noticeExtractionService } from '@/services/noticeExtractionService';
 import { clientsService } from '@/services/clientsService';
 import { casesService } from '@/services/casesService';
-import { dmsService } from '@/services/dmsService';
+import { uploadDocument } from '@/services/supabaseDocumentService';
+import { supabase } from '@/integrations/supabase/client';
 import { taskBundleService } from '@/services/taskBundleService';
 import { taskBundleTriggerService } from '@/services/taskBundleTriggerService';
 import { useToast } from '@/hooks/use-toast';
@@ -573,23 +574,22 @@ export const NoticeIntakeWizard: React.FC<NoticeIntakeWizardProps> = ({
         stage: createdCase.currentStage
       });
 
-      // Upload document using dmsService - this will also trigger task automation
-      const uploadResult = await dmsService.files.upload(
-        'system',
-        uploadedFile,
-        {
-          caseId: createdCase.id,
-          stage: createdCase.currentStage,
-          folderId: 'gst-assessment',
-          tags: ['ASMT-10', 'Notice', 'Automated'],
-        },
-        dispatch
-      );
+      // Upload document to Supabase Storage (production path)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+      if (!profile?.tenant_id) throw new Error('No tenant found');
 
-      // Handle potential duplicate response
-      if (uploadResult && 'isDuplicate' in uploadResult) {
-        console.warn('[Wizard] Duplicate document detected, proceeding anyway');
-      }
+      await uploadDocument(uploadedFile, {
+        tenant_id: profile.tenant_id,
+        case_id: createdCase.id,
+        client_id: createdCase.clientId || undefined,
+        category: 'Notice',
+      });
 
       // Log to timeline
       try {
