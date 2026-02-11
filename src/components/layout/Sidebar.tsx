@@ -124,7 +124,7 @@ const sidebarSections: SidebarSection[] = [
       { icon: Users, label: 'Clients', href: '/clients', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'] },
       { icon: UserCircle, label: 'Contacts', href: '/contacts', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'] },
       { icon: Target, label: 'Inquiries', href: '/leads', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'] },
-      { icon: Building2, label: 'Client Groups', href: '/client-groups', roles: ['Admin', 'Partner', 'Partner/CA', 'Ca'] },
+      
     ]
   },
   
