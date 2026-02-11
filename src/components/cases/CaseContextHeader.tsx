@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { X, Scale, Users, Calendar, CheckCircle2, Lock, FileDown, Loader2 } from 'lucide-react';
+import { X, Scale, Users, Calendar, CheckCircle2, Lock, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Case } from '@/contexts/AppStateContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { caseActionDossierService } from '@/services/caseActionDossierService';
-import { toast } from '@/hooks/use-toast';
 
 interface CaseContextHeaderProps {
   selectedCase: Case;
@@ -24,27 +23,11 @@ export const CaseContextHeader: React.FC<CaseContextHeaderProps> = ({
   courtName,
   onMarkComplete
 }) => {
-  const [isExporting, setIsExporting] = useState(false);
+  const navigate = useNavigate();
   const isCompleted = selectedCase.status === 'Completed';
 
-  const handleDownloadDossier = async () => {
-    setIsExporting(true);
-    try {
-      await caseActionDossierService.downloadDossier(selectedCase.id);
-      toast({
-        title: "Dossier Downloaded",
-        description: "Case Action Dossier has been exported successfully.",
-      });
-    } catch (error) {
-      console.error('Failed to export dossier:', error);
-      toast({
-        title: "Export Failed",
-        description: "Failed to generate Case Action Dossier. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsExporting(false);
-    }
+  const handleOpenIntelligence = () => {
+    navigate(`/cases/${selectedCase.id}/intelligence-report`);
   };
 
   return (
@@ -137,19 +120,14 @@ export const CaseContextHeader: React.FC<CaseContextHeaderProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleDownloadDossier}
-                  disabled={isExporting}
+                  onClick={handleOpenIntelligence}
                 >
-                  {isExporting ? (
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  ) : (
-                    <FileDown className="h-3 w-3 mr-1" />
-                  )}
-                  Dossier
+                  <BarChart3 className="h-3 w-3 mr-1" />
+                  Intelligence
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Download Case Action Dossier (PDF)</p>
+                <p>View Case Intelligence Report</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

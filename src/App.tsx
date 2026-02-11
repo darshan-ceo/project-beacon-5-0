@@ -66,6 +66,7 @@ import { TooltipDiagnostics } from "@/pages/TooltipDiagnostics";
 import { OAuthCallback } from "@/pages/OAuthCallback";
 import { DocViewerPage } from "@/pages/DocViewerPage";
 import { ComplianceDashboard } from "@/pages/ComplianceDashboard";
+import CaseIntelligenceReport from "@/pages/CaseIntelligenceReport";
 import { AccessDetailsPage } from "@/pages/AccessDetailsPage";
 import { LeadsPage } from "@/pages/LeadsPage";
 import { LoginPage } from "@/pages/auth/LoginPage";
@@ -426,6 +427,11 @@ const AppContent = () => {
               <Route path="/cases/:caseId/reply/edit" element={
                 <ProtectedRoute>
                   <StructuredReplyPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/cases/:id/intelligence-report" element={
+                <ProtectedRoute>
+                  <CaseIntelligenceReport />
                 </ProtectedRoute>
               } />
               <Route path="/help/diagnostics" element={
