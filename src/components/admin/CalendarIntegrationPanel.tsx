@@ -134,9 +134,18 @@ export const CalendarIntegrationPanel: React.FC = () => {
     }
   };
 
+  // Helper to clean up common copy-paste issues with OAuth credentials
+  const sanitizeCredential = (value: string): string => {
+    return value
+      .trim()
+      .replace(/^https?:\/\//, '')  // Remove http:// or https:// prefix
+      .replace(/\/+$/, '');          // Remove trailing slashes
+  };
+
   // Handle OAuth credential changes
   const handleCredentialChange = (key: keyof typeof oauthCredentials, value: string) => {
-    setOauthCredentials(prev => ({ ...prev, [key]: value }));
+    const cleanValue = key.includes('ClientId') ? sanitizeCredential(value) : value.trim();
+    setOauthCredentials(prev => ({ ...prev, [key]: cleanValue }));
   };
 
   // Save settings
