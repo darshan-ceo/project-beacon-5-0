@@ -1,49 +1,60 @@
 
 
-# Fix: Google Calendar OAuth Callback -- Missing Session Credentials
+# Fix: Google Calendar 403 Error -- Invalid Client ID Format
 
 ## Problem
 
-After updating the redirect URIs in Google Cloud Console, the OAuth flow still fails. The Google consent screen works correctly and redirects back to `/oauth/callback`, but the callback page throws:
+The Google Client ID is being saved with an incorrect format. Network logs show:
 
-**"OAuth credentials expired. Please try connecting again from Settings."**
+```
+"value": "http://562061333627-jeok6i23obcf38082a4hsd9hpn6v53mk.apps.googleusercontent.com/"
+```
 
-## Root Cause
+The `http://` prefix and trailing `/` cause Google to reject the OAuth request with a 403 error. The correct format is just:
 
-There is a disconnect between what `handleConnect` stores and what `OAuthCallback` expects:
+```
+562061333627-jeok6i23obcf38082a4hsd9hpn6v53mk.apps.googleusercontent.com
+```
 
-1. `CalendarIntegrationPanel.handleConnect()` saves credentials to the backend (edge function) and stores only PKCE verifier + state in `sessionStorage`
-2. `OAuthCallback` expects `oauth_google_client_id` and `oauth_google_client_secret` in `sessionStorage` -- but they were **never stored there**
+## Solution
 
-The OAuth redirect to Google wipes the page, and when Google redirects back, `sessionStorage` is missing the client credentials needed for the token exchange.
+Add automatic sanitization of the Google Client ID and other credential fields to strip common copy-paste mistakes (URL prefixes, trailing slashes, whitespace).
 
-## Fix
+## Changes
 
 **File: `src/components/admin/CalendarIntegrationPanel.tsx`**
 
-In `handleConnect()`, store the OAuth client credentials in `sessionStorage` before starting the OAuth redirect:
+1. Add a `sanitizeCredential` helper function that strips `http://`, `https://`, and trailing `/` from pasted values
+2. Apply it in `handleCredentialChange` so credentials are cleaned on input
+3. Also apply it in `saveSettings` and `handleConnect` as a safety net before the values are used
 
 ```typescript
-// Before calling OAuthManager.startOAuth(), add:
-if (settings.provider === 'google') {
-  sessionStorage.setItem('oauth_google_client_id', oauthCredentials.googleClientId);
-  sessionStorage.setItem('oauth_google_client_secret', oauthCredentials.googleClientSecret);
-} else {
-  sessionStorage.setItem('oauth_microsoft_client_id', oauthCredentials.microsoftClientId);
-  sessionStorage.setItem('oauth_microsoft_client_secret', oauthCredentials.microsoftClientSecret);
-  sessionStorage.setItem('oauth_microsoft_tenant', oauthCredentials.microsoftTenant);
-}
+// Helper to clean up common copy-paste issues with OAuth credentials
+const sanitizeCredential = (value: string): string => {
+  return value
+    .trim()
+    .replace(/^https?:\/\//, '')  // Remove http:// or https:// prefix
+    .replace(/\/+$/, '');          // Remove trailing slashes
+};
 ```
 
-This ensures that when Google redirects back to `/oauth/callback`, the callback page can retrieve the credentials from `sessionStorage` to complete the token exchange.
+Update `handleCredentialChange`:
+```typescript
+const handleCredentialChange = (key: keyof typeof oauthCredentials, value: string) => {
+  const cleanValue = key.includes('ClientId') ? sanitizeCredential(value) : value.trim();
+  setOauthCredentials(prev => ({ ...prev, [key]: cleanValue }));
+};
+```
 
-## Security Note
+## Technical Details
 
-`sessionStorage` is scoped to the browser tab and cleared when the tab closes. The credentials are only needed temporarily for the token exchange and are cleaned up by `OAuthCallback` after successful connection (lines 99-102).
+- The sanitization is applied specifically to Client ID fields (where URL prefixes are a common mistake)
+- Secret fields get basic trim() only since they don't have this issue
+- This prevents the 403 error from Google's OAuth endpoint which rejects malformed client IDs
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/components/admin/CalendarIntegrationPanel.tsx` | Add `sessionStorage.setItem()` calls for OAuth client credentials in `handleConnect()`, before the `OAuthManager.startOAuth()` call |
+| `src/components/admin/CalendarIntegrationPanel.tsx` | Add `sanitizeCredential` helper; apply in `handleCredentialChange` for Client ID fields |
 
