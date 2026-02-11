@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -7,8 +8,7 @@ import {
   Calendar, 
   CheckCircle2, 
   Lock, 
-  FileDown, 
-  Loader2,
+  BarChart3,
   ChevronRight 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Case } from '@/contexts/AppStateContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { caseActionDossierService } from '@/services/caseActionDossierService';
 import { toast } from '@/hooks/use-toast';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
@@ -42,7 +41,7 @@ export const StickyCaseActionBar: React.FC<StickyCaseActionBarProps> = ({
   onMarkComplete,
   getTabDisabled
 }) => {
-  const [isExporting, setIsExporting] = useState(false);
+  const navigate = useNavigate();
   const isCompleted = selectedCase.status === 'Completed';
 
   // Keyboard shortcut: Escape to clear selection
@@ -56,24 +55,8 @@ export const StickyCaseActionBar: React.FC<StickyCaseActionBarProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClearSelection]);
 
-  const handleDownloadDossier = async () => {
-    setIsExporting(true);
-    try {
-      await caseActionDossierService.downloadDossier(selectedCase.id);
-      toast({
-        title: "Dossier Downloaded",
-        description: "Case Action Dossier has been exported successfully.",
-      });
-    } catch (error) {
-      console.error('Failed to export dossier:', error);
-      toast({
-        title: "Export Failed",
-        description: "Failed to generate Case Action Dossier. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsExporting(false);
-    }
+  const handleOpenIntelligence = () => {
+    navigate(`/cases/${selectedCase.id}/intelligence-report`);
   };
 
   const getPriorityColor = (priority: string) => {
@@ -182,19 +165,14 @@ export const StickyCaseActionBar: React.FC<StickyCaseActionBarProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleDownloadDossier}
-                    disabled={isExporting}
+                    onClick={handleOpenIntelligence}
                     className="h-8"
                   >
-                    {isExporting ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <FileDown className="h-3.5 w-3.5" />
-                    )}
-                    <span className="hidden sm:inline ml-1.5">Dossier</span>
+                    <BarChart3 className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline ml-1.5">Intelligence</span>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Download Case Action Dossier (PDF)</TooltipContent>
+                <TooltipContent>View Case Intelligence Report</TooltipContent>
               </Tooltip>
             </TooltipProvider>
 

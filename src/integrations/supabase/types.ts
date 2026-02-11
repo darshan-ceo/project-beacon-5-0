@@ -404,6 +404,71 @@ export type Database = {
           },
         ]
       }
+      case_intelligence_snapshots: {
+        Row: {
+          case_id: string
+          created_at: string
+          created_by: string
+          financial_exposure: number | null
+          id: string
+          label: string | null
+          risk_score: string
+          snapshot_data: Json
+          tenant_id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          created_by: string
+          financial_exposure?: number | null
+          id?: string
+          label?: string | null
+          risk_score?: string
+          snapshot_data: Json
+          tenant_id: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          created_by?: string
+          financial_exposure?: number | null
+          id?: string
+          label?: string | null
+          risk_score?: string
+          snapshot_data?: Json
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_intelligence_snapshots_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "case_activity_summary"
+            referencedColumns: ["case_id"]
+          },
+          {
+            foreignKeyName: "case_intelligence_snapshots_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_intelligence_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "storage_usage_by_tenant"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "case_intelligence_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_notification_preferences: {
         Row: {
           case_id: string
