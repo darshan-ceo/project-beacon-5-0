@@ -1,72 +1,49 @@
 
 
-# Fix Plan: Notice Intake Wizard -- 3 Issues
+# Fix: Google Calendar OAuth Callback -- Missing Session Credentials
 
-## Issue 1: Duplicate Case Still Getting Created (Back + Create)
+## Problem
 
-**Analysis:** The guard `if (createdCaseId) { setCurrentStep('stage_tasks'); return; }` at line 303 IS present and correct. However, the problem is that when navigating back from `stage_tasks`, `getPreviousStep` returns `financial_validation` (Step 7). At this step, the button label shows "Create" (line 1237) and clicking it calls `handleCreateCaseAndNotice()`. The guard should work... UNLESS the `createdCaseId` state is being reset.
+After updating the redirect URIs in Google Cloud Console, the OAuth flow still fails. The Google consent screen works correctly and redirects back to `/oauth/callback`, but the callback page throws:
 
-Looking at the completion step's "Add Another Notice" handler (line 1162-1167), `setCreatedCaseId('')` is called there. But that's only on "Add Another". The real issue is more subtle: when `handleCreateCaseAndNotice` succeeds and moves to `stage_tasks`, pressing Back goes to `financial_validation`. The guard checks `createdCaseId` which should be set. Let me verify the `handlePrevious` function -- it just calls `setCurrentStep(prev)` with `getPreviousStep`. This should be `create_link` (step 8), not `financial_validation` (step 7).
+**"OAuth credentials expired. Please try connecting again from Settings."**
 
-Wait -- looking at the step flow: `financial_validation` -> `create_link` -> `stage_tasks`. The `create_link` step exists in `WIZARD_STEPS` but has no render case. The navigation from `financial_validation` skips `create_link` and jumps straight to `stage_tasks` via `handleCreateCaseAndNotice`. But `getPreviousStep('stage_tasks')` returns `create_link`, and `getPreviousStep('create_link')` returns `financial_validation`. So Back from `stage_tasks` goes to `create_link`, then Back again goes to `financial_validation`. At `financial_validation`, clicking Create calls `handleCreateCaseAndNotice` again -- and the guard SHOULD catch it.
+## Root Cause
 
-The fix needs to be more robust. Two changes:
+There is a disconnect between what `handleConnect` stores and what `OAuthCallback` expects:
 
-1. **Disable the Create button** after case is created by checking `createdCaseId` in `canGoNext` or button disabled state
-2. **Change the button label** from "Create" to "Next" when case already exists
-3. **Make the guard also handle navigation correctly** -- when at `financial_validation` with `createdCaseId` set, skip past `create_link` to `stage_tasks`
+1. `CalendarIntegrationPanel.handleConnect()` saves credentials to the backend (edge function) and stores only PKCE verifier + state in `sessionStorage`
+2. `OAuthCallback` expects `oauth_google_client_id` and `oauth_google_client_secret` in `sessionStorage` -- but they were **never stored there**
 
-**Changes in `NoticeIntakeWizardV2.tsx`:**
-- Update `handleNext` for `financial_validation` case: if `createdCaseId` is already set, skip to `stage_tasks` directly instead of calling `handleCreateCaseAndNotice`
-- Update button label logic: show "Next" instead of "Create" when `createdCaseId` is set
-- Remove `create_link` from the step list or skip it in navigation since it has no UI
+The OAuth redirect to Google wipes the page, and when Google redirects back, `sessionStorage` is missing the client credentials needed for the token exchange.
 
----
+## Fix
 
-## Issue 2: OCR Preview / Verification
+**File: `src/components/admin/CalendarIntegrationPanel.tsx`**
 
-**Analysis:** Currently after OCR extraction (upload step), the wizard jumps directly to `resolve_gaps` (Step 4) which IS the verification/edit screen. However, there is no dedicated "preview" of the raw extracted data or side-by-side comparison with the PDF.
+In `handleConnect()`, store the OAuth client credentials in `sessionStorage` before starting the OAuth redirect:
 
-**Solution:** Add an `extract` step render that shows:
-- A summary card of all extracted fields with confidence indicators
-- Highlighted low-confidence fields
-- A "View PDF" button to open the uploaded document in a new tab
-- This step already exists in the step definitions but has no render case
+```typescript
+// Before calling OAuthManager.startOAuth(), add:
+if (settings.provider === 'google') {
+  sessionStorage.setItem('oauth_google_client_id', oauthCredentials.googleClientId);
+  sessionStorage.setItem('oauth_google_client_secret', oauthCredentials.googleClientSecret);
+} else {
+  sessionStorage.setItem('oauth_microsoft_client_id', oauthCredentials.microsoftClientId);
+  sessionStorage.setItem('oauth_microsoft_client_secret', oauthCredentials.microsoftClientSecret);
+  sessionStorage.setItem('oauth_microsoft_tenant', oauthCredentials.microsoftTenant);
+}
+```
 
-**Changes in `NoticeIntakeWizardV2.tsx`:**
-- Add a `case 'extract':` render block in `renderStepContent()` that displays:
-  - Extracted fields in a structured card layout (grouped by category)
-  - Confidence badges (High/Medium/Low) per field
-  - A preview button to view the PDF in a new browser tab via `URL.createObjectURL`
-  - Clear indication of which fields were AI-extracted vs. empty
+This ensures that when Google redirects back to `/oauth/callback`, the callback page can retrieve the credentials from `sessionStorage` to complete the token exchange.
 
----
+## Security Note
 
-## Issue 3: UI/UX Consistency
+`sessionStorage` is scoped to the browser tab and cleared when the tab closes. The credentials are only needed temporarily for the token exchange and are cleaned up by `OAuthCallback` after successful connection (lines 99-102).
 
-**Analysis:** The wizard uses a basic `Dialog` with `max-w-2xl`. The New Client Form likely uses the `AdaptiveFormShell` pattern (full-page overlay on desktop). The wizard steps have inconsistent card layouts, spacing, and button placement.
+## Files to Modify
 
-**Solution:** Standardize the wizard UI:
-- Use consistent card styling across all steps
-- Standardize padding, spacing (space-y-4 for form fields, space-y-6 for sections)
-- Ensure header structure is uniform (icon + title + description centered)
-- Fix button alignment in the footer (Back left-aligned, Next/Create right-aligned with gap)
-- Apply consistent form field styling (Label size, Input height, Select styling)
-- Keep the Dialog approach (wizard is inherently multi-step, not a form modal) but ensure max-width and padding match the design system
-
-**Changes in `NoticeIntakeWizardV2.tsx`:**
-- Standardize all step renders to use a consistent template:
-  - Centered icon + title + subtitle header
-  - Card-wrapped form sections with consistent `CardHeader` + `CardContent`
-  - Consistent grid layouts (grid-cols-2 gap-4)
-  - Footer buttons with proper alignment and spacing
-- Remove redundant spacing variations
-
----
-
-## Technical Summary
-
-| File | Changes |
-|------|---------|
-| `src/components/notices/NoticeIntakeWizardV2.tsx` | 1. Fix duplicate guard: skip to `stage_tasks` if `createdCaseId` exists when at `financial_validation`, change button label dynamically. 2. Add `extract` step render with field preview, confidence indicators, and PDF viewer. 3. Standardize UI across all wizard steps for consistent spacing, card layouts, and typography. |
+| File | Change |
+|------|--------|
+| `src/components/admin/CalendarIntegrationPanel.tsx` | Add `sessionStorage.setItem()` calls for OAuth client credentials in `handleConnect()`, before the `OAuthManager.startOAuth()` call |
 
