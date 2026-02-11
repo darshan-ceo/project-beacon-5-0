@@ -175,7 +175,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
               hearing_mode: phDetails.hearing_mode || 'Physical',
               place_of_hearing: phDetails.place_of_hearing || '',
               attended_by: phDetails.attended_by || '',
-              additional_submissions: phDetails.additional_submissions || []
+              additional_submissions: Array.isArray(phDetails.additional_submissions) ? phDetails.additional_submissions : []
             });
           }
         });
