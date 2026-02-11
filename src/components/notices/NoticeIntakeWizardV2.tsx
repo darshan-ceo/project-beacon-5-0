@@ -3,22 +3,22 @@
  * Upgraded wizard supporting both New Case creation and Adding to Existing Case
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from '@/components/ui/dialog';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ModalLayout } from '@/components/ui/modal-layout';
 import { 
   CheckCircle, Upload, FileText, User, FolderOpen, Calendar, 
   AlertCircle, Loader2, Key, Eye, EyeOff, ArrowLeft, ArrowRight,
-  AlertTriangle, FileWarning, IndianRupee, CheckSquare, ChevronDown, Bug
+  AlertTriangle, FileWarning, IndianRupee, CheckSquare, ChevronDown, Bug,
+  ExternalLink, ShieldCheck, ShieldAlert
 } from 'lucide-react';
 import { noticeExtractionService } from '@/services/noticeExtractionService';
 import { clientsService } from '@/services/clientsService';
@@ -47,6 +47,36 @@ interface NoticeIntakeWizardV2Props {
   onClose: () => void;
   initialDocument?: File;
 }
+
+// ── Confidence helper ──────────────────────────────────────────────────
+const getConfidenceBadge = (score: number) => {
+  if (score >= 0.8) return { label: 'High', className: 'bg-primary/10 text-primary border-primary/30' };
+  if (score >= 0.5) return { label: 'Medium', className: 'bg-accent/20 text-accent-foreground border-accent/40' };
+  return { label: 'Low', className: 'bg-destructive/10 text-destructive border-destructive/30' };
+};
+
+// ── Extracted-field display label mapping ──────────────────────────────
+const FIELD_LABELS: Record<string, string> = {
+  notice_type: 'Notice Type',
+  notice_number: 'Reference No.',
+  din: 'DIN',
+  notice_date: 'Notice Date',
+  due_date: 'Reply Due Date',
+  gstin: 'GSTIN',
+  taxpayer_name: 'Taxpayer Name',
+  trade_name: 'Trade Name',
+  section_invoked: 'Section Invoked',
+  notice_title: 'Notice Title',
+  issuing_authority: 'Issuing Authority',
+  issuing_designation: 'Designation',
+  financial_year: 'Financial Year',
+  tax_period_start: 'Tax Period Start',
+  tax_period_end: 'Tax Period End',
+  tax_amount: 'Tax Amount',
+  interest_amount: 'Interest Amount',
+  penalty_amount: 'Penalty Amount',
+  total_demand: 'Total Demand',
+};
 
 export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
   isOpen,
@@ -93,7 +123,6 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
     workerSrc: string;
   } | null>(null);
   
-  // Check if debug mode is enabled via localStorage or query param
   const isDebugEnabled = typeof window !== 'undefined' && (
     localStorage.getItem('notice_ocr_debug') === '1' ||
     new URLSearchParams(window.location.search).get('noticeOcrDebug') === '1'
@@ -135,57 +164,37 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
     }
   }, [initialDocument, isOpen, mode]);
 
-  // Get step progress
+  // ── Progress ─────────────────────────────────────────────────────────
   const currentStepIndex = getStepIndex(currentStep);
   const totalSteps = WIZARD_STEPS.length;
   const progressPercent = ((currentStepIndex + 1) / totalSteps) * 100;
 
-  // Handle file upload
+  // ── File upload ──────────────────────────────────────────────────────
   const handleFileUpload = useCallback((files: FileList) => {
     if (files.length === 0) return;
-    
     const file = files[0];
     if (file.type !== 'application/pdf') {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a PDF file.",
-        variant: "destructive",
-      });
+      toast({ title: "Invalid file type", description: "Please upload a PDF file.", variant: "destructive" });
       return;
     }
-
-    // Validate file is properly loaded (not empty/corrupted)
     if (!file || file.size === 0) {
-      toast({
-        title: "Invalid file",
-        description: "The PDF file appears to be empty or corrupted. Please try uploading again.",
-        variant: "destructive",
-      });
+      toast({ title: "Invalid file", description: "The PDF file appears to be empty or corrupted.", variant: "destructive" });
       return;
     }
-
-    // Clear previous state
     setExtractedData({});
     setFieldConfidence({});
     setDataConfirmed(false);
-    
     setUploadedFile(file);
-    toast({
-      title: "File uploaded",
-      description: `${file.name} (${formatFileSize(file.size)}) is ready for processing.`,
-    });
+    toast({ title: "File uploaded", description: `${file.name} (${formatFileSize(file.size)}) is ready for processing.` });
   }, [toast]);
 
-  // Handle data extraction
+  // ── Data extraction ──────────────────────────────────────────────────
   const handleExtractData = async () => {
     if (!uploadedFile) return;
-    
     setIsLoading(true);
     try {
       const result = await noticeExtractionService.extractFromPDF(uploadedFile);
-      
       if (result.success && result.data) {
-        // Map to V2 format
         const mapped: Partial<ExtractedNoticeDataV2> = {
           notice_type: result.data.noticeType || 'ASMT-10',
           notice_number: result.data.noticeNo || result.data.din || '',
@@ -208,10 +217,8 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
           total_demand: parseFloat(result.data.amount?.replace(/[₹,\s]/g, '') || '0') || null,
           document_type: result.data.documentType as any || 'main_notice'
         };
-        
         setExtractedData(mapped);
-        
-        // Extract confidence scores
+
         const confidences: Record<string, number> = {};
         if (result.data.fieldConfidence) {
           Object.entries(result.data.fieldConfidence).forEach(([key, field]: [string, any]) => {
@@ -219,75 +226,41 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
           });
         }
         setFieldConfidence(confidences);
-        
-        toast({
-          title: "Data extracted",
-          description: "Review the extracted information and fill any gaps.",
-        });
-        
-        setCurrentStep('resolve_gaps');
+        toast({ title: "Data extracted", description: "Review the extracted information and fill any gaps." });
+        // Go to extract preview step (Issue 2)
+        setCurrentStep('extract');
       } else {
         if (result.errorCode === 'AI_SERVICE_MISCONFIGURED') {
-          toast({
-            title: 'AI OCR unavailable',
-            description: 'AI OCR is temporarily unavailable due to a backend configuration issue. Please contact support to re-provision the AI key, then try again.',
-            variant: 'destructive',
-          });
+          toast({ title: 'AI OCR unavailable', description: 'AI OCR is temporarily unavailable. Please contact support.', variant: 'destructive' });
         } else {
-          toast({
-            title: 'Extraction failed',
-            description: result.error || 'Unable to extract data from the notice.',
-            variant: 'destructive',
-          });
+          toast({ title: 'Extraction failed', description: result.error || 'Unable to extract data.', variant: 'destructive' });
         }
       }
     } catch (error) {
       console.error('Extraction error:', error);
-      
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
       let title = 'Extraction failed';
       let description = errorMessage;
-      
-      // Provide specific guidance based on failure type
-      if (errorMessage.includes('empty') || errorMessage.includes('0 bytes')) {
-        title = 'File upload issue';
-        description = 'The PDF file is empty. Please close the wizard and re-upload the file.';
-      } else if (errorMessage.includes('scanned PDF') || errorMessage.includes('SCANNED_PDF_NO_OCR')) {
-        title = 'Scanned Notice Detected';
-        description = 'This notice appears to be scanned (no usable text layer). AI OCR could not complete—if you see a configuration error, please contact support to re-provision the AI key.';
-      } else if (errorMessage.includes('password')) {
-        title = 'Password protected';
-        description = 'This PDF is password-protected. Please remove the password and re-upload.';
-      } else if (errorMessage.includes('browser') || errorMessage.includes('blocking') || errorMessage.includes('Incognito')) {
-        title = 'PDF parser blocked';
-        description = 'Your browser/network is blocking the PDF parser. Try Incognito mode, disable extensions, or use another browser.';
-      } else if (errorMessage.includes('valid PDF') || errorMessage.includes('header')) {
-        title = 'Invalid PDF';
-        description = 'This file doesn\'t appear to be a valid PDF. Please upload a different file.';
-      } else if (errorMessage.includes('corrupted') || errorMessage.includes('no pages')) {
-        title = 'PDF parsing failed';
-        description = 'Could not read the PDF. It may be corrupted or have no pages. Try a different file.';
-      } else if (errorMessage.includes('INVALID_API_KEY') || errorMessage.includes('API key')) {
-        title = 'Invalid API Key';
-        description = 'Your OpenAI API key is invalid or expired. Please update it in the configuration panel.';
-      } else if (errorMessage.includes('RATE_LIMIT')) {
-        title = 'Rate Limit Exceeded';
-        description = 'Too many requests. Please wait a moment and try again.';
-      }
-      
+      if (errorMessage.includes('empty') || errorMessage.includes('0 bytes')) { title = 'File upload issue'; description = 'The PDF file is empty. Please re-upload.'; }
+      else if (errorMessage.includes('scanned PDF') || errorMessage.includes('SCANNED_PDF_NO_OCR')) { title = 'Scanned Notice Detected'; description = 'This notice appears to be scanned. AI OCR could not complete.'; }
+      else if (errorMessage.includes('password')) { title = 'Password protected'; description = 'Please remove the password and re-upload.'; }
+      else if (errorMessage.includes('browser') || errorMessage.includes('blocking')) { title = 'PDF parser blocked'; description = 'Try Incognito mode or another browser.'; }
+      else if (errorMessage.includes('valid PDF') || errorMessage.includes('header')) { title = 'Invalid PDF'; description = 'This doesn\'t appear to be a valid PDF.'; }
+      else if (errorMessage.includes('corrupted') || errorMessage.includes('no pages')) { title = 'PDF parsing failed'; description = 'Could not read the PDF. Try a different file.'; }
+      else if (errorMessage.includes('INVALID_API_KEY') || errorMessage.includes('API key')) { title = 'Invalid API Key'; description = 'Your OpenAI API key is invalid or expired.'; }
+      else if (errorMessage.includes('RATE_LIMIT')) { title = 'Rate Limit Exceeded'; description = 'Please wait a moment and try again.'; }
       toast({ title, description, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Update extracted field
+  // ── Field update ─────────────────────────────────────────────────────
   const handleUpdateField = (field: keyof ExtractedNoticeDataV2, value: any) => {
     setExtractedData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Handle case selection (existing case mode)
+  // ── Case selection ───────────────────────────────────────────────────
   const handleCaseSelect = (caseId: string, caseData: any) => {
     setSelectedCaseId(caseId);
     setSelectedCase(caseData);
@@ -297,9 +270,9 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
     }
   };
 
-  // Create case and notice
+  // ── Create case & notice ─────────────────────────────────────────────
   const handleCreateCaseAndNotice = async () => {
-    // Guard: prevent duplicate case creation on Back + Create
+    // ISSUE 1 FIX: robust duplicate guard
     if (createdCaseId) {
       setCurrentStep('stage_tasks');
       return;
@@ -310,20 +283,15 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
       let caseId = selectedCaseId;
       let caseNumber = selectedCase?.caseNumber || '';
       
-      // For new case mode, create the case first
       if (mode === 'new_case') {
-        // Find or create client by GSTIN
         let effectiveClientId = clientId;
-        
         if (!effectiveClientId && extractedData.gstin) {
           const existingClient = (state.clients || []).find(
             (c: any) => c.gstin?.toLowerCase() === extractedData.gstin?.toLowerCase()
           );
-          
           if (existingClient) {
             effectiveClientId = existingClient.id;
           } else {
-            // Create new client
             const newClient = await clientsService.create({
               name: extractedData.taxpayer_name || 'New Client',
               gstin: extractedData.gstin,
@@ -334,7 +302,6 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
           setClientId(effectiveClientId);
         }
         
-        // Create case
         const casePayload: any = {
           clientId: effectiveClientId,
           title: `${extractedData.notice_type} - ${extractedData.notice_number}`,
@@ -342,14 +309,12 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
           priority: priority,
           status: 'Active',
           noticeNo: extractedData.notice_number,
-          // Snake_case for DB persistence
           form_type: extractedData.notice_type,
           section_invoked: extractedData.section_invoked,
           financial_year: extractedData.financial_year,
           notice_date: extractedData.notice_date || undefined,
           reply_due_date: extractedData.due_date || undefined,
           tax_demand: extractedData.total_demand,
-          // CamelCase for frontend state/hydration
           formType: extractedData.notice_type,
           noticeDate: extractedData.notice_date || undefined,
           replyDueDate: extractedData.due_date || undefined,
@@ -366,7 +331,6 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
         setCreatedCaseId(selectedCaseId);
       }
       
-      // Query active stage instance for this case (created by DB trigger)
       let stageInstanceId: string | undefined;
       try {
         const { data: activeInstance } = await supabase
@@ -382,7 +346,6 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
         console.warn('Could not fetch stage instance:', err);
       }
 
-      // Create stage notice
       const noticeInput: CreateStageNoticeInput = {
         case_id: caseId,
         stage_instance_id: stageInstanceId,
@@ -419,7 +382,6 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
         setCreatedNoticeId(createdNotice.id);
       }
       
-      // Upload document to Supabase Storage
       if (uploadedFile) {
         try {
           const { data: { user } } = await supabase.auth.getUser();
@@ -439,7 +401,6 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
           });
           setDocumentUploaded(true);
 
-          // Dispatch to Redux so Documents tab shows it immediately
           dispatch({
             type: 'ADD_DOCUMENT',
             payload: {
@@ -481,7 +442,7 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
     }
   };
 
-  // Hardcoded fallback tasks matching StageAwarenessStep.tsx STAGE_OPTIONS
+  // ── Fallback task definitions ────────────────────────────────────────
   const STAGE_TASK_DEFINITIONS: Record<string, Array<{ title: string; priority: string }>> = {
     SCN: [
       { title: 'Draft Reply', priority: 'High' },
@@ -519,27 +480,18 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
     return date.toISOString().split('T')[0];
   };
 
-  // Generate tasks
+  // ── Generate tasks ───────────────────────────────────────────────────
   const handleGenerateTasks = async () => {
     if (!createdCaseId) return;
-    
     setIsLoading(true);
     try {
       const caseData = selectedCase || (state.cases || []).find((c: any) => c.id === createdCaseId);
       const currentStage = caseData?.currentStage || 'Assessment';
 
-      // 1. Try task bundles first (for configured bundles)
       let totalCreated = 0;
       try {
         const result = await taskBundleTriggerService.triggerTaskBundles(
-          {
-            id: createdCaseId,
-            currentStage,
-            clientId,
-            caseNumber: caseData?.caseNumber || '',
-            assignedToId: assignedToId || 'emp-1',
-            assignedToName: 'Assigned User'
-          },
+          { id: createdCaseId, currentStage, clientId, caseNumber: caseData?.caseNumber || '', assignedToId: assignedToId || 'emp-1', assignedToName: 'Assigned User' },
           mode === 'new_case' ? 'case_created' : 'notice_added',
           currentStage,
           dispatch
@@ -549,7 +501,6 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
         console.warn('[Wizard] Bundle trigger failed, falling back to stage tasks', e);
       }
 
-      // 2. If no bundle tasks, create from hardcoded stage definitions
       if (totalCreated === 0) {
         const fallbackTasks = STAGE_TASK_DEFINITIONS[stageTag] || [];
         for (const taskDef of fallbackTasks) {
@@ -572,27 +523,18 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
       }
 
       setTasksCreated(totalCreated);
-      
-      toast({
-        title: "Tasks generated",
-        description: `${totalCreated} task(s) created.`,
-      });
-      
+      toast({ title: "Tasks generated", description: `${totalCreated} task(s) created.` });
       setCurrentStep('completion');
     } catch (error) {
       console.error('Task generation error:', error);
-      toast({
-        title: "Task generation warning",
-        description: "Could not auto-generate tasks. You can add them manually.",
-        variant: "destructive",
-      });
+      toast({ title: "Task generation warning", description: "Could not auto-generate tasks. You can add them manually.", variant: "destructive" });
       setCurrentStep('completion');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Navigation
+  // ── Navigation ───────────────────────────────────────────────────────
   const handleNext = () => {
     if (!mode) return;
     
@@ -607,32 +549,19 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
         setCurrentStep('resolve_gaps');
         break;
       case 'resolve_gaps':
-        // Validate mandatory fields
         if (!extractedData.notice_type || !extractedData.notice_date || !extractedData.due_date) {
-          toast({
-            title: "Missing required fields",
-            description: "Notice Type, Notice Date, and Due Date are required.",
-            variant: "destructive",
-          });
+          toast({ title: "Missing required fields", description: "Notice Type, Notice Date, and Due Date are required.", variant: "destructive" });
           return;
         }
         if (mode === 'new_case' && !extractedData.gstin) {
-          toast({
-            title: "GSTIN required",
-            description: "GSTIN is required to create a new case.",
-            variant: "destructive",
-          });
+          toast({ title: "GSTIN required", description: "GSTIN is required to create a new case.", variant: "destructive" });
           return;
         }
         setCurrentStep('case_mapping');
         break;
       case 'case_mapping':
         if (mode === 'existing_case' && !selectedCaseId) {
-          toast({
-            title: "Select a case",
-            description: "Please select an existing case to link this notice.",
-            variant: "destructive",
-          });
+          toast({ title: "Select a case", description: "Please select an existing case to link this notice.", variant: "destructive" });
           return;
         }
         setCurrentStep('timeline_assignment');
@@ -641,12 +570,13 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
         setCurrentStep('financial_validation');
         break;
       case 'financial_validation':
+        // ISSUE 1 FIX: if case already created, skip directly to stage_tasks
+        if (createdCaseId) {
+          setCurrentStep('stage_tasks');
+          return;
+        }
         if (!dataConfirmed) {
-          toast({
-            title: "Confirmation required",
-            description: "Please confirm the notice details are correct.",
-            variant: "destructive",
-          });
+          toast({ title: "Confirmation required", description: "Please confirm the notice details are correct.", variant: "destructive" });
           return;
         }
         handleCreateCaseAndNotice();
@@ -666,7 +596,13 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
   const handlePrevious = () => {
     if (!mode) return;
     const prev = getPreviousStep(currentStep, mode);
-    if (prev) setCurrentStep(prev);
+    if (!prev) return;
+    // ISSUE 1 FIX: skip create_link step (has no UI), go straight to financial_validation
+    if (prev === 'create_link') {
+      setCurrentStep('financial_validation');
+      return;
+    }
+    setCurrentStep(prev);
   };
 
   const canGoNext = (): boolean => {
@@ -680,13 +616,63 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
       case 'case_mapping':
         return mode === 'new_case' ? true : !!selectedCaseId;
       case 'financial_validation':
-        return dataConfirmed;
+        // If case already created, always allow "Next"
+        return createdCaseId ? true : dataConfirmed;
       default:
         return true;
     }
   };
 
-  // Render step content
+  // ── Button label (ISSUE 1 FIX) ──────────────────────────────────────
+  const getNextButtonLabel = (): string => {
+    if (currentStep === 'financial_validation') {
+      return createdCaseId ? 'Next' : 'Create';
+    }
+    if (currentStep === 'stage_tasks') return 'Generate Tasks';
+    return 'Next';
+  };
+
+  // ── PDF preview URL ──────────────────────────────────────────────────
+  const pdfPreviewUrl = useMemo(() => {
+    if (uploadedFile) return URL.createObjectURL(uploadedFile);
+    return null;
+  }, [uploadedFile]);
+
+  // Cleanup blob URL
+  useEffect(() => {
+    return () => {
+      if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl);
+    };
+  }, [pdfPreviewUrl]);
+
+  // ── Grouped extracted fields for preview ─────────────────────────────
+  const extractedFieldGroups = useMemo(() => {
+    const groups = [
+      {
+        title: 'Notice Identification',
+        icon: <FileText className="w-4 h-4" />,
+        fields: ['notice_type', 'notice_number', 'din', 'notice_date', 'due_date']
+      },
+      {
+        title: 'Taxpayer Details',
+        icon: <User className="w-4 h-4" />,
+        fields: ['gstin', 'taxpayer_name', 'trade_name']
+      },
+      {
+        title: 'Legal Classification',
+        icon: <AlertCircle className="w-4 h-4" />,
+        fields: ['section_invoked', 'notice_title', 'issuing_authority', 'issuing_designation']
+      },
+      {
+        title: 'Period & Financial',
+        icon: <IndianRupee className="w-4 h-4" />,
+        fields: ['financial_year', 'tax_period_start', 'tax_period_end', 'tax_amount', 'interest_amount', 'penalty_amount', 'total_demand']
+      }
+    ];
+    return groups;
+  }, []);
+
+  // ── Render step content ──────────────────────────────────────────────
   const renderStepContent = () => {
     switch (currentStep) {
       case 'entry_decision':
@@ -699,7 +685,7 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
 
       case 'upload':
         return (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* API Key Config */}
             <Card className={apiKeyInfo.hasKeys ? "border-primary/50" : ""}>
               <CardHeader className="pb-2">
@@ -788,9 +774,7 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
               <label htmlFor="wizard-file-input" className="cursor-pointer">
                 <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
                 <p className="font-medium mb-1">Upload Notice PDF</p>
-                <p className="text-sm text-muted-foreground">
-                  Click to select or drag and drop
-                </p>
+                <p className="text-sm text-muted-foreground">Click to select or drag and drop</p>
               </label>
             </div>
 
@@ -800,16 +784,14 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
                   <FileText className="w-8 h-8 text-primary" />
                   <div className="flex-1">
                     <p className="font-medium">{uploadedFile.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatFileSize(uploadedFile.size)}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{formatFileSize(uploadedFile.size)}</p>
                   </div>
                   <Badge>PDF</Badge>
                 </CardContent>
               </Card>
             )}
 
-            {/* PDF Debug Panel (only when debug enabled) */}
+            {/* PDF Debug Panel */}
             {uploadedFile && isDebugEnabled && (
               <Collapsible>
                 <Card className="border-muted">
@@ -865,15 +847,121 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
           </div>
         );
 
+      // ── ISSUE 2: OCR Extract Preview Step ────────────────────────────
+      case 'extract':
+        return (
+          <div className="space-y-4">
+            <div className="text-center mb-2">
+              <FileText className="h-8 w-8 mx-auto mb-2 text-primary" />
+              <h3 className="font-semibold">Extracted Data Preview</h3>
+              <p className="text-sm text-muted-foreground">
+                Review AI-extracted fields before editing. Low-confidence fields are highlighted.
+              </p>
+            </div>
+
+            {/* View PDF button */}
+            {pdfPreviewUrl && (
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(pdfPreviewUrl, '_blank')}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  View Original PDF
+                </Button>
+              </div>
+            )}
+
+            {/* Grouped field cards */}
+            {extractedFieldGroups.map((group) => {
+              const fieldsWithValues = group.fields.filter(f => {
+                const val = (extractedData as any)[f];
+                return val !== null && val !== undefined && val !== '';
+              });
+              const emptyFields = group.fields.filter(f => {
+                const val = (extractedData as any)[f];
+                return val === null || val === undefined || val === '';
+              });
+
+              return (
+                <Card key={group.title}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      {group.icon}
+                      {group.title}
+                      <Badge variant="outline" className="ml-auto text-xs">
+                        {fieldsWithValues.length}/{group.fields.length} extracted
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                      {group.fields.map(field => {
+                        const value = (extractedData as any)[field];
+                        const confidence = fieldConfidence[field];
+                        const hasValue = value !== null && value !== undefined && value !== '';
+                        const badge = confidence !== undefined ? getConfidenceBadge(confidence) : null;
+
+                        return (
+                          <div key={field} className={`flex flex-col py-1 ${!hasValue ? 'opacity-50' : ''}`}>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs text-muted-foreground">
+                                {FIELD_LABELS[field] || field}
+                              </span>
+                              {badge && (
+                                <span className={`text-[10px] px-1.5 py-0 rounded-full border ${badge.className}`}>
+                                  {badge.label}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-sm font-medium truncate">
+                              {hasValue ? (
+                                typeof value === 'number' ? `₹${value.toLocaleString('en-IN')}` : String(value)
+                              ) : (
+                                <span className="italic text-muted-foreground">Not extracted</span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {emptyFields.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        {emptyFields.length} field(s) not extracted — you can fill them in the next step.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+
+            {/* Overall confidence summary */}
+            {Object.keys(fieldConfidence).length > 0 && (
+              <Alert>
+                <AlertDescription className="text-xs flex items-center gap-2">
+                  {(() => {
+                    const scores = Object.values(fieldConfidence);
+                    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+                    if (avg >= 0.8) return <><ShieldCheck className="w-4 h-4 text-primary" /> High overall confidence — extraction looks reliable.</>;
+                    if (avg >= 0.5) return <><AlertTriangle className="w-4 h-4 text-accent-foreground" /> Medium confidence — please verify highlighted fields.</>;
+                    return <><ShieldAlert className="w-4 h-4 text-destructive" /> Low confidence — manual verification strongly recommended.</>;
+                  })()}
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        );
+
       case 'resolve_gaps':
         return (
-          <div className="space-y-6">
-            <div className="text-center mb-4">
+          <div className="space-y-4">
+            <div className="text-center mb-2">
               <AlertCircle className="h-8 w-8 mx-auto mb-2 text-primary" />
               <h3 className="font-semibold">Verify Extracted Data</h3>
-              <p className="text-sm text-muted-foreground">
-                Review and correct the extracted information
-              </p>
+              <p className="text-sm text-muted-foreground">Review and correct the extracted information</p>
             </div>
 
             {/* Mandatory Fields */}
@@ -999,7 +1087,7 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
 
       case 'case_mapping':
         return (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {mode === 'existing_case' ? (
               <CaseSearchPanel
                 selectedCaseId={selectedCaseId}
@@ -1008,12 +1096,10 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
               />
             ) : (
               <div className="space-y-4">
-                <div className="text-center mb-4">
+                <div className="text-center mb-2">
                   <FolderOpen className="h-8 w-8 mx-auto mb-2 text-primary" />
                   <h3 className="font-semibold">New Case Details</h3>
-                  <p className="text-sm text-muted-foreground">
-                    A new case will be created with these details
-                  </p>
+                  <p className="text-sm text-muted-foreground">A new case will be created with these details</p>
                 </div>
                 
                 <Card>
@@ -1049,8 +1135,8 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
 
       case 'timeline_assignment':
         return (
-          <div className="space-y-6">
-            <div className="text-center mb-4">
+          <div className="space-y-4">
+            <div className="text-center mb-2">
               <Calendar className="h-8 w-8 mx-auto mb-2 text-primary" />
               <h3 className="font-semibold">Timeline & Assignment</h3>
             </div>
@@ -1090,7 +1176,7 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
                         <SelectValue placeholder="Select assignee" />
                       </SelectTrigger>
                       <SelectContent>
-                    {(state.employees || []).filter((member: any) => member.status === 'Active' || !member.status).map((member: any) => (
+                        {(state.employees || []).filter((member: any) => member.status === 'Active' || !member.status).map((member: any) => (
                           <SelectItem key={member.id} value={member.id}>
                             {member.full_name || member.fullName || member.name || 'Unnamed'}
                           </SelectItem>
@@ -1125,7 +1211,7 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
           <FinancialValidationStep
             extractedData={extractedData}
             onUpdateField={handleUpdateField}
-            confirmed={dataConfirmed}
+            confirmed={createdCaseId ? true : dataConfirmed}
             onConfirmChange={setDataConfirmed}
           />
         );
@@ -1156,7 +1242,6 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
             onObservationsChange={setLegalObservations}
             onViewCase={() => {
               onClose();
-              // Navigate to case - would need router
             }}
             onAddAnotherNotice={() => {
               setCurrentStep('entry_decision');
@@ -1176,70 +1261,76 @@ export const NoticeIntakeWizardV2: React.FC<NoticeIntakeWizardV2Props> = ({
 
   const currentStepConfig = WIZARD_STEPS.find(s => s.id === currentStep);
 
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Notice Intake Wizard
-            {mode && (
-              <Badge variant="outline" className="ml-2">
-                {mode === 'new_case' ? 'New Case' : 'Add to Existing'}
-              </Badge>
+  // ── Footer buttons ───────────────────────────────────────────────────
+  const footer = (
+    <div className="flex items-center w-full">
+      {/* Left: Back button */}
+      <div className="flex-1">
+        {currentStep !== 'entry_decision' && currentStep !== 'completion' && (
+          <Button variant="outline" onClick={handlePrevious} disabled={isLoading}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+        )}
+      </div>
+      {/* Right: Next / Create / Done */}
+      <div>
+        {currentStep === 'completion' ? (
+          <Button onClick={onClose}>
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Done
+          </Button>
+        ) : (
+          <Button onClick={handleNext} disabled={isLoading || !canGoNext()}>
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <ArrowRight className="h-4 w-4 mr-2" />
             )}
-          </DialogTitle>
-          <DialogDescription>
-            {currentStepConfig?.description || 'Process GST notices with AI-powered extraction'}
-          </DialogDescription>
-        </DialogHeader>
+            {getNextButtonLabel()}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 
-        {/* Progress */}
-        <div className="space-y-2 py-2">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Step {currentStepIndex + 1} of {totalSteps}</span>
-            <span>{currentStepConfig?.title}</span>
-          </div>
-          <Progress value={progressPercent} className="h-1" />
+  return (
+    <ModalLayout
+      open={isOpen}
+      onOpenChange={(open) => !open && onClose()}
+      title="Notice Intake Wizard"
+      description={currentStepConfig?.description || 'Process GST notices with AI-powered extraction'}
+      icon={<FileText className="h-5 w-5" />}
+      footer={footer}
+      maxWidth="max-w-2xl"
+    >
+      {/* Mode badge */}
+      {mode && (
+        <div className="flex justify-center mb-2">
+          <Badge variant="outline">
+            {mode === 'new_case' ? 'New Case' : 'Add to Existing'}
+          </Badge>
         </div>
+      )}
 
-        <DialogBody className="flex-1 overflow-y-auto py-4">
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-              <p className="text-muted-foreground">Processing...</p>
-            </div>
-          ) : (
-            renderStepContent()
-          )}
-        </DialogBody>
+      {/* Progress */}
+      <div className="space-y-2 pb-2">
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>Step {currentStepIndex + 1} of {totalSteps}</span>
+          <span>{currentStepConfig?.title}</span>
+        </div>
+        <Progress value={progressPercent} className="h-1" />
+      </div>
 
-        <DialogFooter className="gap-2">
-          {currentStep !== 'entry_decision' && currentStep !== 'completion' && (
-            <Button variant="outline" onClick={handlePrevious} disabled={isLoading}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-          )}
-          
-          {currentStep === 'completion' ? (
-            <Button onClick={onClose}>
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Done
-            </Button>
-          ) : (
-            <Button onClick={handleNext} disabled={isLoading || !canGoNext()}>
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <ArrowRight className="h-4 w-4 mr-2" />
-              )}
-              {currentStep === 'financial_validation' ? 'Create' : 
-               currentStep === 'stage_tasks' ? 'Generate Tasks' : 'Next'}
-            </Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      {/* Content */}
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+          <p className="text-muted-foreground">Processing...</p>
+        </div>
+      ) : (
+        renderStepContent()
+      )}
+    </ModalLayout>
   );
 };
