@@ -55,7 +55,7 @@ export const LeadsPage: React.FC = () => {
       const { data, error } = await supabase
         .from('employees')
         .select('id, full_name')
-        .eq('status', 'active')
+        .ilike('status', 'active')
         .order('full_name');
       if (error) throw error;
       return data || [];
