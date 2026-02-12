@@ -1,0 +1,88 @@
+{
+  "moduleId": "settings",
+  "moduleLabel": "Settings",
+  "icon": "Settings",
+  "description": "System Settings & Access Control",
+  "faqs": [
+    {
+      "id": "settings-faq-1",
+      "question": "How do I set up RBAC (Role-Based Access Control)?",
+      "answer": "Go to Settings > Access & Roles. The system comes with default roles: Admin, Partner, Manager, Staff, and Viewer. Each role has predefined permissions for each module (Create, Read, Update, Delete) and a data scope (Own, Team, All). You can customize these permissions or create custom roles. RBAC ensures that users only see and do what their role permits — a Staff member can't access Admin settings, and a Viewer can't modify case data.",
+      "tags": ["RBAC", "roles", "setup", "security"],
+      "level": "beginner",
+      "relatedModule": "access-roles"
+    },
+    {
+      "id": "settings-faq-2",
+      "question": "How do I create a custom role?",
+      "answer": "In Settings > Access & Roles, click 'Create Role'. Name it (e.g., 'Senior Associate'), add a description, and then configure permissions module by module. For each module, set: whether the role can access it, and what CRUD operations are allowed. Set the data scope (Own, Team, All) to control visibility. Custom roles are useful when default roles don't match your firm's hierarchy — for example, a 'Team Lead' who can see team data but not firm-wide financials.",
+      "tags": ["custom-roles", "permissions", "configuration"],
+      "level": "intermediate",
+      "relatedModule": "access-roles"
+    },
+    {
+      "id": "settings-faq-3",
+      "question": "What is the permission matrix and how do I read it?",
+      "answer": "The permission matrix is a grid showing Roles (rows) vs. Modules (columns). Each cell shows what the role can do in that module: C (Create), R (Read), U (Update), D (Delete). A green checkmark means permitted, red X means denied. The matrix gives you an at-a-glance view of your entire access control configuration. Use it to verify that roles are properly restricted and to identify gaps (e.g., a role that can delete cases but shouldn't).",
+      "tags": ["permission-matrix", "RBAC", "visualization"],
+      "level": "intermediate",
+      "relatedModule": "access-roles"
+    },
+    {
+      "id": "settings-faq-4",
+      "question": "What is data scope and how does it work?",
+      "answer": "Data scope determines WHAT data a user can see within modules they have access to. Three levels: 'Own' = only records owned by or assigned to the user. 'Team' = records belonging to the user's team/group. 'All' = every record in the system. Data scope is set per role in the RBAC configuration. It works in combination with permissions — a user needs both the module permission AND the appropriate data scope to see/modify a record.",
+      "tags": ["data-scope", "visibility", "RBAC", "security"],
+      "level": "intermediate",
+      "relatedModule": "access-roles"
+    },
+    {
+      "id": "settings-faq-5",
+      "question": "How does the audit trail work?",
+      "answer": "Every significant action in the system is logged in the audit trail: record creation, updates, deletions, login/logout, permission changes, and data exports. Each log entry records: who performed the action, when, what changed (old value → new value), and from which IP address. Admins can view the audit trail in Settings. This is essential for compliance, dispute resolution ('who changed this case status?'), and security monitoring.",
+      "tags": ["audit-trail", "logging", "compliance", "security"],
+      "level": "intermediate",
+      "relatedModule": "settings"
+    },
+    {
+      "id": "settings-faq-6",
+      "question": "How do I configure notification preferences?",
+      "answer": "In Settings > Notifications (or per-case in the case detail view), configure: Email notifications for SLA breaches, hearing reminders, and task assignments. Choose how far in advance you want reminders (1 day, 3 days, 7 days). You can set firm-wide defaults (Admin) or allow individual users to customize their preferences. Notifications are role-aware — a Partner might want weekly summary emails, while an Advocate wants real-time task alerts.",
+      "tags": ["notifications", "email", "configuration", "preferences"],
+      "level": "beginner",
+      "relatedModule": "settings"
+    },
+    {
+      "id": "settings-faq-7",
+      "question": "How do I add a new user to the system?",
+      "answer": "Go to Settings > Access & Roles (or Masters > Employees). Create an employee record first if one doesn't exist. Then invite the user by email — they'll receive a registration link to set their password. Assign them an RBAC role (Admin, Partner, Manager, Staff, or a custom role). The user can log in once they verify their email. Remember: employee record = person in the firm; user account = system access credentials + role.",
+      "tags": ["users", "onboarding", "invitation", "setup"],
+      "level": "beginner",
+      "relatedModule": "access-roles"
+    },
+    {
+      "id": "settings-faq-8",
+      "question": "Can I temporarily disable a user's access without deleting them?",
+      "answer": "Yes. In Settings > Access & Roles, you can deactivate a user account. This prevents them from logging in while preserving all their associated data (cases they owned, tasks they completed, communications they sent). When the user returns (e.g., from leave), simply reactivate their account. Deactivation is preferable to deletion because it maintains data integrity and audit trail accuracy.",
+      "tags": ["deactivate", "user-management", "access"],
+      "level": "intermediate",
+      "relatedModule": "access-roles"
+    },
+    {
+      "id": "settings-faq-9",
+      "question": "What system settings can an Admin configure?",
+      "answer": "Admins have access to: Firm Profile (name, logo, address for document headers), RBAC Configuration (roles, permissions, data scope), Notification Defaults (email templates, reminder intervals), Calendar Integration (Google Calendar or Outlook sync), Data Management (import/export, storage monitoring), and Feature Flags (enable/disable beta features). System settings affect all users firm-wide, so changes should be made thoughtfully.",
+      "tags": ["admin", "system-settings", "configuration"],
+      "level": "intermediate",
+      "relatedModule": "settings"
+    },
+    {
+      "id": "settings-faq-10",
+      "question": "What is the philosophy behind the Settings section?",
+      "answer": "Settings is designed with the principle of 'configure once, use everywhere'. The RBAC system, notification preferences, and master data configurations you set up here cascade throughout the entire application. Rather than configuring access per-module or per-feature, you define roles and scopes centrally — and they automatically apply to every module. This reduces administrative overhead and ensures consistent security policies. Only Admins have access to Settings to prevent accidental misconfiguration.",
+      "tags": ["philosophy", "design", "centralization"],
+      "level": "advanced",
+      "relatedModule": "settings"
+    }
+  ]
+}

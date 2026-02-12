@@ -1,0 +1,104 @@
+{
+  "moduleId": "masters",
+  "moduleLabel": "Masters",
+  "icon": "Database",
+  "description": "Authorities, Judges, Deadlines & Employees",
+  "faqs": [
+    {
+      "id": "masters-faq-1",
+      "question": "What is the authority hierarchy and why does it matter?",
+      "answer": "The authority hierarchy represents the levels of GST adjudication and appeal: Assessment Officer → Adjudicating Authority → First Appellate Authority → GST Appellate Tribunal → High Court → Supreme Court. Each level is configured in Masters > Authorities with its jurisdiction, bench locations, and officer designations. This hierarchy drives case stage progression — when you advance a case stage, the system knows which authority level comes next and what statutory deadlines apply.",
+      "tags": ["hierarchy", "authorities", "adjudication", "appeal"],
+      "level": "beginner",
+      "relatedModule": "authorities"
+    },
+    {
+      "id": "masters-faq-2",
+      "question": "How do I add a new bench or judge?",
+      "answer": "Go to Masters > Judges and click 'Add Judge'. Enter the judge's name, designation, and the bench/forum they sit at. Link them to an authority (e.g., CESTAT Mumbai Bench). When scheduling hearings, you can select the bench and judge — this creates a searchable record that helps you track which judge handled which cases, useful for understanding judicial tendencies and preparing arguments.",
+      "tags": ["judges", "bench", "setup"],
+      "level": "beginner",
+      "relatedModule": "judges"
+    },
+    {
+      "id": "masters-faq-3",
+      "question": "How are statutory deadlines auto-calculated?",
+      "answer": "Statutory deadlines are defined in Masters > Deadlines as event types with a base date reference and a day count. For example: 'First Appeal Filing' = Order Date + 90 days. When a case triggers an event (e.g., order received), the system calculates the deadline automatically, accounting for the configured day count. The calculated deadline is then tracked as a case SLA. Admins can add custom event types for firm-specific internal deadlines.",
+      "tags": ["deadlines", "auto-calculation", "statutory"],
+      "level": "intermediate",
+      "relatedModule": "deadlines"
+    },
+    {
+      "id": "masters-faq-4",
+      "question": "What is the difference between RBAC roles and Employee Master roles?",
+      "answer": "RBAC roles (configured in Settings > Access & Roles) control what a user CAN DO in the system — which modules they see, what actions they can perform, and what data scope they have. Employee Master roles (in Masters > Employees) describe what a person IS in the firm — Partner, Senior Associate, Junior Advocate, Paralegal, etc. RBAC role 'Manager' might be assigned to both a Senior Associate and a Team Lead, even though their firm designations differ.",
+      "tags": ["RBAC", "roles", "employees", "distinction"],
+      "level": "advanced",
+      "relatedModule": "employees"
+    },
+    {
+      "id": "masters-faq-5",
+      "question": "How do I configure holiday calendars for deadline calculations?",
+      "answer": "Holiday calendars affect statutory deadline calculations — if a deadline falls on a holiday, it may extend to the next working day (depending on the applicable rules). Configure holidays in Masters > Deadlines > Holiday Calendar. Add national holidays, state-specific holidays, and court vacation periods. The deadline calculation engine references this calendar automatically. Keep it updated annually to ensure accurate deadline computation.",
+      "tags": ["holidays", "calendar", "deadlines", "configuration"],
+      "level": "intermediate",
+      "relatedModule": "deadlines"
+    },
+    {
+      "id": "masters-faq-6",
+      "question": "How do I set up a new authority (court/forum)?",
+      "answer": "Go to Masters > Authorities and click 'Add Authority'. Enter the name, code, type (Adjudicating Authority, Appellate Authority, Tribunal, etc.), jurisdiction, state, city, and bench location. If the authority hears matters involving specific tax types, configure that as well. Authorities appear as options when creating cases and scheduling hearings, so accurate setup ensures clean data throughout the system.",
+      "tags": ["authorities", "setup", "configuration"],
+      "level": "beginner",
+      "relatedModule": "authorities"
+    },
+    {
+      "id": "masters-faq-7",
+      "question": "Can I deactivate a master record without deleting it?",
+      "answer": "Yes. All master records (authorities, judges, employees, deadline types) have an 'Active/Inactive' toggle. Deactivating a record hides it from dropdown selections in new records but preserves it in existing data. For example, if a judge retires, deactivate their record — past hearings still show the judge's name, but new hearings won't list them. This maintains data integrity while keeping the interface clean.",
+      "tags": ["deactivate", "archive", "data-integrity"],
+      "level": "intermediate",
+      "relatedModule": "authorities"
+    },
+    {
+      "id": "masters-faq-8",
+      "question": "How do Employee Masters link to system users?",
+      "answer": "An Employee Master record represents a person in your firm with their designation, department, and contact details. When that person is given system access, their Employee record is linked to a User account (with login credentials and RBAC role). Not every employee needs system access — you might have paralegal staff in the Employee Master who don't use the system directly. The separation allows complete HR tracking while controlling system access independently.",
+      "tags": ["employees", "users", "access", "linking"],
+      "level": "intermediate",
+      "relatedModule": "employees"
+    },
+    {
+      "id": "masters-faq-9",
+      "question": "What happens if I edit a statutory deadline type that's already in use?",
+      "answer": "Editing a deadline type (e.g., changing the day count from 90 to 60 days) affects only NEW deadline calculations. Existing case deadlines that were already calculated using the old configuration remain unchanged — the system preserves historical accuracy. If you need to recalculate existing deadlines after a rule change, you'll need to update each case's deadline individually or use the bulk recalculation tool if available.",
+      "tags": ["editing", "historical-data", "recalculation"],
+      "level": "advanced",
+      "relatedModule": "deadlines"
+    },
+    {
+      "id": "masters-faq-10",
+      "question": "Why is this section called 'Masters' and what does it mean?",
+      "answer": "In Indian accounting and legal software, 'Masters' refers to reference data that other transactions depend on. Just as an accounting system has 'Account Masters' and 'Party Masters', this system has Authority Masters, Judge Masters, Employee Masters, and Deadline Masters. These are the foundational building blocks — cases, hearings, and tasks reference these master records. Keeping masters accurate ensures data quality across the entire system.",
+      "tags": ["terminology", "philosophy", "India", "accounting"],
+      "level": "beginner",
+      "relatedModule": "masters"
+    },
+    {
+      "id": "masters-faq-11",
+      "question": "How do I ensure data quality in Master records?",
+      "answer": "Master data quality is critical because it cascades into all operational data. Best practices: (1) Use standardized naming conventions (e.g., 'CESTAT, Mumbai Bench' not 'Mumbai CESTAT'), (2) Fill in all relevant fields including codes and jurisdiction, (3) Regularly review and deactivate obsolete records, (4) Avoid duplicates — search before creating, (5) Assign a 'data steward' (usually Admin or Partner) responsible for master data accuracy.",
+      "tags": ["data-quality", "best-practices", "maintenance"],
+      "level": "advanced",
+      "relatedModule": "masters"
+    },
+    {
+      "id": "masters-faq-12",
+      "question": "Can I import master data in bulk during initial setup?",
+      "answer": "Yes. For initial system setup, use the Import function available in each master module. Download the template, fill in your data (authorities, judges, employees, deadline types), and upload. The system validates each record and flags errors. This is especially useful when migrating from spreadsheets or another system. After initial import, maintain masters through the UI for better data governance.",
+      "tags": ["import", "bulk", "initial-setup", "migration"],
+      "level": "intermediate",
+      "relatedModule": "masters"
+    }
+  ]
+}

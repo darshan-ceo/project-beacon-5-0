@@ -1,0 +1,88 @@
+{
+  "moduleId": "insights",
+  "moduleLabel": "Insights",
+  "icon": "BarChart3",
+  "description": "Reports & Analytics",
+  "faqs": [
+    {
+      "id": "insights-faq-1",
+      "question": "What types of reports are available?",
+      "answer": "The Insights module provides several report categories: Case Summary Reports (case counts by stage, status, client), Financial Exposure Reports (tax demand, penalty, interest across cases), SLA Compliance Reports (deadline adherence rates), Hearing Reports (hearings by period, forum, outcome), Task Productivity Reports (task completion rates by assignee), and Client Portfolio Reports (cases per client, revenue analysis). Each report can be filtered by date range, client, advocate, and other dimensions.",
+      "tags": ["report-types", "categories", "overview"],
+      "level": "beginner",
+      "relatedModule": "reports"
+    },
+    {
+      "id": "insights-faq-2",
+      "question": "How do I filter and customize a report?",
+      "answer": "Every report has a filter panel at the top. Common filters include: Date Range (specific period or preset like 'This Quarter'), Client (single or multiple), Advocate/Assignee, Case Stage, Case Status, and Priority. Apply filters and the report updates in real-time. Your filter selections persist during the session so you can switch between report types without re-applying filters.",
+      "tags": ["filters", "customization", "usage"],
+      "level": "beginner",
+      "relatedModule": "reports"
+    },
+    {
+      "id": "insights-faq-3",
+      "question": "Can I export reports to PDF or Excel?",
+      "answer": "Yes. Every report has an Export button that supports PDF (formatted for printing/sharing) and Excel/CSV (for further analysis). The export includes the current filter state, so what you see on screen is what gets exported. PDF exports include your firm's header and the report title. Excel exports include raw data with headers for easy pivot table creation.",
+      "tags": ["export", "PDF", "Excel", "CSV"],
+      "level": "beginner",
+      "relatedModule": "reports"
+    },
+    {
+      "id": "insights-faq-4",
+      "question": "What is the SLA Compliance Report and why is it important?",
+      "answer": "The SLA Compliance Report shows your firm's deadline adherence rate across all cases. It tracks: how many statutory deadlines were met on time, how many were breached, and the average response time. For a litigation practice, this is a critical quality metric — consistent SLA breaches indicate process gaps that could result in legal disadvantage for clients. Partners use this report to identify systemic issues and improve team performance.",
+      "tags": ["SLA", "compliance", "quality", "management"],
+      "level": "intermediate",
+      "relatedModule": "reports"
+    },
+    {
+      "id": "insights-faq-5",
+      "question": "How do Financial Exposure Reports help Partners?",
+      "answer": "Financial Exposure Reports aggregate tax demand, interest, and penalty amounts across all active cases. They show: total exposure by client, by stage, by financial year, and trend over time. Partners use this to understand the firm's litigation portfolio risk, advise clients on provisioning, and track whether demands are being reduced through successful appeals. It's essentially the financial health view of your litigation practice.",
+      "tags": ["financial", "exposure", "partners", "risk"],
+      "level": "advanced",
+      "relatedModule": "reports"
+    },
+    {
+      "id": "insights-faq-6",
+      "question": "Can I schedule reports to be generated automatically?",
+      "answer": "Scheduled reports are planned for a future release. Currently, you can generate reports on-demand and export them. For recurring reporting needs (e.g., weekly MIS to management), we recommend bookmarking your filter presets and generating the report at your preferred frequency. Automated email delivery of scheduled reports is on the product roadmap.",
+      "tags": ["scheduling", "automation", "roadmap"],
+      "level": "intermediate",
+      "relatedModule": "reports"
+    },
+    {
+      "id": "insights-faq-7",
+      "question": "What is a Task Productivity Report?",
+      "answer": "The Task Productivity Report measures team efficiency: tasks completed vs. assigned, average completion time, overdue task rates, and task distribution across team members. It helps managers identify bottlenecks (who's overloaded), recognize high performers, and balance workload across the team. Filter by date range and assignee to drill into specific periods or individuals.",
+      "tags": ["productivity", "tasks", "team-management"],
+      "level": "intermediate",
+      "relatedModule": "reports"
+    },
+    {
+      "id": "insights-faq-8",
+      "question": "How do I create a custom report?",
+      "answer": "Currently, reports are pre-built with flexible filters. For custom analysis needs, export the data to Excel and use pivot tables or your preferred analytics tool. The system is designed to cover 80% of common reporting needs out of the box. If you find a recurring reporting need that isn't covered, contact your Admin to request it as a feature enhancement.",
+      "tags": ["custom", "advanced", "Excel"],
+      "level": "advanced",
+      "relatedModule": "reports"
+    },
+    {
+      "id": "insights-faq-9",
+      "question": "Who can access which reports?",
+      "answer": "Report access follows RBAC and data scope rules. Partners and Admins can access all reports with firm-wide data. Managers see reports for their team's data. Staff see only their own performance metrics. Financial exposure reports may be restricted to Partners only, depending on your firm's access configuration. This ensures sensitive financial and performance data is visible only to authorized roles.",
+      "tags": ["access", "RBAC", "security"],
+      "level": "intermediate",
+      "relatedModule": "reports"
+    },
+    {
+      "id": "insights-faq-10",
+      "question": "What is the philosophy behind calling this section 'Insights' instead of 'Reports'?",
+      "answer": "Reports are static documents; insights drive decisions. The Insights module is designed not just to show data but to highlight patterns, risks, and opportunities. When you see an SLA compliance rate dropping, that's an insight to investigate staffing. When financial exposure is concentrated in one client, that's an insight about portfolio risk. The name reflects the intent: don't just read numbers — act on what they tell you.",
+      "tags": ["philosophy", "design", "decision-making"],
+      "level": "advanced",
+      "relatedModule": "reports"
+    }
+  ]
+}

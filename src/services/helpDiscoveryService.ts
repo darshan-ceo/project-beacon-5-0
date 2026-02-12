@@ -97,6 +97,7 @@ class HelpDiscoveryService {
         operations,
         masters,
         glossary,
+        faqs,
         uiLocations,
         changelog,
         onboardingPaths
@@ -107,6 +108,7 @@ class HelpDiscoveryService {
         this._loadOperationsHelp(),
         this._loadMastersHelp(),
         this._loadGlossary(),
+        this._loadFAQs(),
         this._loadUILocations(),
         this._loadChangelog(),
         this._loadOnboardingPaths()
@@ -119,7 +121,8 @@ class HelpDiscoveryService {
         ...articles,
         ...operations,
         ...masters,
-        ...glossary
+        ...glossary,
+        ...faqs
       ];
 
       this.uiLocations = uiLocations;
@@ -372,6 +375,37 @@ class HelpDiscoveryService {
     } catch {
       return [];
     }
+  }
+
+  private async _loadFAQs(): Promise<HelpEntry[]> {
+    const moduleFiles = ['overview', 'practice', 'crm', 'insights', 'masters', 'settings'];
+    const entries: HelpEntry[] = [];
+
+    await Promise.all(moduleFiles.map(async (file) => {
+      try {
+        const response = await fetch(`/help/faqs/modules/${file}.json`);
+        if (!response.ok) return;
+        const data = await response.json();
+        (data.faqs || []).forEach((faq: any) => {
+          entries.push({
+            id: `faq-${faq.id}`,
+            title: faq.question,
+            description: faq.answer.slice(0, 200) + (faq.answer.length > 200 ? '...' : ''),
+            source: 'faq',
+            module: data.moduleId,
+            category: 'faq',
+            roles: ['all'],
+            uiLocation: { path: '/help?tab=faqs' },
+            updatedAt: new Date().toISOString(),
+            tags: ['faq', faq.level, ...faq.tags],
+            searchText: `${faq.question} ${faq.answer}`,
+            content: faq.answer
+          });
+        });
+      } catch { /* skip */ }
+    }));
+
+    return entries;
   }
 
   private async _loadUILocations(): Promise<Record<string, any>> {
