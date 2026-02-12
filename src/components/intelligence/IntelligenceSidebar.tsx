@@ -2,13 +2,15 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { 
   FileText, BarChart3, TrendingUp, DollarSign, 
-  Calendar, FolderOpen, AlertTriangle 
+  Calendar, FolderOpen, AlertTriangle, Send, CheckCircle2 
 } from 'lucide-react';
 
 const sections = [
   { id: 'cover', label: 'Cover', icon: FileText },
   { id: 'executive-summary', label: 'Executive Summary', icon: BarChart3 },
   { id: 'lifecycle', label: 'Lifecycle Intelligence', icon: TrendingUp },
+  { id: 'notices-replies', label: 'Notices & Replies', icon: Send },
+  { id: 'stage-closures', label: 'Stage Closures', icon: CheckCircle2 },
   { id: 'financial', label: 'Financial Exposure', icon: DollarSign },
   { id: 'hearings', label: 'Hearings', icon: Calendar },
   { id: 'documents', label: 'Documents', icon: FolderOpen },

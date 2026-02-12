@@ -58,6 +58,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { StageWorkflowTimeline } from '@/components/lifecycle/StageWorkflowTimeline';
 import { StageNoticesPanel } from '@/components/lifecycle/StageNoticesPanel';
 import { StageHearingsPanel } from '@/components/lifecycle/StageHearingsPanel';
+import { StageRepliesPanel } from '@/components/lifecycle/StageRepliesPanel';
 import { StageClosurePanel } from '@/components/lifecycle/StageClosurePanel';
 import { AddNoticeModal } from '@/components/modals/AddNoticeModal';
 import { FileReplyModal } from '@/components/modals/FileReplyModal';
@@ -505,6 +506,13 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
     }) || [];
   }, [selectedCase?.id, effectiveStageInstanceId, state.hearings]);
 
+  // Aggregate all replies across all notices for the reply panel
+  const allRepliesForStage = useMemo(() => {
+    const all: import('@/types/stageWorkflow').StageReply[] = [];
+    noticeReplies.forEach((replies) => { all.push(...replies); });
+    return all;
+  }, [noticeReplies]);
+
   // Handler for navigating to create task
   const handleCreateTask = () => {
     if (selectedCase) {
@@ -896,32 +904,14 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
           )}
 
           {activeStep === 'reply' && (
-            workflowState.notices.filter(n => n.status === 'Reply Pending' || n.status === 'Received').length > 0 
-            ? (
-              <StageNoticesPanel
-                notices={workflowState.notices.filter(n => n.status === 'Reply Pending' || n.status === 'Received')}
-                stageInstanceId={effectiveStageInstanceId}
-                caseId={selectedCase.id}
-                onAddNotice={handleAddNotice}
-                onEditNotice={handleEditNotice}
-                onDeleteNotice={handleDeleteNotice}
-                onViewNotice={handleViewNotice}
-                onFileReply={handleFileReply}
-                onCloseNotice={handleCloseNotice}
-                onScheduleHearing={() => { const idx = lifecycleStages.findIndex(s => s.id === normalizeStage(selectedCase?.currentStage)); setDefaultHearingType(idx === 0 ? 'Personal Hearing' : 'General'); setShowHearingModal(true); }}
-                noticeReplies={noticeReplies}
-                onLoadReplies={loadRepliesForNotice}
-                isReadOnly={isViewingHistorical}
-              />
-            ) : (
-              <Card className="border-dashed">
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  <ArrowRight className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm font-medium">No notices awaiting reply</p>
-                  <p className="text-xs mt-1">Add a notice first, then file replies</p>
-                </CardContent>
-              </Card>
-            )
+            <StageRepliesPanel
+              replies={allRepliesForStage}
+              notices={workflowState.notices}
+              stageInstanceId={effectiveStageInstanceId}
+              caseId={selectedCase.id}
+              onFileReply={handleFileReply}
+              isReadOnly={isViewingHistorical}
+            />
           )}
 
           {activeStep === 'hearings' && (

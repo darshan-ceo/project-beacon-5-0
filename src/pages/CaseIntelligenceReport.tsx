@@ -15,6 +15,8 @@ import { IntelligenceSidebar } from '@/components/intelligence/IntelligenceSideb
 import { IntelligenceCover } from '@/components/intelligence/IntelligenceCover';
 import { ExecutiveSummary } from '@/components/intelligence/ExecutiveSummary';
 import { LifecycleIntelligence } from '@/components/intelligence/LifecycleIntelligence';
+import { NoticesRepliesSummary } from '@/components/intelligence/NoticesRepliesSummary';
+import { StageClosureSummary } from '@/components/intelligence/StageClosureSummary';
 import { FinancialExposure } from '@/components/intelligence/FinancialExposure';
 import { HearingsSummary } from '@/components/intelligence/HearingsSummary';
 import { DocumentIndex } from '@/components/intelligence/DocumentIndex';
@@ -145,6 +147,8 @@ const CaseIntelligenceReport: React.FC = () => {
           <IntelligenceCover data={data} />
           <ExecutiveSummary data={data} />
           <LifecycleIntelligence data={data} />
+          <NoticesRepliesSummary notices={data.notices} replies={data.replies} />
+          <StageClosureSummary closures={data.closures} />
           <FinancialExposure financial={data.financial} />
           <HearingsSummary hearings={data.hearings} />
           <DocumentIndex documents={data.documents} />
