@@ -49,6 +49,7 @@ import {
   AlertCircle,
   Activity,
   Eye,
+  Edit,
   RotateCw
 } from 'lucide-react';
 import { HelpButton } from '@/components/ui/help-button';
@@ -158,6 +159,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   const [viewingStageInstanceId, setViewingStageInstanceId] = useState<string | null>(null);
   const [viewingStageKey, setViewingStageKey] = useState<string | null>(null);
   const [isViewingHistorical, setIsViewingHistorical] = useState(false);
+  const [isEditingHistorical, setIsEditingHistorical] = useState(false);
 
   // Helper function to format dates safely
   const formatDate = (dateStr?: string | null): string => {
@@ -272,6 +274,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
     setViewingStageInstanceId(null);
     setViewingStageKey(null);
     setIsViewingHistorical(false);
+    setIsEditingHistorical(false);
   }, [selectedCase?.id, selectedCase?.currentStage]);
 
   // Effective IDs: use viewing context if set, otherwise active instance
@@ -305,6 +308,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
       setViewingStageInstanceId(targetInstance.id);
       setViewingStageKey(targetInstance.stage_key);
       setIsViewingHistorical(!isActive);
+      setIsEditingHistorical(false);
     } catch (err) {
       console.error('[CaseLifecycleFlow] Error fetching stage instances:', err);
     }
@@ -315,6 +319,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
     setViewingStageInstanceId(null);
     setViewingStageKey(null);
     setIsViewingHistorical(false);
+    setIsEditingHistorical(false);
   }, []);
 
   // Stage Workflow hook
@@ -850,17 +855,30 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
           <div className="flex items-center gap-2">
             <Info className="h-4 w-4 text-warning flex-shrink-0" />
             <span className="text-sm font-medium">
-              Viewing: {viewingStageKey} (Historical)
+              Viewing: {viewingStageKey} (Historical){isEditingHistorical ? ' — Edit Mode' : ''}
             </span>
             <span className="text-xs text-muted-foreground">|</span>
             <span className="text-xs text-muted-foreground">
               Current Stage: {selectedCase.currentStage}
             </span>
           </div>
-          <Button size="sm" variant="outline" onClick={handleReturnToCurrent} className="h-7 text-xs">
-            <RotateCw className="h-3 w-3 mr-1" />
-            Return to Current Stage
-          </Button>
+          <div className="flex items-center gap-2">
+            {!isEditingHistorical ? (
+              <Button size="sm" variant="outline" onClick={() => setIsEditingHistorical(true)} className="h-7 text-xs">
+                <Edit className="h-3 w-3 mr-1" />
+                Edit Stage
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" onClick={() => setIsEditingHistorical(false)} className="h-7 text-xs">
+                <Eye className="h-3 w-3 mr-1" />
+                Cancel Edit
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={handleReturnToCurrent} className="h-7 text-xs">
+              <RotateCw className="h-3 w-3 mr-1" />
+              Return to Current Stage
+            </Button>
+          </div>
         </motion.div>
       )}
 
@@ -881,7 +899,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
             activeStep={activeStep}
             onStepClick={setActiveStep}
             isLoading={false}
-            isReadOnly={isViewingHistorical}
+            isReadOnly={isViewingHistorical && !isEditingHistorical}
           />
 
           {/* Active Step Panel */}
@@ -899,7 +917,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
               onScheduleHearing={() => { const idx = lifecycleStages.findIndex(s => s.id === normalizeStage(selectedCase?.currentStage)); setDefaultHearingType(idx === 0 ? 'Personal Hearing' : 'General'); setShowHearingModal(true); }}
               noticeReplies={noticeReplies}
               onLoadReplies={loadRepliesForNotice}
-              isReadOnly={isViewingHistorical}
+              isReadOnly={isViewingHistorical && !isEditingHistorical}
             />
           )}
 
@@ -910,7 +928,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
               stageInstanceId={effectiveStageInstanceId}
               caseId={selectedCase.id}
               onFileReply={handleFileReply}
-              isReadOnly={isViewingHistorical}
+              isReadOnly={isViewingHistorical && !isEditingHistorical}
             />
           )}
 
@@ -923,7 +941,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
               onViewHearing={(hearing) => { setViewingHearing(hearing); setHearingModalMode('view'); setShowHearingModal(true); }}
               onRecordOutcome={(hearing) => { setViewingHearing(hearing); setHearingModalMode('edit'); setShowHearingModal(true); }}
               onAdjournHearing={(hearing) => { setViewingHearing(hearing); setHearingModalMode('edit'); setShowHearingModal(true); }}
-              isReadOnly={isViewingHistorical}
+              isReadOnly={isViewingHistorical && !isEditingHistorical}
             />
           )}
 
@@ -937,7 +955,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
               onCloseStage={handleCloseStage}
               isSaving={isSavingClosure}
               isClosing={isClosingStage}
-              isReadOnly={isViewingHistorical}
+              isReadOnly={isViewingHistorical && !isEditingHistorical}
             />
           )}
         </motion.div>
