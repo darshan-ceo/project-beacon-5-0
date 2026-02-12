@@ -1,136 +1,108 @@
 
 
-# Module-wise FAQ Section in Help & Knowledge Center
+# Fix Google Calendar Sync: Auto Token Refresh + Setup Guide
 
-## Overview
+## Problem
+Google Calendar OAuth access tokens expire after ~1 hour. The edge function has a `TODO: Implement token refresh logic here` placeholder that was never completed. This causes all calendar syncs to fail with "Not Synced" after initial connection.
 
-Add a dedicated **FAQ tab** to the Help & Knowledge Center page that organizes frequently asked questions by module (aligned with the sidebar: Overview, Practice, CRM, Insights, Masters, Settings). Each module will have 10-15 curated FAQs covering beginner to advanced usage, ensuring users understand both the "how" and the "why" behind each feature.
+## Root Cause (Line 507 of manage-secrets/index.ts)
+```
+// TODO: Implement token refresh logic here
+return Response({ error: 'Token expired', code: 'TOKEN_EXPIRED' }, 401)
+```
 
-## What Gets Built
+## Solution: 4 File Changes
 
-### 1. FAQ Data Files (JSON) -- one per module
+### 1. Edge Function: Implement Token Refresh (`supabase/functions/manage-secrets/index.ts`)
 
-Create 6 new JSON FAQ files under `public/help/faqs/modules/`:
+Replace the TODO block (lines 505-512) with full refresh logic:
+- When token is expired, use stored `refresh_token` + `client_id` + `client_secret` to call Google's `https://oauth2.googleapis.com/token` endpoint (or Microsoft's equivalent)
+- On success: save the refreshed tokens back to database, return fresh access token
+- On failure: update `calendar_integrations.connection_status` to `'expired'`, return `TOKEN_REFRESH_FAILED` error code
+- Supports both Google and Outlook providers
 
-| File | Module | FAQ Count | Coverage |
-|------|--------|-----------|----------|
-| `overview.json` | Dashboard & Compliance | 12 | KPIs, SLA tracking, compliance health, filters, export, daily routine |
-| `practice.json` | Cases, Hearings, Tasks, Documents | 15 | Case lifecycle, stage transitions, hearing prep, task automation, document templates, notice intake, DRC forms |
-| `crm.json` | Clients, Contacts, Inquiries | 12 | GSTIN autofill, client groups, contact roles, inquiry pipeline, portal access, communication tracking |
-| `insights.json` | Reports | 10 | Report types, filters, scheduled reports, export formats, SLA reports, custom reports |
-| `masters.json` | Authorities, Judges, Deadlines, Employees | 12 | Authority hierarchy, judge bench setup, statutory deadline calculation, employee-role mapping, data quality |
-| `settings.json` | System Settings & Access/Roles | 10 | RBAC setup, custom roles, permission matrix, data scope, audit trail, notification config |
+### 2. Save Client Credentials with Tokens (`src/pages/OAuthCallback.tsx`)
 
-**Total: ~71 FAQs** across all modules.
+On line 92, expand the `saveTokens` call to include `client_id` and `client_secret` from sessionStorage so they're persisted server-side for future refresh calls:
+```typescript
+await integrationsService.saveTokens(storageProvider, {
+  access_token, refresh_token, expires_at, user_email,
+  client_id: storedClientId,       // NEW
+  client_secret: storedClientSecret, // NEW
+  tenant_id: storedTenant,          // NEW (Microsoft only)
+});
+```
 
-### 2. FAQ Display Component
+### 3. Expand Token Type (`src/services/integrationsService.ts`)
 
-Create `src/components/help/ModuleFAQSection.tsx`:
-- Accordion-based FAQ display (using existing Radix Accordion component)
-- Module selector tabs/cards at the top (icons matching sidebar)
-- Search/filter within FAQs
-- Tags on each FAQ for quick scanning
-- "Was this helpful?" feedback (optional, UI-only for now)
+Update the `saveTokens` method signature (line 135) to accept the new fields:
+- `client_id?: string`
+- `client_secret?: string`
+- `tenant_id?: string`
 
-### 3. Integration into Help Center
+### 4. Handle Refresh Failure in Provider (`src/services/calendar/googleCalendarProvider.ts`)
 
-Add a new **"FAQs"** tab to the existing Help Center page (`src/pages/HelpCenter.tsx`) alongside Discover, What's New, Get Started, Modules, and Glossary.
+Update `getValidAccessToken()` to detect `TOKEN_REFRESH_FAILED` error code and show a specific "please reconnect" message instead of a generic error.
 
-### 4. Search Integration
+---
 
-Register FAQ entries in the help discovery service (`src/services/helpDiscoveryService.ts`) so FAQs appear in the unified Discover search results.
+## What Users Need to Do (Google Calendar Side)
 
-## Sample FAQs (Philosophy-Aligned)
+For the auto-refresh to work, your Google Cloud Console OAuth app must be configured correctly:
 
-**Practice Module -- Cases:**
-1. What is the case lifecycle and why does it matter?
-2. How do I create a case from a GST notice (DRC-01)?
-3. What is the difference between case stages and case status?
-4. How does SLA tracking work and what triggers a breach?
-5. Can I merge or link related cases?
-6. How do I advance a case stage and what auto-tasks are created?
-7. What documents are auto-required at each stage?
-8. How does the AI Case Assistant help during case work?
-9. What is the "From Notice" auto-fill and OCR feature?
-10. How do I track tax demand vs. recovery across cases?
+### Google Cloud Console Setup Checklist
 
-**CRM Module:**
-1. How does GSTIN autofill work and what data does it fetch?
-2. What is the difference between a Client and a Contact?
-3. How do I organize clients into groups?
-4. Can a client have multiple GSTINs?
-5. How do I grant portal access to a client?
-6. What is the inquiry pipeline and how do leads convert to clients?
-7. How are communications (Email/WhatsApp) linked to clients?
-8. What data scope rules apply to client visibility?
-9. How do I bulk-import client data?
-10. What happens when a client's GST registration is cancelled?
+1. **Go to** [Google Cloud Console > APIs & Credentials](https://console.cloud.google.com/apis/credentials)
 
-**Masters Module:**
-1. What is the authority hierarchy (Adjudication > First Appeal > Tribunal > HC > SC)?
-2. How do I add a new bench or judge?
-3. How are statutory deadlines auto-calculated?
-4. What is the difference between RBAC roles and Employee Master roles?
-5. How do I configure holiday calendars for deadline calculations?
+2. **Enable Google Calendar API**:
+   - Go to "APIs & Services" > "Library"
+   - Search "Google Calendar API" and click **Enable**
 
-(Full set of ~71 FAQs will be written in the JSON files.)
+3. **OAuth Consent Screen**:
+   - Type: **External** (or Internal for Workspace orgs)
+   - App name: Your firm name (e.g., "ABC Legal - Case Management")
+   - Scopes: Add `https://www.googleapis.com/auth/calendar` and `https://www.googleapis.com/auth/calendar.events`
+   - Add your domain under "Authorized domains"
 
-## Technical Details
+4. **OAuth 2.0 Client ID**:
+   - Application type: **Web application**
+   - Authorized redirect URI: `https://project-beacon-5-0.lovable.app/oauth/callback`
+   - Copy the **Client ID** and **Client Secret**
 
-### New Files
-| File | Purpose |
-|------|---------|
-| `public/help/faqs/modules/overview.json` | Dashboard & Compliance FAQs |
-| `public/help/faqs/modules/practice.json` | Cases, Hearings, Tasks, Documents FAQs |
-| `public/help/faqs/modules/crm.json` | Clients, Contacts, Inquiries FAQs |
-| `public/help/faqs/modules/insights.json` | Reports FAQs |
-| `public/help/faqs/modules/masters.json` | Masters FAQs |
-| `public/help/faqs/modules/settings.json` | Settings & RBAC FAQs |
-| `src/components/help/ModuleFAQSection.tsx` | FAQ display component with accordion + module tabs |
+5. **Important**: If the app is in "Testing" mode, add your Google account email under "Test users". For production, submit for verification.
 
-### Modified Files
+6. **Ensure `access_type=offline`**: This is already handled in the app's OAuth flow -- it requests `access_type=offline` which triggers Google to issue a `refresh_token`.
+
+### Application Side Setup
+
+1. Go to **Settings > Integrations > Calendar Integration**
+2. Select **Google Calendar** as provider
+3. Paste your **Client ID** and **Client Secret** from Google Cloud Console
+4. Click **Connect** -- you'll be redirected to Google to authorize
+5. After authorization, the system stores credentials securely (encrypted) including the refresh token
+6. Hearings will now sync automatically and tokens refresh silently in the background
+
+### If Currently Broken (Existing Users)
+
+Since existing saved tokens don't have `client_id`/`client_secret` stored alongside them, existing users must **reconnect once**:
+1. Go to Settings > Integrations
+2. Click **Disconnect** on Google Calendar
+3. Re-enter Client ID and Client Secret
+4. Click **Connect** again
+5. From this point forward, tokens will auto-refresh indefinitely
+
+## Files Modified
+
 | File | Change |
 |------|--------|
-| `src/pages/HelpCenter.tsx` | Add "FAQs" tab (6th tab) with ModuleFAQSection component |
-| `src/services/helpDiscoveryService.ts` | Index FAQ entries so they appear in Discover search |
+| `supabase/functions/manage-secrets/index.ts` | Replace TODO with full Google/Outlook token refresh logic (~120 new lines) |
+| `src/pages/OAuthCallback.tsx` | Include client_id, client_secret when saving tokens |
+| `src/services/integrationsService.ts` | Expand saveTokens type signature |
+| `src/services/calendar/googleCalendarProvider.ts` | Handle TOKEN_REFRESH_FAILED error specifically |
 
-### JSON Structure per FAQ file:
-```json
-{
-  "moduleId": "practice",
-  "moduleLabel": "Practice",
-  "icon": "Briefcase",
-  "description": "Cases, Hearings, Tasks & Documents",
-  "faqs": [
-    {
-      "id": "practice-faq-1",
-      "question": "What is the case lifecycle and why does it matter?",
-      "answer": "The case lifecycle represents...",
-      "tags": ["lifecycle", "stages", "beginner"],
-      "level": "beginner",
-      "relatedModule": "cases"
-    }
-  ]
-}
-```
+## Result
 
-### Component Structure:
-```text
-ModuleFAQSection
-  +-- Module selector (6 icon cards, one per sidebar section)
-  +-- Search input (filters within selected module)
-  +-- FAQ count badge
-  +-- Accordion
-       +-- AccordionItem (per FAQ)
-            +-- Question (trigger)
-            +-- Answer + tags + level badge (content)
-```
-
-## User Experience
-
-- New users: Browse beginner-tagged FAQs to understand each module's purpose
-- Advanced users: Search or filter by tags to find specific answers
-- All FAQs are written from the perspective of a GST litigation practitioner in India
-- Answers reference the correct navigation paths (e.g., "Go to Practice > Cases > New Case")
-- FAQ content explains the "why" (design philosophy) not just the "how"
+- Tokens auto-refresh silently -- no user intervention needed after initial setup
+- If refresh fails (e.g., user revoked access in Google), status updates to "expired" and user sees clear reconnect message
+- Existing users need one-time reconnection to store client credentials server-side
 
