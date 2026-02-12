@@ -21,7 +21,9 @@ import {
   Save,
   ArrowRight,
   XCircle,
-  Info
+  Info,
+  Edit,
+  Eye
 } from 'lucide-react';
 import { ClosureStatus, StageClosureFormData, INITIAL_CLOSURE_FORM, EMPTY_TAX_BREAKDOWN } from '@/types/stageClosureDetails';
 import { stageClosureDetailsService } from '@/services/stageClosureDetailsService';
@@ -77,11 +79,15 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
   const [form, setForm] = useState<StageClosureFormData>({ ...INITIAL_CLOSURE_FORM });
   const [taxExpanded, setTaxExpanded] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [hasExistingData, setHasExistingData] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Reset form when stage instance changes
   useEffect(() => {
     setForm({ ...INITIAL_CLOSURE_FORM });
     setLoaded(false);
+    setHasExistingData(false);
+    setIsEditMode(false);
   }, [stageInstanceId]);
 
   // Load existing draft
@@ -104,6 +110,11 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
           penalty_applicable: true,
           closure_notes: existing.closure_notes || ''
         });
+        setHasExistingData(true);
+        setIsEditMode(false); // Default to view mode for existing data
+      } else {
+        setHasExistingData(false);
+        setIsEditMode(true); // New closure starts in edit mode
       }
       setLoaded(true);
     })();
@@ -154,16 +165,37 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
     );
   }, [form]);
 
+  const fieldsDisabled = isReadOnly || !isEditMode;
+
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 text-primary" />
-          Stage Closure
-        </CardTitle>
-        <CardDescription>
-          Close the {stageKey} stage with a closure outcome and order details
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              Stage Closure
+            </CardTitle>
+            <CardDescription>
+              Close the {stageKey} stage with a closure outcome and order details
+            </CardDescription>
+          </div>
+          {/* Edit/View toggle for existing data */}
+          {hasExistingData && !isReadOnly && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsEditMode(!isEditMode)}
+              className="h-7 text-xs"
+            >
+              {isEditMode ? (
+                <><Eye className="h-3 w-3 mr-1" /> View Mode</>
+              ) : (
+                <><Edit className="h-3 w-3 mr-1" /> Edit</>
+              )}
+            </Button>
+          )}
+        </div>
       </CardHeader>
       
       <CardContent className="space-y-5">
@@ -197,6 +229,7 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
               <Select
                 value={form.closure_status}
                 onValueChange={(v) => updateField('closure_status', v as ClosureStatus)}
+                disabled={fieldsDisabled}
               >
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Select status..." />
@@ -226,6 +259,7 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
                 onChange={(e) => updateField('closure_ref_no', e.target.value)}
                 placeholder="e.g., ORD/2026/001"
                 className="h-9"
+                disabled={fieldsDisabled}
               />
             </div>
 
@@ -238,6 +272,7 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
                 value={form.closure_date}
                 onChange={(e) => updateField('closure_date', e.target.value)}
                 className="h-9"
+                disabled={fieldsDisabled}
               />
             </div>
 
@@ -250,6 +285,7 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
                 onChange={(e) => updateField('issuing_authority', e.target.value)}
                 placeholder="Authority name"
                 className="h-9"
+                disabled={fieldsDisabled}
               />
             </div>
 
@@ -262,6 +298,7 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
                 onChange={(e) => updateField('officer_name', e.target.value)}
                 placeholder="Officer name"
                 className="h-9"
+                disabled={fieldsDisabled}
               />
             </div>
 
@@ -274,6 +311,7 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
                 onChange={(e) => updateField('officer_designation', e.target.value)}
                 placeholder="e.g., Joint Commissioner"
                 className="h-9"
+                disabled={fieldsDisabled}
               />
             </div>
           </div>
@@ -299,7 +337,7 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
             <div className="flex items-center justify-between">
               <Label className="text-xs">Final Tax Amount</Label>
               <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" disabled={isFullyDropped}>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" disabled={isFullyDropped || fieldsDisabled}>
                   <ChevronDown className={cn("h-3 w-3 mr-1 transition-transform", taxExpanded && "rotate-180")} />
                   {taxExpanded ? 'Collapse' : 'Expand'} Breakdown
                 </Button>
@@ -318,7 +356,7 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
                       min={0}
                       value={form.final_tax_amount[field] || ''}
                       onChange={(e) => updateTax(field, parseFloat(e.target.value) || 0)}
-                      disabled={isFullyDropped}
+                      disabled={isFullyDropped || fieldsDisabled}
                       className="h-8 text-xs"
                       placeholder="0"
                     />
@@ -337,7 +375,7 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
                 min={0}
                 value={form.interest_applicable ? (form.final_interest_amount || '') : ''}
                 onChange={(e) => updateField('final_interest_amount', parseFloat(e.target.value) || 0)}
-                disabled={isFullyDropped || !form.interest_applicable}
+                disabled={isFullyDropped || !form.interest_applicable || fieldsDisabled}
                 className="h-9"
                 placeholder="0"
               />
@@ -350,7 +388,7 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
                   updateField('interest_applicable', !!v);
                   if (!v) updateField('final_interest_amount', 0);
                 }}
-                disabled={isFullyDropped}
+                disabled={isFullyDropped || fieldsDisabled}
               />
               <Label htmlFor="interest_applicable" className="text-[10px] text-muted-foreground">Applicable</Label>
             </div>
@@ -365,7 +403,7 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
                 min={0}
                 value={form.penalty_applicable ? (form.final_penalty_amount || '') : ''}
                 onChange={(e) => updateField('final_penalty_amount', parseFloat(e.target.value) || 0)}
-                disabled={isFullyDropped || !form.penalty_applicable}
+                disabled={isFullyDropped || !form.penalty_applicable || fieldsDisabled}
                 className="h-9"
                 placeholder="0"
               />
@@ -378,7 +416,7 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
                   updateField('penalty_applicable', !!v);
                   if (!v) updateField('final_penalty_amount', 0);
                 }}
-                disabled={isFullyDropped}
+                disabled={isFullyDropped || fieldsDisabled}
               />
               <Label htmlFor="penalty_applicable" className="text-[10px] text-muted-foreground">Applicable</Label>
             </div>
@@ -404,11 +442,12 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
             value={form.closure_notes}
             onChange={(e) => updateField('closure_notes', e.target.value)}
             rows={2}
+            disabled={fieldsDisabled}
           />
         </div>
 
         {/* Footer: Two Buttons */}
-        {!isReadOnly && (
+        {!isReadOnly && isEditMode && (
           <div className="flex gap-3">
             <Button
               variant="outline"

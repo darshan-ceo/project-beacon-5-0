@@ -384,6 +384,31 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
     }
   }, [selectedCase, stageInstanceId, navigate]);
 
+  // Handle editing an existing reply
+  const handleEditReply = useCallback((reply: import('@/types/stageWorkflow').StageReply) => {
+    const stageIndex = lifecycleStages.findIndex(
+      s => s.id === normalizeStage(effectiveStageKey)
+    );
+    if (stageIndex >= 2 && selectedCase) {
+      // Appeal stage: navigate to structured reply page in edit mode
+      navigate(`/cases/${selectedCase.id}/reply/edit?replyId=${reply.id}&noticeId=${reply.notice_id}&stageInstanceId=${effectiveStageInstanceId}`);
+    } else {
+      // Pre-appeal: open FileReplyModal with existing reply data
+      const linkedNotice = workflowState?.notices.find(n => n.id === reply.notice_id);
+      if (linkedNotice) {
+        setSelectedNotice(linkedNotice);
+        setShowFileReplyModal(true);
+      }
+    }
+  }, [selectedCase, effectiveStageKey, effectiveStageInstanceId, navigate, workflowState]);
+
+  // Handle editing an existing hearing
+  const handleEditHearing = useCallback((hearing: any) => {
+    setViewingHearing(hearing);
+    setHearingModalMode('edit');
+    setShowHearingModal(true);
+  }, []);
+
   const handleCloseNotice = useCallback((notice: StageNotice) => {
     setClosingNotice(notice);
   }, []);
@@ -928,6 +953,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
               stageInstanceId={effectiveStageInstanceId}
               caseId={selectedCase.id}
               onFileReply={handleFileReply}
+              onEditReply={handleEditReply}
               isReadOnly={isViewingHistorical && !isEditingHistorical}
             />
           )}
@@ -940,6 +966,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
               onScheduleHearing={() => { const idx = lifecycleStages.findIndex(s => s.id === normalizeStage(selectedCase?.currentStage)); setDefaultHearingType(idx === 0 ? 'Personal Hearing' : 'General'); setViewingHearing(null); setHearingModalMode('create'); setShowHearingModal(true); }}
               onViewHearing={(hearing) => { setViewingHearing(hearing); setHearingModalMode('view'); setShowHearingModal(true); }}
               onRecordOutcome={(hearing) => { setViewingHearing(hearing); setHearingModalMode('edit'); setShowHearingModal(true); }}
+              onEditHearing={handleEditHearing}
               onAdjournHearing={(hearing) => { setViewingHearing(hearing); setHearingModalMode('edit'); setShowHearingModal(true); }}
               isReadOnly={isViewingHistorical && !isEditingHistorical}
             />

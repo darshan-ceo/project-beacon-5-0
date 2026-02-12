@@ -15,6 +15,7 @@ import {
 import { StageReply, StageNotice } from '@/types/stageWorkflow';
 import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Edit, Eye } from 'lucide-react';
 
 interface StageRepliesPanelProps {
   replies: StageReply[];
@@ -22,6 +23,8 @@ interface StageRepliesPanelProps {
   stageInstanceId: string | null;
   caseId: string;
   onFileReply: (notice: StageNotice) => void;
+  onEditReply?: (reply: StageReply) => void;
+  onViewReply?: (reply: StageReply) => void;
   isReadOnly?: boolean;
 }
 
@@ -67,6 +70,8 @@ export const StageRepliesPanel: React.FC<StageRepliesPanelProps> = ({
   stageInstanceId,
   caseId,
   onFileReply,
+  onEditReply,
+  onViewReply,
   isReadOnly = false
 }) => {
   // Build notice lookup for reference display
@@ -173,6 +178,31 @@ export const StageRepliesPanel: React.FC<StageRepliesPanelProps> = ({
                             <FileText className="h-3 w-3" />
                             {reply.documents.length} document(s) attached
                           </div>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {!isReadOnly && onEditReply && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onEditReply(reply)}
+                            className="h-7 text-xs"
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Edit
+                          </Button>
+                        )}
+                        {onViewReply && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => onViewReply(reply)}
+                            className="h-7 w-7"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                         )}
                       </div>
                     </div>
