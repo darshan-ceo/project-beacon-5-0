@@ -9,6 +9,7 @@ import { envConfig } from '@/utils/envConfig';
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { searchService } from '@/services/searchService';
+import { supabase } from '@/integrations/supabase/client';
 import { generateSampleContent } from '@/utils/fileTypeUtils';
 import { loadAppState, saveAppState } from '@/data/storageShim';
 
@@ -90,20 +91,23 @@ export const AppWithPersistence: React.FC<AppWithPersistenceProps> = ({ children
           }
         }
         
-        // Perform health check
-        const health = await storageManager.healthCheck();
-        
-        if (!health.healthy) {
-          console.warn('⚠️ Storage health check warnings:', health.errors);
+        // Only perform health check if user is authenticated
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const health = await storageManager.healthCheck();
           
-          // Show warning toast but don't block app
-          toast({
-            title: "Storage Warning",
-            description: health.errors[0] || "Some storage features may not work correctly",
-            variant: "default"
-          });
+          if (!health.healthy) {
+            console.warn('⚠️ Storage health check warnings:', health.errors);
+            toast({
+              title: "Storage Warning",
+              description: health.errors[0] || "Some storage features may not work correctly",
+              variant: "default"
+            });
+          } else {
+            console.log('✅ Storage health check passed');
+          }
         } else {
-          console.log('✅ Storage health check passed');
+          console.log('⏭️ Skipping storage health check - user not authenticated yet');
         }
 
         // Initialize search service
