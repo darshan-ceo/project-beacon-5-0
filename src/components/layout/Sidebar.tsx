@@ -23,9 +23,7 @@ import {
   ShieldCheck,
   Briefcase,
   Activity,
-  Folder,
   LineChart,
-  LifeBuoy,
   Wrench,
   Lock,
   Target
@@ -78,44 +76,45 @@ interface SidebarSection {
 }
 
 // =============================================================================
-// SIDEBAR SECTIONS - Organized by lawyer's mental workflow:
-// Monitor → Act → Execute → Reference → Control
+// SIDEBAR SECTIONS - GST Litigation CRM Optimized:
+// Overview → Practice → CRM → Insights → Masters → Settings
 // =============================================================================
 
 const sidebarSections: SidebarSection[] = [
-  // SECTION 1: MONITOR (Daily Awareness)
+  // SECTION 1: OVERVIEW (Daily Snapshot)
   {
-    id: 'monitor',
-    label: 'MONITOR',
+    id: 'overview',
+    label: 'OVERVIEW',
     icon: Activity,
     defaultOpen: true,
     collapsible: false,
     roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'],
     items: [
       { icon: BarChart3, label: 'Dashboard', href: '/', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'dashboard-nav' },
-      { icon: ShieldCheck, label: 'Compliance Dashboard', href: '/compliance', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'compliance-nav' },
+      { icon: ShieldCheck, label: 'Compliance', href: '/compliance', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'compliance-nav' },
     ]
   },
   
-  // SECTION 2: LITIGATION (Core Workflow)
+  // SECTION 2: PRACTICE (Core Litigation Workflow)
   {
-    id: 'litigation',
-    label: 'LITIGATION',
+    id: 'practice',
+    label: 'PRACTICE',
     icon: Briefcase,
     defaultOpen: true,
     collapsible: false,
-    roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'],
+    roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca', 'Client'],
     items: [
-      { icon: FileText, label: 'Case Management', href: '/cases', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'cases-nav' },
+      { icon: FileText, label: 'Cases', href: '/cases', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'cases-nav' },
       { icon: CalendarDays, label: 'Hearings', href: '/hearings/calendar', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'hearings-nav' },
-      { icon: CheckSquare, label: 'Task Management', href: '/tasks', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'tasks-nav' },
+      { icon: CheckSquare, label: 'Tasks', href: '/tasks', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'], tourId: 'tasks-nav' },
+      { icon: FolderOpen, label: 'Documents', href: '/documents', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca', 'Client'], tourId: 'documents-nav' },
     ]
   },
   
-  // SECTION 3: CLIENTS (Relationship Layer)
+  // SECTION 3: CRM (Client Relationship Pipeline)
   {
-    id: 'clients',
-    label: 'CLIENTS',
+    id: 'crm',
+    label: 'CRM',
     icon: Users,
     defaultOpen: true,
     collapsible: true,
@@ -124,27 +123,13 @@ const sidebarSections: SidebarSection[] = [
       { icon: Users, label: 'Clients', href: '/clients', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'] },
       { icon: UserCircle, label: 'Contacts', href: '/contacts', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'] },
       { icon: Target, label: 'Inquiries', href: '/leads', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca'] },
-      
     ]
   },
   
-  // SECTION 4: DOCUMENTS (Evidence & Records)
+  // SECTION 4: INSIGHTS (Analytics & Reports)
   {
-    id: 'documents',
-    label: 'DOCUMENTS',
-    icon: Folder,
-    defaultOpen: true,
-    collapsible: false,
-    roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca', 'Client'],
-    items: [
-      { icon: FolderOpen, label: 'Document Management', href: '/documents', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Advocate', 'Manager', 'Ca', 'Client'], tourId: 'documents-nav' },
-    ]
-  },
-  
-  // SECTION 5: ANALYTICS - All operational roles included; actual access controlled by RBAC + Module Access
-  {
-    id: 'analytics',
-    label: 'ANALYTICS',
+    id: 'insights',
+    label: 'INSIGHTS',
     icon: LineChart,
     defaultOpen: false,
     collapsible: true,
@@ -154,40 +139,26 @@ const sidebarSections: SidebarSection[] = [
     ]
   },
   
-  // SECTION 6: SUPPORT
+  // SECTION 5: MASTERS (Reference & Configuration Data)
   {
-    id: 'support',
-    label: 'SUPPORT',
-    icon: LifeBuoy,
-    defaultOpen: false,
-    collapsible: true,
-    roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca', 'Clerk', 'User'],
-    items: [
-      { icon: HelpCircle, label: 'Help & Knowledge Base', href: '/help', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca', 'Clerk', 'User'], tourId: 'help-nav' },
-      { icon: UserCircle, label: 'User Profile', href: '/profile', roles: ['Admin', 'Partner', 'Partner/CA', 'Staff', 'Client', 'Advocate', 'Manager', 'Ca', 'Clerk', 'User'], tourId: 'profile-nav' },
-    ]
-  },
-  
-  // SECTION 7: CONFIGURATION (Collapsed by Default) - Admin/Partner/Advocate per RBSA
-  {
-    id: 'configuration',
-    label: 'CONFIGURATION',
+    id: 'masters',
+    label: 'MASTERS',
     icon: Wrench,
     defaultOpen: false,
     collapsible: true,
     roles: ['Admin', 'Partner', 'Partner/CA', 'Ca', 'Advocate', 'Staff', 'Manager'],
     items: [
-      { icon: Building2, label: 'Legal Authorities', href: '/courts', roles: ['Admin', 'Partner', 'Partner/CA', 'Ca', 'Advocate', 'Staff', 'Manager'] },
-      { icon: Gavel, label: 'Judge Masters', href: '/judges', roles: ['Admin', 'Partner', 'Partner/CA', 'Ca', 'Advocate', 'Staff', 'Manager'] },
-      { icon: UserCheck, label: 'Employee Masters', href: '/employees', roles: ['Admin'] },
-      { icon: Scale, label: 'Statutory Deadlines', href: '/statutory-acts', roles: ['Admin', 'Partner', 'Partner/CA', 'Ca', 'Manager'] },
+      { icon: Building2, label: 'Authorities', href: '/courts', roles: ['Admin', 'Partner', 'Partner/CA', 'Ca', 'Advocate', 'Staff', 'Manager'] },
+      { icon: Gavel, label: 'Judges', href: '/judges', roles: ['Admin', 'Partner', 'Partner/CA', 'Ca', 'Advocate', 'Staff', 'Manager'] },
+      { icon: Scale, label: 'Deadlines', href: '/statutory-acts', roles: ['Admin', 'Partner', 'Partner/CA', 'Ca', 'Manager'] },
+      { icon: UserCheck, label: 'Employees', href: '/employees', roles: ['Admin'] },
     ]
   },
   
-  // SECTION 8: ADMINISTRATION
+  // SECTION 6: SETTINGS (Admin only)
   {
-    id: 'administration',
-    label: 'ADMINISTRATION',
+    id: 'settings',
+    label: 'SETTINGS',
     icon: Lock,
     defaultOpen: false,
     collapsible: true,
@@ -328,7 +299,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
   // 3. Legacy role array (only for admin-only sections: ADMINISTRATION, DEVELOPER)
   const filteredSections = useMemo(() => {
     // Admin-only sections where legacy role check is strictly enforced
-    const adminOnlySections = ['administration', 'developer'];
+    const adminOnlySections = ['settings', 'developer'];
     
     return allSections
       .filter(section => {
@@ -504,31 +475,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
               {filteredSections.length > 0 ? (
                 filteredSections.map(renderSection)
               ) : (
-                /* Fallback: If no sections visible, show at least Support section */
+                /* Fallback: If no sections visible, show message */
                 <SidebarGroup>
-                  <SidebarGroupLabel className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider px-3 py-2">
-                    {open ? 'SUPPORT' : <LifeBuoy className="h-4 w-4 mx-auto" />}
-                  </SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild className="nav-hover" tooltip="Help & Knowledge Base">
-                          <NavLink to="/help">
-                            <HelpCircle className="h-5 w-5" />
-                            {open && <span className="truncate">Help & Knowledge Base</span>}
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild className="nav-hover" tooltip="User Profile">
-                          <NavLink to="/profile">
-                            <UserCircle className="h-5 w-5" />
-                            {open && <span className="truncate">User Profile</span>}
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    </SidebarMenu>
-                  </SidebarGroupContent>
                   <div className="px-3 py-2 text-xs text-sidebar-foreground/40">
                     {open && "No modules assigned. Contact administrator."}
                   </div>
@@ -541,6 +489,46 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ userRole }) => {
         {/* Footer with Theme Toggle and Environment Status */}
         <SidebarFooter className="border-t border-sidebar-border">
           <div className="p-2 space-y-2">
+            {/* Help & Profile - Always accessible */}
+            <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <NavLink to="/help">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "gap-2 text-sidebar-foreground hover:bg-sidebar-accent",
+                        open ? "flex-1 justify-start" : "w-full justify-center"
+                      )}
+                    >
+                      <HelpCircle className="h-4 w-4" />
+                      {open && <span>Help</span>}
+                    </Button>
+                  </NavLink>
+                </TooltipTrigger>
+                <TooltipContent side="right">Help & Knowledge Base</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <NavLink to="/profile">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "gap-2 text-sidebar-foreground hover:bg-sidebar-accent",
+                        open ? "flex-1 justify-start" : "w-full justify-center"
+                      )}
+                    >
+                      <UserCircle className="h-4 w-4" />
+                      {open && <span>Profile</span>}
+                    </Button>
+                  </NavLink>
+                </TooltipTrigger>
+                <TooltipContent side="right">User Profile</TooltipContent>
+              </Tooltip>
+            </div>
+
             {/* Sidebar Theme Toggle */}
             <Tooltip>
               <TooltipTrigger asChild>

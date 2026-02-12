@@ -7,40 +7,37 @@
 import { useCallback, useMemo, useContext } from 'react';
 import { useAppState } from '@/contexts/AppStateContext';
 
-// Module name to sidebar route mapping
-// Module name to sidebar route mapping - aligned with new section-based structure
+// Module name to sidebar route mapping - aligned with GST Litigation CRM sections
 const MODULE_ROUTE_MAPPING: Record<string, string[]> = {
-  // MONITOR section
+  // OVERVIEW section
   'Dashboard': ['/'],
-  'Compliance Dashboard': ['/compliance'],
+  'Compliance': ['/compliance'],
   
-  // LITIGATION section
-  'Case Management': ['/cases'],
+  // PRACTICE section
+  'Cases': ['/cases'],
   'Hearings': ['/hearings', '/hearings/calendar'],
-  'Task Management': ['/tasks'],
+  'Tasks': ['/tasks'],
+  'Documents': ['/documents'],
   
-  // CLIENTS section
+  // CRM section
   'Clients': ['/clients'],
   'Contacts': ['/contacts'],
   'Client Groups': ['/client-groups'],
   
-  // DOCUMENTS section
-  'Document Management': ['/documents'],
-  
-  // ANALYTICS section
+  // INSIGHTS section
   'Reports': ['/reports'],
   
-  // SUPPORT section
+  // Footer (always accessible)
   'Help & Knowledge Base': ['/help'],
   'User Profile': ['/profile'],
   
-  // CONFIGURATION section (Admin/Partner only)
-  'Legal Authorities': ['/courts'],
-  'Judge Masters': ['/judges'],
-  'Employee Masters': ['/employees'],
-  'Statutory Deadlines': ['/statutory-acts'],
+  // MASTERS section
+  'Authorities': ['/courts'],
+  'Judges': ['/judges'],
+  'Employees': ['/employees'],
+  'Deadlines': ['/statutory-acts'],
   
-  // ADMINISTRATION section
+  // SETTINGS section
   'System Settings': ['/settings'],
   'Access & Roles': ['/access-roles'],
   
