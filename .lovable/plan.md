@@ -1,87 +1,136 @@
 
 
-# Simplify Sidebar: GST Litigation CRM Optimized Grouping
+# Module-wise FAQ Section in Help & Knowledge Center
 
-## Current State (Too Many Sections)
+## Overview
 
-| # | Current Section | Items |
-|---|----------------|-------|
-| 1 | MONITOR | Dashboard, Compliance Dashboard |
-| 2 | LITIGATION | Case Management, Hearings, Task Management |
-| 3 | CLIENTS | Clients, Contacts, Inquiries |
-| 4 | DOCUMENTS | Document Management |
-| 5 | ANALYTICS | Reports |
-| 6 | SUPPORT | Help & Knowledge Base, User Profile |
-| 7 | CONFIGURATION | Legal Authorities, Judge Masters, Employee Masters, Statutory Deadlines |
-| 8 | ADMINISTRATION | System Settings, Access & Roles |
-| 9 | DEVELOPER | Dev Mode Dashboard, QA Dashboard, GST Debug |
+Add a dedicated **FAQ tab** to the Help & Knowledge Center page that organizes frequently asked questions by module (aligned with the sidebar: Overview, Practice, CRM, Insights, Masters, Settings). Each module will have 10-15 curated FAQs covering beginner to advanced usage, ensuring users understand both the "how" and the "why" behind each feature.
 
-**Problems**: 9 sections, some with only 1 item, generic naming not aligned with legal practice workflow.
+## What Gets Built
 
-## Proposed Structure (5 Sections for Regular Users)
+### 1. FAQ Data Files (JSON) -- one per module
 
-| # | New Section | Items | Rationale |
-|---|------------|-------|-----------|
-| 1 | OVERVIEW | Dashboard, Compliance | Quick daily snapshot -- no section collapse needed |
-| 2 | PRACTICE | Cases, Hearings, Tasks, Documents | Core litigation workflow in one group |
-| 3 | CRM | Clients, Contacts, Inquiries | Client relationship pipeline |
-| 4 | INSIGHTS | Reports | Analytics rebranded for legal context |
-| 5 | MASTERS | Legal Authorities, Judges, Statutory Deadlines, Employees | All reference/config data under one label lawyers understand |
-| 6 | SETTINGS (Admin only) | System Settings, Access & Roles | Merged Administration into simpler name |
-| -- | Help & Profile | Moved to sidebar footer (icon-only area) | Always accessible, doesn't need a section |
-| -- | DEVELOPER (conditional) | Unchanged | Only visible when env flags are on |
+Create 6 new JSON FAQ files under `public/help/faqs/modules/`:
 
-**Key changes:**
-- 9 sections reduced to 5-6 (depending on role)
-- "LITIGATION" + "DOCUMENTS" merged into "PRACTICE" (lawyers think of documents as part of case work)
-- "CONFIGURATION" renamed to "MASTERS" (familiar term in Indian legal/accounting software)
-- "SUPPORT" section eliminated -- Help and Profile moved to footer icons
-- "ADMINISTRATION" renamed to "SETTINGS"
-- Shorter, domain-aligned section names
+| File | Module | FAQ Count | Coverage |
+|------|--------|-----------|----------|
+| `overview.json` | Dashboard & Compliance | 12 | KPIs, SLA tracking, compliance health, filters, export, daily routine |
+| `practice.json` | Cases, Hearings, Tasks, Documents | 15 | Case lifecycle, stage transitions, hearing prep, task automation, document templates, notice intake, DRC forms |
+| `crm.json` | Clients, Contacts, Inquiries | 12 | GSTIN autofill, client groups, contact roles, inquiry pipeline, portal access, communication tracking |
+| `insights.json` | Reports | 10 | Report types, filters, scheduled reports, export formats, SLA reports, custom reports |
+| `masters.json` | Authorities, Judges, Deadlines, Employees | 12 | Authority hierarchy, judge bench setup, statutory deadline calculation, employee-role mapping, data quality |
+| `settings.json` | System Settings & Access/Roles | 10 | RBAC setup, custom roles, permission matrix, data scope, audit trail, notification config |
 
-## What Changes
+**Total: ~71 FAQs** across all modules.
 
-### File: `src/components/layout/Sidebar.tsx`
+### 2. FAQ Display Component
 
-1. **Restructure `sidebarSections` array** -- consolidate from 8 sections to 5:
-   - OVERVIEW (Dashboard + Compliance)
-   - PRACTICE (Cases + Hearings + Tasks + Documents)
-   - CRM (Clients + Contacts + Inquiries)
-   - INSIGHTS (Reports) -- collapsed by default, single item
-   - MASTERS (Legal Authorities + Judges + Statutory Deadlines + Employees) -- collapsed by default
+Create `src/components/help/ModuleFAQSection.tsx`:
+- Accordion-based FAQ display (using existing Radix Accordion component)
+- Module selector tabs/cards at the top (icons matching sidebar)
+- Search/filter within FAQs
+- Tags on each FAQ for quick scanning
+- "Was this helpful?" feedback (optional, UI-only for now)
 
-2. **Rename ADMINISTRATION to SETTINGS** and keep it admin-only
+### 3. Integration into Help Center
 
-3. **Move Help and Profile to sidebar footer** as icon buttons (always visible, no section needed)
+Add a new **"FAQs"** tab to the existing Help Center page (`src/pages/HelpCenter.tsx`) alongside Discover, What's New, Get Started, Modules, and Glossary.
 
-4. **Shorten item labels**:
-   - "Case Management" becomes "Cases"
-   - "Task Management" becomes "Tasks"
-   - "Document Management" becomes "Documents"
-   - "Help & Knowledge Base" becomes Help icon in footer
-   - "Legal Authorities" becomes "Authorities"
-   - "Employee Masters" becomes "Employees"
-   - "Statutory Deadlines" becomes "Deadlines"
+### 4. Search Integration
 
-### File: `src/hooks/useModuleAccess.ts`
+Register FAQ entries in the help discovery service (`src/services/helpDiscoveryService.ts`) so FAQs appear in the unified Discover search results.
 
-Update `MODULE_ROUTE_MAPPING` keys to match new section naming (cosmetic -- existing route paths unchanged).
+## Sample FAQs (Philosophy-Aligned)
 
-### File: `src/hooks/useModulePermissions.ts`
+**Practice Module -- Cases:**
+1. What is the case lifecycle and why does it matter?
+2. How do I create a case from a GST notice (DRC-01)?
+3. What is the difference between case stages and case status?
+4. How does SLA tracking work and what triggers a breach?
+5. Can I merge or link related cases?
+6. How do I advance a case stage and what auto-tasks are created?
+7. What documents are auto-required at each stage?
+8. How does the AI Case Assistant help during case work?
+9. What is the "From Notice" auto-fill and OCR feature?
+10. How do I track tax demand vs. recovery across cases?
 
-No changes needed -- route-to-RBAC mappings use paths, not section labels.
+**CRM Module:**
+1. How does GSTIN autofill work and what data does it fetch?
+2. What is the difference between a Client and a Contact?
+3. How do I organize clients into groups?
+4. Can a client have multiple GSTINs?
+5. How do I grant portal access to a client?
+6. What is the inquiry pipeline and how do leads convert to clients?
+7. How are communications (Email/WhatsApp) linked to clients?
+8. What data scope rules apply to client visibility?
+9. How do I bulk-import client data?
+10. What happens when a client's GST registration is cancelled?
 
-## Result
+**Masters Module:**
+1. What is the authority hierarchy (Adjudication > First Appeal > Tribunal > HC > SC)?
+2. How do I add a new bench or judge?
+3. How are statutory deadlines auto-calculated?
+4. What is the difference between RBAC roles and Employee Master roles?
+5. How do I configure holiday calendars for deadline calculations?
 
-- Sidebar scrolls less, feels focused
-- Section names match how GST litigation practitioners think
-- Help/Profile always accessible in footer without wasting a section
-- All routes and RBAC logic remain intact -- only visual reorganization
+(Full set of ~71 FAQs will be written in the JSON files.)
 
-## Files to Modify
+## Technical Details
 
+### New Files
+| File | Purpose |
+|------|---------|
+| `public/help/faqs/modules/overview.json` | Dashboard & Compliance FAQs |
+| `public/help/faqs/modules/practice.json` | Cases, Hearings, Tasks, Documents FAQs |
+| `public/help/faqs/modules/crm.json` | Clients, Contacts, Inquiries FAQs |
+| `public/help/faqs/modules/insights.json` | Reports FAQs |
+| `public/help/faqs/modules/masters.json` | Masters FAQs |
+| `public/help/faqs/modules/settings.json` | Settings & RBAC FAQs |
+| `src/components/help/ModuleFAQSection.tsx` | FAQ display component with accordion + module tabs |
+
+### Modified Files
 | File | Change |
 |------|--------|
-| `src/components/layout/Sidebar.tsx` | Restructure sections, shorten labels, move Help/Profile to footer |
-| `src/hooks/useModuleAccess.ts` | Update section display names in mapping comments |
+| `src/pages/HelpCenter.tsx` | Add "FAQs" tab (6th tab) with ModuleFAQSection component |
+| `src/services/helpDiscoveryService.ts` | Index FAQ entries so they appear in Discover search |
+
+### JSON Structure per FAQ file:
+```json
+{
+  "moduleId": "practice",
+  "moduleLabel": "Practice",
+  "icon": "Briefcase",
+  "description": "Cases, Hearings, Tasks & Documents",
+  "faqs": [
+    {
+      "id": "practice-faq-1",
+      "question": "What is the case lifecycle and why does it matter?",
+      "answer": "The case lifecycle represents...",
+      "tags": ["lifecycle", "stages", "beginner"],
+      "level": "beginner",
+      "relatedModule": "cases"
+    }
+  ]
+}
+```
+
+### Component Structure:
+```text
+ModuleFAQSection
+  +-- Module selector (6 icon cards, one per sidebar section)
+  +-- Search input (filters within selected module)
+  +-- FAQ count badge
+  +-- Accordion
+       +-- AccordionItem (per FAQ)
+            +-- Question (trigger)
+            +-- Answer + tags + level badge (content)
+```
+
+## User Experience
+
+- New users: Browse beginner-tagged FAQs to understand each module's purpose
+- Advanced users: Search or filter by tags to find specific answers
+- All FAQs are written from the perspective of a GST litigation practitioner in India
+- Answers reference the correct navigation paths (e.g., "Go to Practice > Cases > New Case")
+- FAQ content explains the "why" (design philosophy) not just the "how"
 
