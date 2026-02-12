@@ -193,7 +193,7 @@ const StructuredReplyPage: React.FC = () => {
       });
 
       if (status === 'Filed') {
-        navigate(-1);
+        navigate(`/cases?caseId=${caseId}&tab=lifecycle`);
       }
     } catch (error) {
       console.error('Failed to save structured reply:', error);
@@ -234,13 +234,13 @@ const StructuredReplyPage: React.FC = () => {
   return (
     <FullPageForm
       isOpen={true}
-      onClose={() => navigate(-1)}
+      onClose={() => navigate(`/cases?caseId=${caseId}&tab=lifecycle`)}
       title="Structured Reply"
       description={`${caseData?.case_number || ''} — ${stageName} Stage`}
       icon={<FileText className="h-5 w-5" />}
       footer={
         <div className="flex items-center justify-between px-6 py-4">
-          <Button variant="outline" onClick={() => navigate(-1)} disabled={saving}>
+          <Button variant="outline" onClick={() => navigate(`/cases?caseId=${caseId}&tab=lifecycle`)} disabled={saving}>
             Cancel
           </Button>
           <div className="flex gap-3">
