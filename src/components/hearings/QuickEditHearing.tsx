@@ -36,28 +36,7 @@ export const QuickEditHearing: React.FC<QuickEditHearingProps> = ({
     setIsSubmitting(true);
     
     try {
-      // Validate date is not in the past
-      // Only validate when the date has been changed from the original
-      const selectedLocalDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-      const todayLocalDate = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
-      
-      // Get the original hearing date for comparison
-      const originalHearingDate = new Date(currentDate);
-      const originalLocalDate = new Date(originalHearingDate.getFullYear(), originalHearingDate.getMonth(), originalHearingDate.getDate());
-      
-      // Skip past date validation if the date hasn't been changed
-      // Only block if changing the date to a past date
-      const isDateChanged = selectedLocalDate.getTime() !== originalLocalDate.getTime();
-      
-      if (selectedLocalDate < todayLocalDate && isDateChanged) {
-        toast({
-          title: "Validation Error",
-          description: "Hearing date cannot be in the past",
-          variant: "destructive"
-        });
-        setIsSubmitting(false);
-        return;
-      }
+      // Past date validation removed to allow historical hearing data entry
 
       // Normalize and validate time format
       let normalizedTime = time.trim();
