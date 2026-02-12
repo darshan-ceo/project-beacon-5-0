@@ -289,29 +289,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         }
       }
 
-      // Only validate for new hearings OR when the date has been changed during edit
-      const selectedLocalDate = new Date(formData.date.getFullYear(), formData.date.getMonth(), formData.date.getDate());
-      const todayLocalDate = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
-
-      // Get the original hearing date for comparison
-      const originalHearingDate = hearingData ? new Date(hearingData.date) : null;
-      const originalLocalDate = originalHearingDate 
-        ? new Date(originalHearingDate.getFullYear(), originalHearingDate.getMonth(), originalHearingDate.getDate())
-        : null;
-
-      // Skip past date validation if we're in edit mode AND the date hasn't been changed
-      // Only block if: creating new hearing with past date OR changing existing date to a past date
-      const isDateChanged = !originalLocalDate || selectedLocalDate.getTime() !== originalLocalDate.getTime();
-
-      if (selectedLocalDate < todayLocalDate && (mode === 'create' || isDateChanged)) {
-        toast({
-          title: "Validation Error",
-          description: "Hearing date cannot be in the past",
-          variant: "destructive"
-        });
-        setIsSubmitting(false);
-        return;
-      }
+      // Past date validation removed to allow historical hearing data entry
 
       // Phase 1: Normalize and validate time format (accept both 12h and 24h)
       let normalizedTime = formData.time.trim();
