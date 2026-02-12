@@ -141,6 +141,19 @@ export function useStageWorkflow({
       if (!activeStep && state.currentStep) {
         setActiveStep(state.currentStep);
       }
+
+      // Auto-load replies for all notices so the Reply panel has data immediately
+      if (state.notices && state.notices.length > 0) {
+        const replyPromises = state.notices.map(n => 
+          stageRepliesService.getRepliesByNotice(n.id).then(replies => ({ noticeId: n.id, replies }))
+        );
+        const allReplies = await Promise.all(replyPromises);
+        setNoticeReplies(prev => {
+          const newMap = new Map(prev);
+          allReplies.forEach(({ noticeId, replies }) => newMap.set(noticeId, replies));
+          return newMap;
+        });
+      }
     } catch (err) {
       console.error('[useStageWorkflow] Failed to load workflow:', err);
       setError('Failed to load workflow state');

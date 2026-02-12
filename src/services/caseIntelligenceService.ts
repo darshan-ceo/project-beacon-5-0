@@ -34,6 +34,7 @@ export interface IntelligenceData {
   tasks: TaskData[];
   documents: DocumentData[];
   replies: ReplyData[];
+  closures: ClosureData[];
   analytics: ComputedAnalytics;
   risk: RiskAssessment;
   financial: FinancialSummary;
@@ -113,6 +114,14 @@ export interface ReplyData {
   status: string;
 }
 
+export interface ClosureData {
+  stageKey: string;
+  outcome: string;
+  orderNumber: string | null;
+  orderDate: string | null;
+  totalDemand: number | null;
+}
+
 export interface ComputedAnalytics {
   daysInCurrentStage: number;
   totalLifecycleDuration: number;
@@ -179,9 +188,10 @@ export async function fetchCaseIntelligence(caseId: string): Promise<Intelligenc
     supabase.from('documents').select('id, file_name, category, upload_timestamp, created_at, document_status').eq('case_id', caseId),
     (supabase.from('stage_replies' as any).select('*').eq('case_id', caseId)) as any,
     supabase.from('profiles').select('full_name').eq('id', user.id).single(),
+    (supabase.from('stage_closure_details' as any).select('*, stage_instances!inner(stage_key)').eq('case_id', caseId)) as any,
   ] as const;
   const results = await Promise.all(fetchAll) as any[];
-  const [instancesResult, transitionsResult, noticesResult, hearingsResult, tasksResult, documentsResult, repliesResult, profileResult] = results;
+  const [instancesResult, transitionsResult, noticesResult, hearingsResult, tasksResult, documentsResult, repliesResult, profileResult, closuresResult] = results;
 
   if (caseResult.error || !caseResult.data) throw new Error('Case not found');
 
@@ -193,6 +203,7 @@ export async function fetchCaseIntelligence(caseId: string): Promise<Intelligenc
   const tasks = (tasksResult.data || []) as any[];
   const documents = (documentsResult.data || []) as any[];
   const replies = (repliesResult.data || []) as any[];
+  const closuresRaw = (closuresResult?.data || []) as any[];
 
   // Resolve assignee names for tasks
   const assigneeIds = [...new Set(tasks.map(t => t.assigned_to).filter(Boolean))];
@@ -306,8 +317,16 @@ export async function fetchCaseIntelligence(caseId: string): Promise<Intelligenc
     id: r.id,
     noticeId: r.notice_id,
     filingMode: r.filing_mode,
-    filedDate: r.filed_date,
-    status: r.status || 'Draft',
+    filedDate: r.filed_date || r.reply_date,
+    status: r.filing_status || r.status || 'Draft',
+  }));
+
+  const mappedClosures: ClosureData[] = closuresRaw.map((c: any) => ({
+    stageKey: c.stage_instances?.stage_key || '—',
+    outcome: c.closure_status || '—',
+    orderNumber: c.closure_ref_no || null,
+    orderDate: c.closure_date || null,
+    totalDemand: c.final_total_demand || null,
   }));
 
   // ─── Compute Analytics ───
@@ -378,6 +397,7 @@ export async function fetchCaseIntelligence(caseId: string): Promise<Intelligenc
     tasks: mappedTasks,
     documents: mappedDocuments,
     replies: mappedReplies,
+    closures: mappedClosures,
     analytics,
     risk,
     financial,
