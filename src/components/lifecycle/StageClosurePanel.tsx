@@ -78,6 +78,12 @@ export const StageClosurePanel: React.FC<StageClosurePanelProps> = ({
   const [taxExpanded, setTaxExpanded] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
+  // Reset form when stage instance changes
+  useEffect(() => {
+    setForm({ ...INITIAL_CLOSURE_FORM });
+    setLoaded(false);
+  }, [stageInstanceId]);
+
   // Load existing draft
   useEffect(() => {
     if (!stageInstanceId || loaded) return;
