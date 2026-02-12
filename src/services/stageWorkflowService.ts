@@ -278,9 +278,9 @@ class StageWorkflowService {
         this.getHearingsCount(stageInstanceId, caseId)
       ]);
 
-      // Get replies count
+      // Get replies count scoped to this stage instance
       const repliesCount = notices.length > 0 
-        ? await stageRepliesService.getRepliesCountByCase(caseId)
+        ? await stageRepliesService.getRepliesCountByStageInstance(stageInstanceId)
         : 0;
 
       // Determine current step
@@ -371,7 +371,7 @@ class StageWorkflowService {
       ]);
 
       const repliesCount = notices.length > 0 
-        ? await stageRepliesService.getRepliesCountByCase(caseId)
+        ? await stageRepliesService.getRepliesCountByStageInstance(stageInstanceId)
         : 0;
 
       const completedSteps = steps.filter(s => s.status === 'Completed' || s.status === 'Skipped').length;
@@ -458,17 +458,6 @@ class StageWorkflowService {
         .eq('stage_instance_id', stageInstanceId);
 
       if (error) throw error;
-
-      // If no hearings linked to stage, fall back to case-level count
-      if (count === 0) {
-        const result = await supabase
-          .from('hearings')
-          .select('*', { count: 'exact', head: true })
-          .eq('case_id', caseId)
-          .is('stage_instance_id', null);
-
-        count = result.count;
-      }
 
       return count || 0;
     } catch (error) {

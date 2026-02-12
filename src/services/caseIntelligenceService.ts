@@ -272,17 +272,21 @@ export async function fetchCaseIntelligence(caseId: string): Promise<Intelligenc
     };
   });
 
-  const mappedNotices: NoticeData[] = notices.map(n => ({
-    id: n.id,
-    noticeNo: n.notice_no,
-    noticeDate: n.notice_date,
-    stageKey: n.stage_key,
-    status: n.status || 'Active',
-    amountDemanded: n.amount_demanded,
-    taxAmount: n.tax_amount,
-    penaltyAmount: n.penalty_amount,
-    interestAmount: n.interest_amount,
-  }));
+  const mappedNotices: NoticeData[] = notices.map(n => {
+    // Resolve stageKey from stage_instance_id via the instances array
+    const linkedInstance = instances.find((i: any) => i.id === n.stage_instance_id);
+    return {
+      id: n.id,
+      noticeNo: n.notice_number || n.notice_no || null,
+      noticeDate: n.notice_date,
+      stageKey: linkedInstance?.stage_key || null,
+      status: n.status || 'Active',
+      amountDemanded: n.amount_demanded,
+      taxAmount: n.tax_amount,
+      penaltyAmount: n.penalty_amount,
+      interestAmount: n.interest_amount,
+    };
+  });
 
   const mappedHearings: HearingData[] = hearings.map(h => ({
     id: h.id,

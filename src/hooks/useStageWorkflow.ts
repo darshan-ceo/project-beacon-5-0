@@ -69,6 +69,14 @@ export function useStageWorkflow({
   
   const isFeatureEnabled = featureFlagService.isEnabled('stage_workflow_v1');
 
+  // Clear state when stage instance changes to prevent cross-stage data bleed
+  useEffect(() => {
+    setWorkflowState(null);
+    setActiveStep(null);
+    setNoticeReplies(new Map());
+    resolveAttempted.current = false;
+  }, [externalStageInstanceId]);
+
   // Auto-resolve stageInstanceId from caseId if missing
   useEffect(() => {
     if (externalStageInstanceId) {

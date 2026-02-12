@@ -82,6 +82,25 @@ class StageRepliesService {
   }
 
   /**
+   * Get replies count for a specific stage instance (stage-scoped)
+   */
+  async getRepliesCountByStageInstance(stageInstanceId: string): Promise<number> {
+    try {
+      const { count, error } = await supabase
+        .from('stage_replies')
+        .select('*', { count: 'exact', head: true })
+        .eq('stage_instance_id', stageInstanceId);
+
+      if (error) throw error;
+
+      return count || 0;
+    } catch (error) {
+      console.error('[StageRepliesService] Failed to count replies by stage instance:', error);
+      return 0;
+    }
+  }
+
+  /**
    * Get a single reply by ID
    */
   async getReply(id: string): Promise<StageReply | null> {
