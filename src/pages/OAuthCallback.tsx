@@ -94,6 +94,9 @@ export const OAuthCallback = () => {
           refresh_token: result.refresh_token,
           expires_at: result.expires_at,
           user_email: result.user_email,
+          client_id: storedClientId,
+          client_secret: storedClientSecret,
+          tenant_id: detectedProvider === 'microsoft' ? storedTenant : undefined,
         });
 
         // Clean up session storage

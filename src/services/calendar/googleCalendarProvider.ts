@@ -13,6 +13,11 @@ class GoogleCalendarProvider implements CalendarProvider {
     });
 
     if (error || !data?.access_token) {
+      // Check for TOKEN_REFRESH_FAILED to give a specific message
+      const errorCode = data?.code || '';
+      if (errorCode === 'TOKEN_REFRESH_FAILED') {
+        throw new Error('Your Google Calendar access has expired and could not be refreshed automatically. Please go to Settings > Integrations and reconnect your Google account.');
+      }
       throw new Error('No Google access token found. Please reconnect your Google account.');
     }
 
