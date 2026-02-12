@@ -502,13 +502,88 @@ Deno.serve(async (req) => {
           const decryptedTokens = await decrypt(tokenData.setting_value.encrypted)
           const tokens = JSON.parse(decryptedTokens)
 
-          // Check if token is expired
+          // Check if token is expired — attempt auto-refresh
           if (tokens.expires_at && Date.now() > tokens.expires_at) {
-            // TODO: Implement token refresh logic here
-            return new Response(
-              JSON.stringify({ error: 'Token expired', code: 'TOKEN_EXPIRED' }),
-              { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            )
+            if (!tokens.refresh_token || !tokens.client_id || !tokens.client_secret) {
+              return new Response(
+                JSON.stringify({ error: 'Token expired and no refresh credentials available. Please reconnect your calendar.', code: 'TOKEN_REFRESH_FAILED' }),
+                { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
+
+            // Determine refresh endpoint based on provider
+            let refreshUrl: string
+            const refreshParams: Record<string, string> = {
+              client_id: tokens.client_id,
+              client_secret: tokens.client_secret,
+              refresh_token: tokens.refresh_token,
+              grant_type: 'refresh_token',
+            }
+
+            if (provider === 'google') {
+              refreshUrl = 'https://oauth2.googleapis.com/token'
+            } else {
+              // Microsoft / Outlook
+              const msTenant = tokens.tenant_id || 'common'
+              refreshUrl = `https://login.microsoftonline.com/${msTenant}/oauth2/v2.0/token`
+              refreshParams.scope = 'https://graph.microsoft.com/.default offline_access'
+            }
+
+            try {
+              const refreshResponse = await fetch(refreshUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams(refreshParams).toString(),
+              })
+
+              if (!refreshResponse.ok) {
+                const errBody = await refreshResponse.text()
+                console.error('[manage-secrets] Token refresh failed:', errBody)
+
+                // Mark connection as expired
+                await supabaseAdmin
+                  .from('calendar_integrations')
+                  .update({ connection_status: 'expired', updated_at: new Date().toISOString() })
+                  .eq('tenant_id', tenantId)
+
+                return new Response(
+                  JSON.stringify({ error: 'Token refresh failed. Please reconnect your calendar.', code: 'TOKEN_REFRESH_FAILED' }),
+                  { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                )
+              }
+
+              const refreshedTokens = await refreshResponse.json()
+
+              // Merge — Google doesn't always return a new refresh_token
+              const updatedTokens = {
+                ...tokens,
+                access_token: refreshedTokens.access_token,
+                expires_at: Date.now() + ((refreshedTokens.expires_in || 3600) * 1000),
+              }
+              if (refreshedTokens.refresh_token) {
+                updatedTokens.refresh_token = refreshedTokens.refresh_token
+              }
+
+              // Persist refreshed tokens
+              const encryptedUpdated = await encrypt(JSON.stringify(updatedTokens))
+              await supabaseAdmin
+                .from('system_settings')
+                .update({ setting_value: { encrypted: encryptedUpdated }, updated_at: new Date().toISOString() })
+                .eq('setting_key', `secret:${tenantId}:calendar_${provider}_tokens`)
+
+              console.log('[manage-secrets] Token refreshed successfully for', provider)
+
+              return new Response(
+                JSON.stringify({ success: true, access_token: updatedTokens.access_token, expires_at: updatedTokens.expires_at }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            } catch (refreshError) {
+              console.error('[manage-secrets] Token refresh error:', refreshError)
+              return new Response(
+                JSON.stringify({ error: 'Token refresh failed unexpectedly', code: 'TOKEN_REFRESH_FAILED' }),
+                { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
           }
 
           return new Response(

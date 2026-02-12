@@ -150,6 +150,9 @@ class IntegrationsService {
     refresh_token?: string;
     expires_at?: number;
     user_email?: string;
+    client_id?: string;
+    client_secret?: string;
+    tenant_id?: string;
   }): Promise<void> {
     try {
       const { error } = await supabase.functions.invoke('manage-secrets/save-calendar-tokens', {
