@@ -1,44 +1,61 @@
 
 
-# Fix Reply Data Leaking Across Stages
+# Fix Reply Save Redirect + Add View/Edit Mode for Closed Stages
 
-## Problem
-Replies added under one stage (e.g., Adjudication) also appear under other stages (e.g., Assessment). All other modules (Notices, Hearings, Closures) work correctly because they are filtered by `stage_instance_id`.
+## Issue 1: Reply Save Redirects to Case Management Dashboard
 
-## Root Cause
-In `useStageWorkflow.ts` (lines 153-163), the `refresh` function loads replies using `getRepliesByNotice(noticeId)` for each notice. This method queries by `notice_id` only and does NOT filter by `stage_instance_id`. If a reply was saved without a proper `stage_instance_id`, or if there is any data linkage issue, replies from other stages leak through.
+### Root Cause
+In `src/pages/StructuredReplyPage.tsx` (line 196), after filing a reply, `navigate(-1)` is called. Since the Structured Reply page is navigated to via a full route (`/cases/:caseId/reply/edit`), `navigate(-1)` goes back in browser history. If the user came from the Lifecycle tab, this should work -- but the issue is that after filing, the navigation history may point to `/cases` (the main Case Management page) instead of the Lifecycle tab.
 
-## Fix (1 file change)
-
-### `src/hooks/useStageWorkflow.ts`
-
-Replace the per-notice reply loading logic (lines 153-163) with a single call to `stageRepliesService.getRepliesByStageInstance(resolvedInstanceId)`, which fetches only replies scoped to the current stage instance. Then group the results by `notice_id` to populate the `noticeReplies` Map.
-
-**Before:**
-```typescript
-const replyPromises = state.notices.map(n => 
-  stageRepliesService.getRepliesByNotice(n.id)
-    .then(replies => ({ noticeId: n.id, replies }))
-);
-const allReplies = await Promise.all(replyPromises);
+### Fix
+Replace `navigate(-1)` with an explicit navigation back to the cases page with the correct case selected. The `/cases` route uses query params or in-app state to select a case. The safest approach is to use `navigate(-1)` but also handle the "Save Draft" path to navigate back too, keeping the user on the same page. However, the real fix is to navigate explicitly to `/cases` with the case pre-selected and Lifecycle tab active, e.g.:
 ```
-
-**After:**
-```typescript
-const stageReplies = await stageRepliesService.getRepliesByStageInstance(resolvedInstanceId);
-// Group by notice_id for the Map
-const grouped = new Map<string, StageReply[]>();
-stageReplies.forEach(r => {
-  const list = grouped.get(r.notice_id) || [];
-  list.push(r);
-  grouped.set(r.notice_id, list);
-});
+navigate(`/cases?selectedCase=${caseId}&tab=Lifecycle`)
 ```
+We need to verify how the cases page reads these params.
 
-This ensures only replies belonging to the current stage instance are shown, matching the behavior of Notices, Hearings, and Closures.
+Alternatively, a simpler approach: change `navigate(-1)` to `navigate(`/cases`, { state: { selectedCaseId: caseId, activeTab: 'Lifecycle' } })` and ensure `CaseManagement` reads from location state.
 
-## Why This Works
-- `getRepliesByStageInstance` queries `stage_replies` with `.eq('stage_instance_id', stageInstanceId)`, which is the correct stage-scoped filter
-- The `noticeReplies` Map and `allRepliesForStage` memo in `CaseLifecycleFlow.tsx` will automatically reflect only stage-scoped data
-- No changes needed to the UI components or other files
+**Simpler approach chosen**: Use `navigate(-1)` but ensure it works correctly. The actual problem visible in the screenshots is that the user lands on `/cases` (Case Management dashboard) without any case selected. The fix is to replace `navigate(-1)` with a direct navigation that preserves case context.
+
+### Changes in `src/pages/StructuredReplyPage.tsx`
+- Line 195-197: Replace `navigate(-1)` with `navigate('/cases', { state: { selectedCaseId: caseId, activeTab: 'Lifecycle' } })` after successful filing
+- Line 237 and 243: Update the Cancel/Close `navigate(-1)` calls similarly to preserve context
+
+### Changes in `src/pages/CaseManagement.tsx` (or equivalent)
+- Read `location.state.selectedCaseId` and `location.state.activeTab` on mount to auto-select the case and switch to Lifecycle tab
+
+---
+
+## Issue 2: Closed Stages Should Open in View Mode with Edit Toggle
+
+### Current Behavior
+When `isViewingHistorical` is true, the entire stage content is locked in read-only mode with no way to edit. The user wants closed/historical stages to default to view mode but allow toggling to edit mode via an Edit button.
+
+### Fix
+Add an `isEditing` state toggle in `CaseLifecycleFlow.tsx`. When viewing a historical stage:
+- Default: `isEditing = false` (view-only mode, same as current behavior)
+- Show an "Edit" button in the historical stage banner
+- When Edit is clicked, set `isEditing = true`, which passes `isReadOnly={false}` to child panels
+- Reset `isEditing` to false when switching stages
+
+### Changes in `src/components/cases/CaseLifecycleFlow.tsx`
+1. Add state: `const [isEditingHistorical, setIsEditingHistorical] = useState(false)`
+2. Reset `isEditingHistorical` to `false` in the stage switch effect and `handleReturnToCurrent`
+3. Add an "Edit" button to the historical stage amber banner
+4. Change all `isReadOnly={isViewingHistorical}` to `isReadOnly={isViewingHistorical && !isEditingHistorical}`
+5. When editing is active on a historical stage, show a "Cancel Edit" button to return to view mode
+
+---
+
+## Technical Summary
+
+| File | Change |
+|------|--------|
+| `src/pages/StructuredReplyPage.tsx` | Replace `navigate(-1)` with explicit navigation preserving case + tab context |
+| `src/components/cases/CaseLifecycleFlow.tsx` | Add `isEditingHistorical` toggle; show Edit button on historical banner; pass computed `isReadOnly` to all panels |
+
+### Additional verification needed
+- Check how the Cases page receives navigation state to auto-select a case and tab (will inspect during implementation)
+- Ensure the FileReplyModal (pre-appeal) already stays on the same page (it uses a modal, so it should be fine)
 
