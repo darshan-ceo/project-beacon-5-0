@@ -20,7 +20,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
-  RotateCcw
+  RotateCcw,
+  Edit
 } from 'lucide-react';
 import { Hearing } from '@/types/hearings';
 import { format, parseISO, isValid, isPast, isFuture } from 'date-fns';
@@ -33,6 +34,7 @@ interface StageHearingsPanelProps {
   onScheduleHearing: () => void;
   onViewHearing?: (hearing: Hearing) => void;
   onRecordOutcome?: (hearing: Hearing) => void;
+  onEditHearing?: (hearing: Hearing) => void;
   onAdjournHearing?: (hearing: Hearing) => void;
   isLoading?: boolean;
   isReadOnly?: boolean;
@@ -106,6 +108,7 @@ export const StageHearingsPanel: React.FC<StageHearingsPanelProps> = ({
   onScheduleHearing,
   onViewHearing,
   onRecordOutcome,
+  onEditHearing,
   onAdjournHearing,
   isLoading = false,
   isReadOnly = false
@@ -254,6 +257,17 @@ export const StageHearingsPanel: React.FC<StageHearingsPanelProps> = ({
                           >
                             <RotateCcw className="h-3 w-3 mr-1" />
                             Adjourn
+                          </Button>
+                        )}
+                        {!isReadOnly && onEditHearing && (
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => onEditHearing(hearing)}
+                            className="h-7 text-xs"
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Edit
                           </Button>
                         )}
                         <Button 
