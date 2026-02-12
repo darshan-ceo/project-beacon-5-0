@@ -1,0 +1,104 @@
+{
+  "moduleId": "overview",
+  "moduleLabel": "Overview",
+  "icon": "LayoutDashboard",
+  "description": "Dashboard & Compliance Monitoring",
+  "faqs": [
+    {
+      "id": "overview-faq-1",
+      "question": "What does the Dashboard show me at a glance?",
+      "answer": "The Dashboard is your daily command center. It surfaces key performance indicators (KPIs) like open cases, upcoming hearings, overdue tasks, and SLA breach alerts — all filtered to your role and data scope. The philosophy is 'see what matters first' so you can prioritize your day without navigating into individual modules. Think of it as your morning briefing for litigation practice.",
+      "tags": ["dashboard", "KPI", "daily-routine"],
+      "level": "beginner",
+      "relatedModule": "dashboard"
+    },
+    {
+      "id": "overview-faq-2",
+      "question": "How do I customize which KPIs appear on my Dashboard?",
+      "answer": "Currently the Dashboard shows a curated set of KPIs based on your role — Partners see financial exposure and SLA summaries, while Staff see task queues and hearing prep items. Future versions will allow drag-and-drop widget customization. For now, use the filter controls (date range, client, priority) to narrow what you see.",
+      "tags": ["customization", "KPI", "filters"],
+      "level": "intermediate",
+      "relatedModule": "dashboard"
+    },
+    {
+      "id": "overview-faq-3",
+      "question": "What is the Compliance Dashboard and how does it differ from the main Dashboard?",
+      "answer": "The Compliance Dashboard focuses specifically on GST filing health, statutory deadline adherence, and regulatory risk. While the main Dashboard tracks your litigation workflow (cases, hearings, tasks), the Compliance Dashboard answers: 'Are we meeting all statutory obligations on time?' It tracks deadline compliance rates, upcoming statutory dates, and flags at-risk filings across all clients.",
+      "tags": ["compliance", "statutory", "regulatory"],
+      "level": "beginner",
+      "relatedModule": "compliance"
+    },
+    {
+      "id": "overview-faq-4",
+      "question": "How does SLA tracking work on the Dashboard?",
+      "answer": "SLA (Service Level Agreement) tracking monitors time-bound commitments — such as responding to a notice within 30 days or filing an appeal within the statutory period. The system auto-calculates SLA status (On Track, At Risk, Breached) based on case stage dates and statutory deadlines. Breached SLAs surface as red alerts on your Dashboard so nothing slips through.",
+      "tags": ["SLA", "tracking", "alerts"],
+      "level": "intermediate",
+      "relatedModule": "dashboard"
+    },
+    {
+      "id": "overview-faq-5",
+      "question": "Can I export Dashboard data for client reports?",
+      "answer": "Yes. Use the export button on the Dashboard to download the current view as PDF or Excel. The export respects your active filters — so if you've filtered to a specific client or date range, only that subset is exported. This is useful for periodic MIS reports to clients or internal management reviews.",
+      "tags": ["export", "PDF", "reporting"],
+      "level": "intermediate",
+      "relatedModule": "dashboard"
+    },
+    {
+      "id": "overview-faq-6",
+      "question": "What is the ideal daily routine using the Dashboard?",
+      "answer": "Start your day on the Dashboard: (1) Check for SLA breach alerts and overdue tasks, (2) Review today's hearings and prep status, (3) Scan new notices or inquiries received overnight, (4) Check compliance deadlines for the week. This 5-minute morning scan ensures nothing urgent is missed. The Dashboard is designed to support this exact workflow.",
+      "tags": ["daily-routine", "best-practice", "workflow"],
+      "level": "beginner",
+      "relatedModule": "dashboard"
+    },
+    {
+      "id": "overview-faq-7",
+      "question": "Why do some Dashboard cards show 'No data available'?",
+      "answer": "This usually means either: (1) No cases/hearings/tasks have been created yet in the system, (2) Your data scope restricts visibility — you can only see records assigned to you or your team, or (3) Your date filter is excluding relevant data. Try resetting filters to 'All Time' to verify. If you're a new user, the Dashboard will populate as you start using Practice and CRM modules.",
+      "tags": ["troubleshooting", "data-scope", "filters"],
+      "level": "beginner",
+      "relatedModule": "dashboard"
+    },
+    {
+      "id": "overview-faq-8",
+      "question": "How does data scope affect what I see on the Dashboard?",
+      "answer": "Data scope is a core security concept. Depending on your role, you see: 'Own' (only records you own/are assigned to), 'Team' (your team's records), or 'All' (firm-wide). This is configured by your Admin in Settings > Access & Roles. The Dashboard respects these boundaries — a Staff member with 'Own' scope will only see their cases and tasks, while a Partner with 'All' scope sees the entire firm's data.",
+      "tags": ["data-scope", "RBAC", "security"],
+      "level": "advanced",
+      "relatedModule": "dashboard"
+    },
+    {
+      "id": "overview-faq-9",
+      "question": "What do the color-coded status indicators mean?",
+      "answer": "Throughout the Dashboard and the application: Green = On Track / Completed, Yellow/Amber = At Risk / Approaching Deadline, Red = Breached / Overdue, Blue = In Progress / Active. These colors are consistent across all modules so you build visual intuition. A red badge on a case card means the same urgency as a red badge on a task card.",
+      "tags": ["UI", "status", "colors"],
+      "level": "beginner",
+      "relatedModule": "dashboard"
+    },
+    {
+      "id": "overview-faq-10",
+      "question": "How often does the Dashboard data refresh?",
+      "answer": "Dashboard data refreshes each time you navigate to it or manually refresh the page. For real-time updates on critical items (like hearing reminders), the system uses background sync. If you suspect stale data, click the refresh icon or press F5. Future versions will support configurable auto-refresh intervals.",
+      "tags": ["refresh", "real-time", "performance"],
+      "level": "intermediate",
+      "relatedModule": "dashboard"
+    },
+    {
+      "id": "overview-faq-11",
+      "question": "Can I set up email or SMS alerts for Dashboard-level events?",
+      "answer": "Notification preferences are configured per-case and at the system level via Settings > Notifications. You can enable email alerts for SLA breaches, upcoming hearings, and overdue tasks. SMS notifications are available if configured by your Admin. The Dashboard itself is the visual hub — notifications ensure you're alerted even when you're not looking at the screen.",
+      "tags": ["notifications", "email", "SMS", "alerts"],
+      "level": "intermediate",
+      "relatedModule": "settings"
+    },
+    {
+      "id": "overview-faq-12",
+      "question": "What is the philosophy behind the Overview section design?",
+      "answer": "The Overview section is built on the principle of 'situational awareness before action'. In litigation practice, missing a deadline or overlooking a hearing can have serious consequences. Rather than forcing you to check multiple modules, the Dashboard aggregates the most time-sensitive information into one view. It's designed so that a 2-minute glance gives you confidence that nothing critical is being missed across your entire practice.",
+      "tags": ["philosophy", "design", "architecture"],
+      "level": "advanced",
+      "relatedModule": "dashboard"
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "moduleId": "practice",
+  "moduleLabel": "Practice",
+  "icon": "Briefcase",
+  "description": "Cases, Hearings, Tasks & Documents",
+  "faqs": [
+    {
+      "id": "practice-faq-1",
+      "question": "What is the case lifecycle and why does it matter?",
+      "answer": "The case lifecycle represents the journey of a GST litigation matter from notice receipt to final resolution. It follows the statutory appeal hierarchy: Assessment → Adjudication → First Appeal → Tribunal → High Court → Supreme Court. Each stage has defined entry/exit criteria, required documents, and statutory deadlines. Understanding the lifecycle helps you anticipate next steps, prepare documents in advance, and never miss a deadline. The system auto-creates tasks and deadlines when you advance a stage.",
+      "tags": ["lifecycle", "stages", "workflow"],
+      "level": "beginner",
+      "relatedModule": "cases"
+    },
+    {
+      "id": "practice-faq-2",
+      "question": "How do I create a case from a GST notice (DRC-01)?",
+      "answer": "Go to Practice > Cases > New Case. Select 'From Notice' to use the auto-fill feature. Enter the notice number or upload the notice PDF — the system uses OCR to extract key fields like GSTIN, notice date, section invoked, tax period, and demand amount. Review the extracted data, link it to an existing client (auto-matched via GSTIN), and save. The system auto-creates the case with the correct stage, statutory deadlines, and initial tasks.",
+      "tags": ["notice", "DRC-01", "auto-fill", "OCR"],
+      "level": "beginner",
+      "relatedModule": "cases"
+    },
+    {
+      "id": "practice-faq-3",
+      "question": "What is the difference between case stages and case status?",
+      "answer": "Stage represents WHERE the case is in the litigation hierarchy (e.g., Adjudication, First Appeal). Status represents the CURRENT state within that stage (e.g., Active, Adjourned, Disposed). A case at the 'First Appeal' stage can have status 'Active' (hearing ongoing), 'Reserved' (judgment awaited), or 'Disposed' (order passed). Stages advance sequentially; status can change multiple times within a stage.",
+      "tags": ["stages", "status", "terminology"],
+      "level": "intermediate",
+      "relatedModule": "cases"
+    },
+    {
+      "id": "practice-faq-4",
+      "question": "How does SLA tracking work and what triggers a breach?",
+      "answer": "Each case stage has statutory deadlines (e.g., 30 days to reply to a show cause notice, 90 days to file first appeal). The system calculates these from the relevant base date (notice date, order date, etc.) and tracks them as SLAs. An SLA moves from 'On Track' → 'At Risk' (within 7 days of deadline) → 'Breached' (past deadline). Breaches trigger Dashboard alerts and optional email/SMS notifications. You can extend deadlines if an extension is granted by the authority.",
+      "tags": ["SLA", "deadlines", "breach", "statutory"],
+      "level": "intermediate",
+      "relatedModule": "cases"
+    },
+    {
+      "id": "practice-faq-5",
+      "question": "Can I merge or link related cases?",
+      "answer": "Yes. Cases can be linked when they involve the same client, same GSTIN, or related tax periods. Go to a case's detail view and use the 'Linked Cases' section to establish relationships. This is useful when a show cause notice spawns multiple proceedings or when an appeal relates to an earlier adjudication. Linked cases share a timeline view so you can see the complete litigation history.",
+      "tags": ["linked-cases", "relationships", "timeline"],
+      "level": "intermediate",
+      "relatedModule": "cases"
+    },
+    {
+      "id": "practice-faq-6",
+      "question": "How do I advance a case stage and what auto-tasks are created?",
+      "answer": "From the case detail view, click 'Advance Stage' and select the next stage (e.g., from Adjudication to First Appeal). The system will prompt you to enter the order date and key details. Upon advancing, it auto-creates tasks for the new stage: filing the appeal memo, preparing the paper book, calculating the pre-deposit amount, and setting statutory deadlines. Previous stage data is archived and accessible via the Stage History view.",
+      "tags": ["stage-advance", "auto-tasks", "workflow"],
+      "level": "intermediate",
+      "relatedModule": "cases"
+    },
+    {
+      "id": "practice-faq-7",
+      "question": "What documents are auto-required at each case stage?",
+      "answer": "Each stage has a document checklist. For example, Adjudication requires: Show Cause Notice, Reply to SCN, Written Submissions, Supporting Documents. First Appeal requires: Appeal Memo (Form GST APL-01), Certified Copy of Order, Pre-deposit Proof. The system flags missing documents as incomplete tasks. You can customize these checklists via Masters > Document Templates.",
+      "tags": ["documents", "checklist", "stage-documents"],
+      "level": "intermediate",
+      "relatedModule": "documents"
+    },
+    {
+      "id": "practice-faq-8",
+      "question": "How do hearings work and how do I prepare for one?",
+      "answer": "Hearings are scheduled under Practice > Hearings. Each hearing is linked to a case and includes date, time, forum, bench/judge, and agenda. The system creates a preparation task 3-5 days before the hearing date. Use the hearing detail view to attach relevant documents, note arguments, and record outcomes after the hearing. Hearing dates also sync to your calendar if calendar integration is configured in Settings.",
+      "tags": ["hearings", "preparation", "calendar"],
+      "level": "beginner",
+      "relatedModule": "hearings"
+    },
+    {
+      "id": "practice-faq-9",
+      "question": "How does the Task system integrate with Cases and Hearings?",
+      "answer": "Tasks are the operational backbone of the Practice module. They are auto-created when: a case is created (initial tasks), a stage is advanced (stage-specific tasks), a hearing is scheduled (prep tasks), or a statutory deadline approaches (reminder tasks). You can also create manual tasks. Each task has a due date, assignee, priority, and status. The task list in Practice > Tasks shows all tasks across all cases, filterable by case, assignee, or status.",
+      "tags": ["tasks", "automation", "integration"],
+      "level": "beginner",
+      "relatedModule": "tasks"
+    },
+    {
+      "id": "practice-faq-10",
+      "question": "How do I track tax demand vs. recovery across cases?",
+      "answer": "Each case tracks financial fields: Tax Demand, Interest, Penalty, and Total Demand. As the case progresses through stages, you can update these amounts (e.g., reduced demand after first appeal). The Dashboard and Reports module aggregate these across all cases to show total exposure, recovered amounts, and pending demands. This gives Partners a financial overview of the firm's litigation portfolio.",
+      "tags": ["financial", "demand", "recovery", "exposure"],
+      "level": "advanced",
+      "relatedModule": "cases"
+    },
+    {
+      "id": "practice-faq-11",
+      "question": "What is the Document Management module and how does it relate to Cases?",
+      "answer": "Practice > Documents is a centralized document repository. Every document is linked to a case (and optionally a hearing or task). Documents support versioning — upload a revised reply and the previous version is preserved. You can organize documents into folders per case, tag them by type (Notice, Reply, Order, Submission), and search across all documents. The case detail view shows only that case's documents; the Documents module shows everything.",
+      "tags": ["documents", "versioning", "repository"],
+      "level": "beginner",
+      "relatedModule": "documents"
+    },
+    {
+      "id": "practice-faq-12",
+      "question": "How does the AI Case Assistant help during case work?",
+      "answer": "The AI Case Assistant (if enabled) can help you: summarize lengthy orders or notices, suggest arguments based on similar cases, draft reply outlines, and identify relevant legal provisions. It works within the case context — it reads the case's documents, stage, and history to provide relevant suggestions. It's a productivity aid, not a replacement for legal judgment. All AI suggestions should be reviewed by the handling advocate.",
+      "tags": ["AI", "assistant", "productivity"],
+      "level": "advanced",
+      "relatedModule": "cases"
+    },
+    {
+      "id": "practice-faq-13",
+      "question": "What is the 'From Notice' auto-fill and OCR feature?",
+      "answer": "When creating a new case, the 'From Notice' option lets you upload a GST notice PDF (like DRC-01, DRC-01A, etc.). The system uses OCR (Optical Character Recognition) to extract structured data: GSTIN, notice number, date, section invoked, tax period, demand amounts, and issuing authority. This data pre-fills the case creation form, saving manual data entry and reducing errors. Always verify OCR-extracted data before saving.",
+      "tags": ["OCR", "auto-fill", "notice", "automation"],
+      "level": "intermediate",
+      "relatedModule": "cases"
+    },
+    {
+      "id": "practice-faq-14",
+      "question": "How do I record a hearing outcome and what happens next?",
+      "answer": "After attending a hearing, open the hearing record and click 'Record Outcome'. Select the outcome type (Adjourned, Part-Heard, Reserved, Disposed, etc.). Enter the next date (if adjourned), key observations, and any orders passed. The system auto-creates follow-up tasks based on the outcome — for example, an 'Adjourned' outcome creates a new hearing prep task for the next date. If 'Disposed', it prompts you to advance the case stage.",
+      "tags": ["hearing-outcome", "follow-up", "workflow"],
+      "level": "intermediate",
+      "relatedModule": "hearings"
+    },
+    {
+      "id": "practice-faq-15",
+      "question": "What is the philosophy behind combining Cases, Hearings, Tasks, and Documents into one 'Practice' section?",
+      "answer": "In real legal practice, these four elements are inseparable. A case generates hearings, hearings generate tasks, tasks produce documents, and documents feed back into cases. Separating them into independent modules (as many generic CRMs do) forces lawyers to context-switch constantly. By grouping them under 'Practice', the system mirrors how litigation actually works — everything related to your legal work is in one place, linked and cross-referenced.",
+      "tags": ["philosophy", "design", "architecture"],
+      "level": "advanced",
+      "relatedModule": "cases"
+    }
+  ]
+}

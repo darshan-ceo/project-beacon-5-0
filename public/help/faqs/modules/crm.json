@@ -1,0 +1,104 @@
+{
+  "moduleId": "crm",
+  "moduleLabel": "CRM",
+  "icon": "Users",
+  "description": "Clients, Contacts & Inquiries",
+  "faqs": [
+    {
+      "id": "crm-faq-1",
+      "question": "How does GSTIN autofill work and what data does it fetch?",
+      "answer": "When you enter a GSTIN while creating or editing a client, the system auto-fetches the registered trade name, legal name, state, registration status, and business type from the GST portal. This reduces manual data entry and ensures accuracy. The autofill works in real-time — just type or paste a valid 15-digit GSTIN and the fields populate automatically. Always verify the fetched data as the GST portal data may occasionally be outdated.",
+      "tags": ["GSTIN", "autofill", "automation"],
+      "level": "beginner",
+      "relatedModule": "clients"
+    },
+    {
+      "id": "crm-faq-2",
+      "question": "What is the difference between a Client and a Contact?",
+      "answer": "A Client is a business entity (company, firm, individual) that has engaged your firm for GST litigation services. It has a GSTIN, PAN, address, and is the entity under which cases are filed. A Contact is a person associated with a client — such as the authorized signatory, accounts manager, or CA. One client can have multiple contacts. Contacts can also exist independently as inquiry contacts before being linked to a client during onboarding.",
+      "tags": ["client", "contact", "terminology"],
+      "level": "beginner",
+      "relatedModule": "clients"
+    },
+    {
+      "id": "crm-faq-3",
+      "question": "How do I organize clients into groups?",
+      "answer": "Client Groups allow you to cluster related clients — for example, all entities under a business house, or all clients in a particular industry. When creating or editing a client, select or create a Client Group. Groups help with bulk reporting, consolidated exposure analysis, and managing related entities. You can set a 'Head Client' for each group to identify the primary entity.",
+      "tags": ["client-groups", "organization", "reporting"],
+      "level": "intermediate",
+      "relatedModule": "clients"
+    },
+    {
+      "id": "crm-faq-4",
+      "question": "Can a client have multiple GSTINs?",
+      "answer": "Yes. A business entity may have multiple GST registrations (different states, different verticals). In the system, each GSTIN is tracked at the client level. When creating a case, you select both the client and the specific GSTIN involved. This allows you to track litigation separately per GSTIN while maintaining a unified client view for relationship management.",
+      "tags": ["GSTIN", "multi-registration", "client"],
+      "level": "intermediate",
+      "relatedModule": "clients"
+    },
+    {
+      "id": "crm-faq-5",
+      "question": "How do I grant portal access to a client?",
+      "answer": "Go to CRM > Clients > select the client > Portal Access tab. Click 'Invite Portal User' and enter the client contact's email. They'll receive an invitation to create a portal account. Portal users can view their case status, upcoming hearings, and shared documents — but cannot modify any data. This keeps clients informed without giving them access to your internal workflow. Portal access is managed per-client and can be revoked anytime.",
+      "tags": ["portal", "client-access", "transparency"],
+      "level": "intermediate",
+      "relatedModule": "clients"
+    },
+    {
+      "id": "crm-faq-6",
+      "question": "What is the inquiry pipeline and how do leads convert to clients?",
+      "answer": "The Inquiry pipeline (CRM > Inquiries) tracks potential clients who have approached your firm but haven't been formally onboarded. Each inquiry has a status: New → Follow-up → Converted / Not Proceeding. When an inquiry is ready to convert, click 'Onboard as Client' — this creates a full client record, links the inquiry contact as the primary representative, and closes the inquiry. The pipeline ensures no potential business is forgotten.",
+      "tags": ["inquiry", "pipeline", "conversion", "onboarding"],
+      "level": "beginner",
+      "relatedModule": "inquiries"
+    },
+    {
+      "id": "crm-faq-7",
+      "question": "How are communications (Email/WhatsApp) linked to clients?",
+      "answer": "The system logs all client communications — emails sent, calls made, WhatsApp messages — in a chronological communication log. Each communication is linked to the client and optionally to a specific case. This creates an audit trail of all interactions. You can log communications manually or, if email integration is configured, they are captured automatically. Access the communication history from the client's detail view.",
+      "tags": ["communications", "email", "WhatsApp", "audit-trail"],
+      "level": "intermediate",
+      "relatedModule": "clients"
+    },
+    {
+      "id": "crm-faq-8",
+      "question": "What data scope rules apply to client visibility?",
+      "answer": "Client visibility follows the same RBAC data scope as the rest of the system. With 'Own' scope, you see only clients where you are the owner or assigned advocate. With 'Team' scope, you see your team's clients. With 'All' scope (typically Partners and Admins), you see every client. This ensures confidentiality — a junior associate handling Client A's cases cannot see Client B's data unless explicitly assigned.",
+      "tags": ["data-scope", "RBAC", "security", "visibility"],
+      "level": "advanced",
+      "relatedModule": "clients"
+    },
+    {
+      "id": "crm-faq-9",
+      "question": "How do I bulk-import client data?",
+      "answer": "Go to CRM > Clients and use the Import button. Download the CSV/Excel template, fill in your client data (display name, GSTIN, PAN, email, phone, state, city), and upload. The system validates each row, highlights errors (invalid GSTIN format, missing required fields), and lets you fix issues before confirming the import. This is useful during initial system setup or when migrating from another tool.",
+      "tags": ["import", "bulk", "CSV", "migration"],
+      "level": "intermediate",
+      "relatedModule": "clients"
+    },
+    {
+      "id": "crm-faq-10",
+      "question": "What happens when a client's GST registration is cancelled?",
+      "answer": "If a client's GST registration is cancelled or suspended, existing cases continue as-is (litigation doesn't stop because registration changes). You can update the client's status to reflect the registration change. The GSTIN autofill will show the current registration status when verified. This is informational — the system does not automatically close cases when a registration status changes, as pending litigation matters must still be resolved.",
+      "tags": ["GST-cancellation", "registration", "status"],
+      "level": "advanced",
+      "relatedModule": "clients"
+    },
+    {
+      "id": "crm-faq-11",
+      "question": "What are Contact Roles and why do they matter?",
+      "answer": "Each contact linked to a client has a 'Purpose' classification: Client Representative (authorized signatory, director), Consultant/CA (external advisor), or Internal Team (your firm's staff handling the client). This classification determines who receives portal access invitations, who appears in communication recipients, and who can be designated as the primary contact. Properly classifying contacts keeps your communication channels organized.",
+      "tags": ["contact-roles", "classification", "purpose"],
+      "level": "intermediate",
+      "relatedModule": "contacts"
+    },
+    {
+      "id": "crm-faq-12",
+      "question": "What is the philosophy behind the CRM module in a litigation practice?",
+      "answer": "Unlike sales-driven CRMs that focus on deal pipelines, this CRM is designed for professional services. The focus is on: (1) Accurate client identity (GSTIN, PAN, jurisdiction), (2) Relationship continuity (contacts, communications), and (3) Business development (inquiry pipeline). Every client is a potential multi-year relationship with recurring litigation needs. The CRM ensures you maintain institutional memory about each client — who they are, what matters you've handled, and how to reach them.",
+      "tags": ["philosophy", "design", "professional-services"],
+      "level": "advanced",
+      "relatedModule": "clients"
+    }
+  ]
+}

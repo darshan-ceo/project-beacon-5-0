@@ -19,6 +19,7 @@ import { featureFlagService } from '@/services/featureFlagService';
 import { HelpDiscoveryHub } from '@/components/help/HelpDiscoveryHub';
 import { WhatsNewPanel } from '@/components/help/WhatsNewPanel';
 import { OnboardingWizard } from '@/components/help/OnboardingWizard';
+import { ModuleFAQSection } from '@/components/help/ModuleFAQSection';
 import { useLearningProgress } from '@/hooks/useLearningProgress';
 
 interface HelpContent {
@@ -81,7 +82,7 @@ export const HelpCenter: React.FC = () => {
       navigate(`/help/articles/${slugParam}`, { replace: true });
     }
     
-    if (tabParam && ['discover', 'whats-new', 'onboarding', 'modules', 'glossary'].includes(tabParam)) {
+    if (tabParam && ['discover', 'whats-new', 'onboarding', 'faqs', 'modules', 'glossary'].includes(tabParam)) {
       setSelectedTab(tabParam);
     }
   }, [navigate]);
@@ -165,6 +166,7 @@ export const HelpCenter: React.FC = () => {
       { id: 'discover', label: 'Discover', icon: Compass, badge: null },
       { id: 'whats-new', label: "What's New", icon: Sparkles, badge: unreadCount > 0 ? unreadCount : null },
       { id: 'onboarding', label: 'Get Started', icon: GraduationCap, badge: null },
+      { id: 'faqs', label: 'FAQs', icon: HelpCircle, badge: null },
       { id: 'modules', label: 'Modules', icon: Layers, badge: null },
       { id: 'glossary', label: 'Glossary', icon: BookOpen, badge: null }
     ];
@@ -235,7 +237,7 @@ export const HelpCenter: React.FC = () => {
 
         {/* Content Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full max-w-3xl grid-cols-5 gap-1 p-1 h-auto">
+          <TabsList className="grid w-full max-w-4xl grid-cols-6 gap-1 p-1 h-auto">
             {availableTabs.map(tab => (
               <TabsTrigger 
                 key={tab.id} 
@@ -309,6 +311,11 @@ export const HelpCenter: React.FC = () => {
                 </Card>
               </div>
             </div>
+          </TabsContent>
+
+          {/* FAQs Tab */}
+          <TabsContent value="faqs" className="space-y-4">
+            <ModuleFAQSection />
           </TabsContent>
 
           {/* Module Help Tab */}
