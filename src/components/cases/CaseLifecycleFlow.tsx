@@ -148,6 +148,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   const [showAddNoticeModal, setShowAddNoticeModal] = useState(false);
   const [showFileReplyModal, setShowFileReplyModal] = useState(false);
   const [selectedNotice, setSelectedNotice] = useState<StageNotice | null>(null);
+  const [editingReply, setEditingReply] = useState<import('@/types/stageWorkflow').StageReply | null>(null);
   const [editingNotice, setEditingNotice] = useState<StageNotice | null>(null);
   const [viewingNotice, setViewingNotice] = useState<StageNotice | null>(null);
   const [closingNotice, setClosingNotice] = useState<StageNotice | null>(null);
@@ -334,6 +335,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
     deleteNotice,
     loadRepliesForNotice,
     addReply,
+    updateReply,
     completeStep,
     skipStep,
     isFeatureEnabled: isStageWorkflowEnabled
@@ -378,7 +380,8 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
       // Appeal stage: navigate to full-page structured reply
       navigate(`/cases/${selectedCase.id}/reply/edit?noticeId=${notice.id}&stageInstanceId=${stageInstanceId}`);
     } else {
-      // Pre-appeal: use existing modal
+      // Pre-appeal: use existing modal (new reply)
+      setEditingReply(null);
       setSelectedNotice(notice);
       setShowFileReplyModal(true);
     }
@@ -396,6 +399,7 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
       // Pre-appeal: open FileReplyModal with existing reply data
       const linkedNotice = workflowState?.notices.find(n => n.id === reply.notice_id);
       if (linkedNotice) {
+        setEditingReply(reply);
         setSelectedNotice(linkedNotice);
         setShowFileReplyModal(true);
       }
@@ -441,14 +445,23 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
   }, [editingNotice, updateNotice, addNotice, toast]);
 
   const handleSaveReply = useCallback(async (data: CreateStageReplyInput) => {
-    await addReply(data);
-    toast({
-      title: "Reply Filed",
-      description: "The reply has been recorded.",
-    });
+    if (editingReply) {
+      await updateReply(editingReply.id, data);
+      toast({
+        title: "Reply Updated",
+        description: "The reply has been updated.",
+      });
+    } else {
+      await addReply(data);
+      toast({
+        title: "Reply Filed",
+        description: "The reply has been recorded.",
+      });
+    }
     setShowFileReplyModal(false);
     setSelectedNotice(null);
-  }, [addReply, toast]);
+    setEditingReply(null);
+  }, [editingReply, addReply, updateReply, toast]);
 
   const handleSaveClosure = useCallback(async (formData: StageClosureFormData) => {
     if (!stageInstanceId || !selectedCase) return;
@@ -1466,10 +1479,12 @@ export const CaseLifecycleFlow: React.FC<CaseLifecycleFlowProps> = ({ selectedCa
         onClose={() => {
           setShowFileReplyModal(false);
           setSelectedNotice(null);
+          setEditingReply(null);
         }}
         onSave={handleSaveReply}
         notice={selectedNotice}
         stageInstanceId={stageInstanceId}
+        editReply={editingReply}
       />
 
       <NoticeClosureModal
