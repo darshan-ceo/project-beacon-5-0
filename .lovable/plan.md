@@ -1,38 +1,45 @@
 
-# Simplify Client Groups: Remove Standalone Page, Keep Inline
+# Fix: Suppress Storage Warning on Login Page
 
-## Overview
+## Problem
+When the app loads on the login page (before the user has authenticated), the storage health check runs immediately. It detects "No active session" and shows a "Storage Warning: Health check failed: Error: User not authenticated. Please login." toast. This is expected behavior on the login page -- not an error worth alarming the user about.
 
-Client Groups is too minor for a dedicated sidebar item and full page. The inline "Create New Group" option already exists inside the Client creation/edit modal. This plan removes the standalone page/route/sidebar entry while preserving all group management capabilities within the client workflow.
+## Solution
+Skip the storage health check when there is no active authentication session. The health check is only meaningful after login. Once the user authenticates, the storage system reinitializes properly.
 
-## What Changes
+## Changes
 
-### 1. Remove "Client Groups" from Sidebar
-**File: `src/components/layout/Sidebar.tsx`**
-- Delete the `{ icon: Building2, label: 'Client Groups', href: '/client-groups', ... }` entry from the CLIENTS section
+**File: `src/components/AppWithPersistence.tsx` (lines ~93-107)**
 
-### 2. Remove the `/client-groups` Route
-**File: `src/App.tsx`**
-- Remove the `<Route path="/client-groups" ...>` block (lines 203-209)
-- Remove the `ClientGroupMasters` import if no longer used
+Wrap the health check in a session guard:
 
-### 3. Keep Everything Else As-Is
-- The `ClientGroupModal` already works inline inside the Client Modal (with "+ Create New" in the group dropdown) -- no changes needed
-- The `ClientGroupMasters.tsx` page file and `clientGroupsService.ts` are retained (not deleted) since the modal and service are reused by the inline flow
-- Global Search references to "Client Groups" remain functional for finding grouped clients
-- RBAC permission for `client-groups` stays in `RolePermissionEditor.tsx` (controls who can create groups inline)
+```typescript
+// Only perform health check if user is authenticated
+const { data: { session } } = await supabase.auth.getSession();
+if (session) {
+  const health = await storageManager.healthCheck();
+  
+  if (!health.healthy) {
+    console.warn('Storage health check warnings:', health.errors);
+    toast({
+      title: "Storage Warning",
+      description: health.errors[0] || "Some storage features may not work correctly",
+      variant: "default"
+    });
+  } else {
+    console.log('Storage health check passed');
+  }
+} else {
+  console.log('Skipping storage health check - user not authenticated yet');
+}
+```
 
-## What Users Get
+This way, unauthenticated users on the login page won't see the irrelevant warning. After login, the storage system reinitializes and performs the health check as normal.
 
-- Cleaner sidebar with one fewer low-value item
-- Group selection + creation stays right where it matters: inside the Client form
-- No functionality is lost -- groups can still be created, selected, and managed during client creation/editing
-
-## Technical Details
+## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/components/layout/Sidebar.tsx` | Remove "Client Groups" sidebar item |
-| `src/App.tsx` | Remove `/client-groups` route and unused import |
+| `src/components/AppWithPersistence.tsx` | Guard health check with session check (~5 lines changed) |
 
-Only 2 files modified, ~10 lines removed total.
+Single file, minimal change.
