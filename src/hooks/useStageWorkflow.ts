@@ -150,17 +150,16 @@ export function useStageWorkflow({
         setActiveStep(state.currentStep);
       }
 
-      // Auto-load replies for all notices so the Reply panel has data immediately
-      if (state.notices && state.notices.length > 0) {
-        const replyPromises = state.notices.map(n => 
-          stageRepliesService.getRepliesByNotice(n.id).then(replies => ({ noticeId: n.id, replies }))
-        );
-        const allReplies = await Promise.all(replyPromises);
-        setNoticeReplies(prev => {
-          const newMap = new Map(prev);
-          allReplies.forEach(({ noticeId, replies }) => newMap.set(noticeId, replies));
-          return newMap;
+      // Auto-load replies scoped to this stage instance only
+      if (resolvedInstanceId) {
+        const stageReplies = await stageRepliesService.getRepliesByStageInstance(resolvedInstanceId);
+        const grouped = new Map<string, StageReply[]>();
+        stageReplies.forEach(r => {
+          const list = grouped.get(r.notice_id) || [];
+          list.push(r);
+          grouped.set(r.notice_id, list);
         });
+        setNoticeReplies(grouped);
       }
     } catch (err) {
       console.error('[useStageWorkflow] Failed to load workflow:', err);
