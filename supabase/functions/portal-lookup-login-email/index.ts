@@ -23,24 +23,15 @@ Deno.serve(async (req) => {
 
     const trimmedIdentifier = identifier.trim().toLowerCase()
 
-    // If it looks like an email, return it directly
-    if (trimmedIdentifier.includes('@')) {
-      console.log(`[portal-lookup] Identifier is email: ${trimmedIdentifier}`)
-      return new Response(
-        JSON.stringify({ loginEmail: trimmedIdentifier }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Otherwise, look up by username in clients.portal_access
+    // Always look up by username in clients.portal_access (never shortcut for emails)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     
     const supabase = createClient(supabaseUrl, serviceRoleKey)
 
-    console.log(`[portal-lookup] Looking up username: ${trimmedIdentifier}`)
+    console.log(`[portal-lookup] Looking up identifier: ${trimmedIdentifier}`)
 
-    // Query clients where portal_access.username matches
+    // Query clients where portal_access exists
     const { data: clients, error } = await supabase
       .from('clients')
       .select('id, portal_access')
@@ -54,56 +45,41 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Find matching client by username (case-insensitive)
-    // Handle portal_access stored as object or as JSON string (legacy fix)
-    const matchingClient = clients?.find((client) => {
-      let portalAccess: { 
-        allowLogin?: boolean; 
-        username?: string; 
-        loginEmail?: string 
-      } | null = null
-      
-      if (client.portal_access) {
-        if (typeof client.portal_access === 'string') {
-          // Legacy: portal_access stored as stringified JSON
-          try {
-            portalAccess = JSON.parse(client.portal_access)
-          } catch {
-            console.warn('[portal-lookup] Failed to parse portal_access string for client', client.id)
-            return false
-          }
-        } else {
-          // Expected: portal_access stored as object
-          portalAccess = client.portal_access as typeof portalAccess
-        }
+    // Helper to parse portal_access (handles string or object)
+    const parsePortalAccess = (pa: unknown): { allowLogin?: boolean; username?: string; loginEmail?: string } | null => {
+      if (!pa) return null
+      if (typeof pa === 'string') {
+        try { return JSON.parse(pa) } catch { return null }
       }
-      
-      if (!portalAccess?.allowLogin || !portalAccess?.username) {
-        return false
-      }
-      
+      return pa as { allowLogin?: boolean; username?: string; loginEmail?: string }
+    }
+
+    // First: match by username (case-insensitive)
+    let matchingClient = clients?.find((client) => {
+      const portalAccess = parsePortalAccess(client.portal_access)
+      if (!portalAccess?.allowLogin || !portalAccess?.username) return false
       return portalAccess.username.toLowerCase() === trimmedIdentifier
     })
 
+    // Fallback: if identifier contains '@' and no username match, try matching by loginEmail
+    if (!matchingClient && trimmedIdentifier.includes('@')) {
+      console.log(`[portal-lookup] No username match, trying loginEmail fallback for: ${trimmedIdentifier}`)
+      matchingClient = clients?.find((client) => {
+        const portalAccess = parsePortalAccess(client.portal_access)
+        if (!portalAccess?.allowLogin || !portalAccess?.loginEmail) return false
+        return portalAccess.loginEmail.toLowerCase() === trimmedIdentifier
+      })
+    }
+
     if (!matchingClient) {
-      console.log(`[portal-lookup] No client found for username: ${trimmedIdentifier}`)
+      console.log(`[portal-lookup] No client found for identifier: ${trimmedIdentifier}`)
       return new Response(
         JSON.stringify({ error: 'Invalid username' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Parse portal_access again (same logic as above)
-    let portalAccess: { loginEmail?: string; username?: string } | null = null
-    if (typeof matchingClient.portal_access === 'string') {
-      try {
-        portalAccess = JSON.parse(matchingClient.portal_access)
-      } catch {
-        portalAccess = null
-      }
-    } else {
-      portalAccess = matchingClient.portal_access as typeof portalAccess
-    }
+    const portalAccess = parsePortalAccess(matchingClient.portal_access)
     
     const loginEmail = portalAccess?.loginEmail
 
