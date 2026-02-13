@@ -495,7 +495,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
           date: format(formData.date, 'yyyy-MM-dd'),
           start_time: formData.time,
           judge_ids: formData.judgeId ? [formData.judgeId] : undefined,
-          notes: formData.notes || undefined,
+          notes: formData.agenda || formData.notes || undefined,
           status: formData.status
         };
 
