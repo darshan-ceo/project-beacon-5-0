@@ -1,44 +1,73 @@
 
 
-# Fix: Client Change in Case Not Persisting
+# Fix: Documents Uploaded from Client Portal Cannot Be Downloaded/Previewed in Admin Panel
 
 ## Problem
 
-When editing a case and changing the Client from the dropdown, the updated client is shown in the Case Wrapper (list view) but the old client remains on the Case Detail page. The change is not actually saved to the database.
+The "FORM GST APL.docx" uploaded from the Client Portal shows "Object not found" when an admin tries to preview or download it. The document record exists in the database, but the actual file in storage cannot be accessed by the admin.
 
 ## Root Cause
 
-In `src/components/modals/CaseModal.tsx`, the **edit path** (line 344-380) builds the `updatedCase` object by spreading `...caseData` (which contains the **old** `clientId`) but **never overrides** `clientId` with `formData.clientId`.
+This is a **storage RLS policy mismatch**. The admin's SELECT policies on `storage.objects` check that the first folder in the file path matches the admin's `tenant_id`:
 
-Compare:
-- **Create path** (line 297): explicitly sets `clientId: formData.clientId` -- correct
-- **Edit path** (line 344): uses `...caseData` but omits `clientId: formData.clientId` -- the bug
+```
+(storage.foldername(name))[1] = profiles.tenant_id
+```
 
-The case wrapper may temporarily show the correct name from local state, but the database still holds the old `clientId`, so reloading or viewing details shows the original client.
+But Client Portal uploads use the path format:
+```
+client-uploads/{clientId}/{uuid}-{timestamp}.{ext}
+```
+
+The first folder is `client-uploads`, NOT the tenant ID. So the admin's storage policies deny access to these files -- the file exists in storage, but the admin cannot read it.
+
+For comparison, admin uploads use the path format `{tenant_id}/{uuid}.{ext}`, which passes the policy check.
 
 ## Fix
 
-### File: `src/components/modals/CaseModal.tsx` (line 344-380)
+Two changes are needed:
 
-Add `clientId: formData.clientId` to the `updatedCase` object in the edit path, alongside the other fields already being set from `formData`.
+### 1. Database Migration: Update storage SELECT policies
 
-This is a one-line addition after line 352 (after `title: formData.title`):
+Add a new storage SELECT policy (or update existing ones) that allows admins to also read files under the `client-uploads/` folder, provided the file's associated document record belongs to their tenant. The simplest approach: allow admins to read any file in the `client-uploads/` folder if they have the admin or partner role and the associated `documents` table row has their `tenant_id`.
 
+Alternatively, the simpler and more robust fix: update the Client Portal upload code to store files under `{tenant_id}/client-uploads/{clientId}/...` instead of `client-uploads/{clientId}/...`. This way existing admin policies automatically grant access. However, this requires also updating the portal's storage INSERT policy.
+
+**Recommended approach**: Update the storage RLS policies to grant admin/partner users SELECT access to files in the `client-uploads/` path. This avoids changing the upload path (which would break existing files).
+
+New policy:
+```sql
+CREATE POLICY "Admins can view client uploads"
+ON storage.objects FOR SELECT
+USING (
+  bucket_id = 'documents'
+  AND (storage.foldername(name))[1] = 'client-uploads'
+  AND (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR has_role(auth.uid(), 'partner'::app_role)
+  )
+  AND EXISTS (
+    SELECT 1 FROM profiles
+    WHERE profiles.id = auth.uid()
+    AND profiles.tenant_id IS NOT NULL
+  )
+);
 ```
-clientId: formData.clientId,
-```
 
-## Technical Details
+Also add a similar DELETE policy so admins can manage these files.
+
+### 2. No code changes needed
+
+The admin panel code already correctly reads `file_path` from the database and passes it to `documentDownloadService`. Once the storage policy allows access, download and preview will work.
+
+## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/components/modals/CaseModal.tsx` | Add `clientId: formData.clientId` to the edit-mode `updatedCase` object (around line 352) |
+| New SQL migration | Add storage RLS SELECT policy allowing admins to access `client-uploads/` folder |
 
 ## Why This Fixes It
 
-- The `clientId` from the form's Client dropdown will be included in the update payload
-- `casesService.update` dispatches this to Redux and persists via `usePersistentDispatch`
-- The `SupabaseAdapter` already maps `clientId` to `client_id` for the database
-- The Case Detail page, Case Wrapper, and Client Portal queries will all reflect the correct client
-
-This is a simple missing field -- the same pattern as all other fields that are already correctly included in the edit payload.
+- The `client-uploads/` path files will become readable by admin users
+- The existing download/preview code in `documentDownloadService.ts` will successfully fetch the file via signed URL or direct download
+- No changes to upload logic or existing file paths required
