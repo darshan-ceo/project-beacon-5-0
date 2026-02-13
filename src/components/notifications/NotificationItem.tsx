@@ -26,8 +26,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
 
     if (notification.related_entity_type && notification.related_entity_id) {
       switch (notification.related_entity_type) {
-        case 'hearing': navigate('/hearings/calendar'); break;
-        case 'case': navigate('/cases'); break;
+        case 'hearing': navigate(`/hearings/${notification.related_entity_id}`); break;
+        case 'case': navigate(`/cases?caseId=${notification.related_entity_id}`); break;
         case 'task': navigate(`/tasks/${notification.related_entity_id}`); break;
         case 'document': navigate('/documents'); break;
       }
