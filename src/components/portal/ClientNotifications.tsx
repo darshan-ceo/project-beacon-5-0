@@ -61,7 +61,7 @@ export const ClientNotifications: React.FC<ClientNotificationsProps> = ({ client
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await portalSupabase
         .from('client_notifications')
         .select('*')
         .eq('client_id', clientId)
@@ -88,7 +88,7 @@ export const ClientNotifications: React.FC<ClientNotificationsProps> = ({ client
     fetchNotifications();
 
     // Subscribe to realtime updates
-    const channel = supabase
+    const channel = portalSupabase
       .channel(`client-notifications-${clientId}`)
       .on(
         'postgres_changes',
@@ -117,7 +117,7 @@ export const ClientNotifications: React.FC<ClientNotificationsProps> = ({ client
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      portalSupabase.removeChannel(channel);
     };
   }, [clientId]);
 
@@ -150,7 +150,7 @@ export const ClientNotifications: React.FC<ClientNotificationsProps> = ({ client
 
   const markAsRead = async (notificationId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await portalSupabase
         .from('client_notifications')
         .update({ read: true, read_at: new Date().toISOString() })
         .eq('id', notificationId);
@@ -175,7 +175,7 @@ export const ClientNotifications: React.FC<ClientNotificationsProps> = ({ client
       
       if (unreadIds.length === 0) return;
 
-      const { error } = await supabase
+      const { error } = await portalSupabase
         .from('client_notifications')
         .update({ read: true, read_at: new Date().toISOString() })
         .in('id', unreadIds);
