@@ -350,6 +350,7 @@ export const CaseModal: React.FC<CaseModalProps> = ({
         noticeNo: formData.noticeNo,
         issueType: formData.issueType,
         title: formData.title,
+        clientId: formData.clientId,
         currentStage: formData.currentStage,
         priority: formData.priority,
         assignedTo: formData.assignedToId,
