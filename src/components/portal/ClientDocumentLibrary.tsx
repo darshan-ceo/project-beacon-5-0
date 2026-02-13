@@ -53,11 +53,13 @@ interface Case {
 interface ClientDocumentLibraryProps {
   clientId: string;
   cases?: Case[];
+  initialCaseId?: string | null;
 }
 
 export const ClientDocumentLibrary: React.FC<ClientDocumentLibraryProps> = ({ 
   clientId,
-  cases = []
+  cases = [],
+  initialCaseId
 }) => {
   const { portalSession, isAuthenticated } = usePortalAuth();
   const { clientAccess } = useClientPortal();
@@ -65,7 +67,13 @@ export const ClientDocumentLibrary: React.FC<ClientDocumentLibraryProps> = ({
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
-  const [selectedCaseId, setSelectedCaseId] = useState<string>('all');
+  const [selectedCaseId, setSelectedCaseId] = useState<string>(initialCaseId || 'all');
+
+  useEffect(() => {
+    if (initialCaseId) {
+      setSelectedCaseId(initialCaseId);
+    }
+  }, [initialCaseId]);
   const [downloading, setDownloading] = useState<string | null>(null);
 
   // Check download permission (requires portal auth + appropriate role)

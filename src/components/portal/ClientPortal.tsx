@@ -289,6 +289,7 @@ export const ClientPortal: React.FC = () => {
               <ClientDocumentLibrary 
                 clientId={clientId} 
                 cases={clientCases.map(c => ({ id: c.id, case_number: c.case_number, title: c.title }))}
+                initialCaseId={selectedCaseId}
               />
             </div>
           </TabsContent>
