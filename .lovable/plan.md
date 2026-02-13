@@ -1,71 +1,54 @@
 
 
-# Fix Hearing Edit -- PH Details Not Saved on Update
+# Fix: All Hearing Fields Not Persisting on Edit
 
 ## Problem
 
-When editing a hearing, only the `hearing_type` and core hearing fields (date, time) are persisted. **All PH (Personal Hearing) detail fields** -- PH Notice Ref No, PH Notice Date, Mode of Hearing, Place of Hearing, Attended By, and Additional Submissions -- are **never saved during edit** because the save call for the `hearing_ph_details` table is completely missing from the edit code path.
+When editing a hearing, the "Agenda" and "Notes" fields (plus any other non-type fields) are not saved. Only `hearing_type` persists because it was explicitly fixed earlier.
 
 ## Root Cause
 
-In `HearingModal.tsx`, the `handleSave` function has two branches:
+The edit payload in `HearingModal.tsx` (line 498) sends:
+```
+notes: formData.notes || undefined
+```
 
-- **Create path (line ~396)**: Calls `hearingPhDetailsService.save()` after creating the hearing -- this works correctly.
-- **Edit path (line ~483)**: Calls `hearingsService.updateHearing()` for core fields, but **never calls `hearingPhDetailsService.save()`** for the PH details. The PH form data is simply discarded on edit.
+But the database has only ONE text column: `notes`. There is NO `agenda` column in the `hearings` table. The UI has two separate fields -- "Agenda" (`formData.agenda`) and "Notes" (`formData.notes`) -- but only `formData.notes` is sent in the update. Since users primarily edit the "Agenda" field (which is displayed more prominently), their changes are discarded.
 
-This is why:
-- Hearing Type saves (it is on the main `hearings` table, handled by the service)
-- PH Notice Ref, Date, Mode, Place, Attended By, Submissions do NOT save (they live in `hearing_ph_details` table, which is never written to on edit)
+Additionally, the `fullHearing` object dispatched to Redux (line 436) does not include `agenda` as a mapped field from the DB, so even after a successful save, the UI state would not reflect the `agenda` value properly.
 
 ## Fix
 
-### File: `src/components/modals/HearingModal.tsx`
+### File: `src/components/modals/HearingModal.tsx` (line ~498)
 
-Add a `hearingPhDetailsService.save()` call in the **edit** branch (after line 502, right after `hearingsService.updateHearing()`), mirroring the same logic already used in the create branch:
+Change the `notes` field in the updates object to combine both `agenda` and `notes`, matching the create path logic (line 384 already does `notes: formData.notes || formData.agenda`):
 
-```typescript
-// Save PH details if Personal Hearing (edit mode)
-if (hearingType === 'Personal Hearing' && hearingData.id) {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('tenant_id')
-      .eq('id', user?.id)
-      .single();
-    if (profile?.tenant_id) {
-      await hearingPhDetailsService.save({
-        tenant_id: profile.tenant_id,
-        hearing_id: hearingData.id,
-        case_id: formData.caseId || hearingData.case_id,
-        ph_notice_ref_no: phFormData.ph_notice_ref_no,
-        ph_notice_date: phFormData.ph_notice_date,
-        hearing_mode: phFormData.hearing_mode,
-        place_of_hearing: phFormData.place_of_hearing || null,
-        attended_by: phFormData.attended_by || null,
-        additional_submissions: phFormData.additional_submissions.filter(
-          s => s.description.trim()
-        ),
-      });
-    }
-  } catch (phError) {
-    console.error('[HearingModal] Failed to update PH details:', phError);
-  }
-}
+```
+notes: formData.agenda || formData.notes || undefined,
 ```
 
-The `hearingPhDetailsService.save()` method already uses **upsert** with `onConflict: 'hearing_id'`, so it will correctly insert or update the PH details row.
+This ensures the Agenda content (the primary user-edited field) is persisted to the `notes` database column.
+
+### File: `src/services/hearingsService.ts` (line ~420)
+
+Add `agenda` mapping to the `fullHearing` object so the Redux state includes the agenda value after update:
+
+```
+agenda: existingHearing?.notes,  // DB 'notes' column maps to UI 'agenda'
+```
+
+This ensures the UI form correctly repopulates the Agenda field when re-opening a hearing after edit.
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/components/modals/HearingModal.tsx` | Add `hearingPhDetailsService.save()` call in the edit branch after updating the main hearing record |
+| `src/components/modals/HearingModal.tsx` | Line 498: send `formData.agenda` as `notes` in the edit payload |
+| `src/services/hearingsService.ts` | Line ~420: add `agenda` mapping from DB `notes` column in the fullHearing dispatch object |
 
-## Why This Is the Complete Fix
+## Why This Fixes It
 
-- The `hearing_ph_details` table uses upsert on `hearing_id`, so this single call handles both first-time creation and subsequent updates
-- The PH form state (`phFormData`) is already correctly populated from the existing record on modal open (line 170-179)
-- The user's edits to PH fields are tracked in `phFormData` state throughout the modal session
-- No service or backend changes needed -- just the missing call in the edit code path
-
+- The `hearings` table has only a `notes` column (no `agenda` column)
+- The create path already maps `formData.agenda` to `notes` correctly
+- The edit path was sending `formData.notes` (which is often empty) instead of `formData.agenda` (which the user actually edits)
+- After the fix, user edits to Agenda and Notes both persist to the same DB column and are correctly reflected on reload
