@@ -655,6 +655,29 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         }
       }
 
+      // Always sync portal role to client_portal_users table
+      // This ensures role changes take effect even without password changes
+      if (savedClientId && formData.portalAccess.allowLogin && formData.portalAccess.role) {
+        try {
+          const { error: roleError } = await supabase
+            .from('client_portal_users')
+            .update({ 
+              portal_role: formData.portalAccess.role,
+              updated_at: new Date().toISOString()
+            })
+            .eq('client_id', savedClientId)
+            .eq('is_active', true);
+
+          if (roleError) {
+            console.warn('[ClientModal] Portal role sync warning:', roleError);
+          } else {
+            console.log('[ClientModal] Portal role synced to:', formData.portalAccess.role);
+          }
+        } catch (err) {
+          console.warn('[ClientModal] Portal role sync exception:', err);
+        }
+      }
+
       onClose();
     } catch (error: any) {
       console.error('Error saving client:', error);
