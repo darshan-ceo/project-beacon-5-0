@@ -307,7 +307,9 @@ export const usePersistentDispatch = (
           await storage.create('hearings', action.payload);
           break;
         case 'UPDATE_HEARING':
-          await storage.update('hearings', action.payload.id, action.payload);
+          // Skip: hearingsService.updateHearing() already persists to DB before dispatching.
+          // A redundant write here causes normalizeForBackend to rebuild hearing_date
+          // from stale fields, overwriting the correct value.
           break;
         case 'DELETE_HEARING':
           await storage.delete('hearings', action.payload);
