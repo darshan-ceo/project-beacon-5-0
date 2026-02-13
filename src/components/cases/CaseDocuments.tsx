@@ -52,7 +52,7 @@ const mapDbDocToState = (doc: any) => ({
   category: doc.category,
   uploadedBy: doc.uploaded_by,
   uploadedById: doc.uploaded_by,
-  uploadedByName: 'User',
+  uploadedByName: doc.file_path?.startsWith('client-uploads/') ? 'Client Portal' : 'User',
   uploadTimestamp: doc.upload_timestamp,
   uploadedAt: doc.upload_timestamp || doc.created_at,
   isShared: false,

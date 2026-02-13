@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { portalSupabase } from '@/integrations/supabase/portalClient';
 import { usePortalAuth } from '@/contexts/PortalAuthContext';
@@ -16,12 +17,14 @@ import { v4 as uuidv4 } from 'uuid';
 interface ClientDocumentUploadProps {
   clientId: string;
   caseId?: string;
+  cases?: Array<{ id: string; case_number: string; title: string }>;
   onUploadComplete?: () => void;
 }
 
 export const ClientDocumentUpload: React.FC<ClientDocumentUploadProps> = ({
   clientId,
   caseId,
+  cases = [],
   onUploadComplete
 }) => {
   const { portalSession, isAuthenticated } = usePortalAuth();
@@ -29,6 +32,7 @@ export const ClientDocumentUpload: React.FC<ClientDocumentUploadProps> = ({
   const [uploading, setUploading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [description, setDescription] = useState('');
+  const [selectedCaseId, setSelectedCaseId] = useState(caseId || '');
 
   // Check if user has upload permission (requires portal auth + editor role)
   const canUpload = isAuthenticated && portalSession?.isAuthenticated && 
@@ -129,7 +133,7 @@ export const ClientDocumentUpload: React.FC<ClientDocumentUploadProps> = ({
             file_size: file.size,
             mime_type: file.type || 'application/octet-stream',
             client_id: clientId,
-            case_id: caseId || null,
+            case_id: selectedCaseId || null,
             tenant_id: clientAccess.tenantId,
             uploaded_by: portalUserId, // Use portal user's auth.uid()
             category: 'Miscellaneous',
@@ -197,6 +201,24 @@ export const ClientDocumentUpload: React.FC<ClientDocumentUploadProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {cases.length > 0 && (
+          <div>
+            <Label htmlFor="case-select">Related Case <span className="text-destructive">*</span></Label>
+            <Select value={selectedCaseId} onValueChange={setSelectedCaseId}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select a case..." />
+              </SelectTrigger>
+              <SelectContent>
+                {cases.map(c => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.case_number} — {c.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         <div>
           <Label htmlFor="file-upload">Select Files</Label>
           <Input
@@ -256,7 +278,7 @@ export const ClientDocumentUpload: React.FC<ClientDocumentUploadProps> = ({
 
         <Button
           onClick={handleUpload}
-          disabled={selectedFiles.length === 0 || uploading}
+          disabled={selectedFiles.length === 0 || uploading || (cases.length > 0 && !selectedCaseId)}
           className="w-full"
         >
           {uploading ? (

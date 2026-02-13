@@ -283,6 +283,7 @@ export const ClientPortal: React.FC = () => {
             <div className="space-y-6">
               <ClientDocumentUpload 
                 clientId={clientId} 
+                cases={clientCases.map(c => ({ id: c.id, case_number: c.case_number, title: c.title }))}
                 onUploadComplete={fetchClientData}
               />
               <ClientDocumentLibrary 
