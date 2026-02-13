@@ -193,6 +193,20 @@ export const HearingsPage: React.FC = () => {
     tags: searchParams.getAll('tag') || [],
   });
 
+  // Auto-open hearing from notification deep-link
+  useEffect(() => {
+    const hearingId = searchParams.get('hearingId');
+    if (hearingId && state.hearings.length > 0) {
+      const hearing = state.hearings.find(h => h.id === hearingId);
+      if (hearing) {
+        handleViewHearing(hearing);
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('hearingId');
+        setSearchParams(newParams, { replace: true });
+      }
+    }
+  }, [state.hearings, searchParams]);
+
   // Sync URL params to filters when they change
   useEffect(() => {
     const newFilters: Partial<typeof filters> = {};
