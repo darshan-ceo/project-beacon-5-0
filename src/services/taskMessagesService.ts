@@ -154,7 +154,7 @@ class TaskMessagesService {
         .single();
 
       if (error || !task) {
-        console.error('Error fetching task for notification:', error);
+        console.error('[TaskMessages] Error fetching task for notification:', error);
         return;
       }
 
@@ -164,20 +164,28 @@ class TaskMessagesService {
       let recipientId: string | null = null;
       
       if (task.assigned_to === senderId) {
-        // Sender is the assignee, notify the task creator
         recipientId = task.assigned_by;
       } else {
-        // Sender is not the assignee, notify the assignee
         recipientId = task.assigned_to;
       }
 
+      console.log('[TaskMessages] Follow-up notification check:', {
+        taskId,
+        senderId,
+        assignedTo: task.assigned_to,
+        assignedBy: task.assigned_by,
+        recipientId,
+        willNotify: !!recipientId && recipientId !== senderId
+      });
+
       // Don't notify if no recipient or sender is the recipient
       if (!recipientId || recipientId === senderId) {
+        console.log('[TaskMessages] Notification skipped: no valid recipient');
         return;
       }
 
       // Create notification for the recipient
-      await notificationSystemService.createNotification(
+      const result = await notificationSystemService.createNotification(
         'task_assigned',
         `New follow-up on: ${task.title}`,
         `${senderName}: ${messagePreview.substring(0, 100)}${messagePreview.length > 100 ? '...' : ''}`,
@@ -193,8 +201,14 @@ class TaskMessagesService {
           }
         }
       );
+
+      if (result) {
+        console.log('[TaskMessages] Follow-up notification sent:', result.id);
+      } else {
+        console.warn('[TaskMessages] Follow-up notification creation returned null');
+      }
     } catch (error) {
-      console.error('Error notifying task participant:', error);
+      console.error('[TaskMessages] Error notifying task participant:', error);
     }
   }
 
