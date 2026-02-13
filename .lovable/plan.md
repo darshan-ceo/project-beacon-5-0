@@ -1,73 +1,103 @@
 
+# Fix: Case Selection During Portal Upload + "Unknown" Uploader Display
 
-# Fix: Documents Uploaded from Client Portal Cannot Be Downloaded/Previewed in Admin Panel
+## Problems Identified
 
-## Problem
+1. **No case selection during upload**: The `ClientDocumentUpload` component accepts an optional `caseId` prop but the parent `ClientPortal` never passes it. There is no dropdown for selecting which case the document belongs to.
 
-The "FORM GST APL.docx" uploaded from the Client Portal shows "Object not found" when an admin tries to preview or download it. The document record exists in the database, but the actual file in storage cannot be accessed by the admin.
+2. **"Unknown" uploader name**: The admin panel resolves `uploaded_by` (a UUID) against the employees list. Portal users are not employees, so their name resolves to "Unknown". The remarks field contains `[Client Upload]` but this is not displayed as the uploader name.
 
-## Root Cause
+3. **No client name shown**: The admin document list shows the uploader name (from employees lookup) but has no special handling for portal-uploaded documents.
 
-This is a **storage RLS policy mismatch**. The admin's SELECT policies on `storage.objects` check that the first folder in the file path matches the admin's `tenant_id`:
+## Solution
 
+### 1. Add Case Selection Dropdown to `ClientDocumentUpload`
+
+**File: `src/components/portal/ClientDocumentUpload.tsx`**
+
+- Accept a `cases` prop (array of `{ id, case_number, title }`)
+- Add a `Select` dropdown above the file input for choosing the related case
+- Store the selected `caseId` in local state
+- Pass it to the document insert call (already wired via the `case_id` field)
+- Make case selection required before upload is allowed
+
+**File: `src/components/portal/ClientPortal.tsx`**
+
+- Pass `clientCases` to the `ClientDocumentUpload` component so the dropdown has data
+
+### 2. Fix "Unknown" Uploader — Show "Client Portal" for Portal-Uploaded Documents
+
+**File: `src/hooks/useRealtimeSync.ts` (lines 502-517, 526-540)**
+
+- When resolving `uploadedByName`, if no employee match is found AND the file path starts with `client-uploads/`, set the name to `"Client Portal"` instead of `"Unknown"`.
+
+**File: `src/components/documents/DocumentManagement.tsx` (lines 318-324, 362-370, 409-416)**
+
+- Same logic: when mapping `state.documents` and realtime events, check if path starts with `client-uploads/` and use `"Client Portal"` as the uploader name fallback.
+
+**File: `src/components/cases/CaseDocuments.tsx` (line 55)**
+
+- Same pattern: use `"Client Portal"` when the document path indicates a portal upload.
+
+### 3. Show Client Name in Admin Document List for Portal Uploads
+
+The remarks field already contains `[Client Upload]`. Combined with the `client_id` field (which is always set), the admin can identify which client uploaded the document. The uploader name fix above (`"Client Portal"`) provides clear attribution.
+
+## Technical Details
+
+### `src/components/portal/ClientDocumentUpload.tsx`
+
+Add a new prop for cases and a Select dropdown:
+
+```typescript
+interface ClientDocumentUploadProps {
+  clientId: string;
+  caseId?: string;
+  cases?: Array<{ id: string; case_number: string; title: string }>;
+  onUploadComplete?: () => void;
+}
 ```
-(storage.foldername(name))[1] = profiles.tenant_id
+
+Add state for selected case:
+```typescript
+const [selectedCaseId, setSelectedCaseId] = useState(caseId || '');
 ```
 
-But Client Portal uploads use the path format:
-```
-client-uploads/{clientId}/{uuid}-{timestamp}.{ext}
-```
+Add a Select component before the file input showing available cases. Use `selectedCaseId` in the insert call instead of the prop `caseId`.
 
-The first folder is `client-uploads`, NOT the tenant ID. So the admin's storage policies deny access to these files -- the file exists in storage, but the admin cannot read it.
+### `src/components/portal/ClientPortal.tsx` (line 284-286)
 
-For comparison, admin uploads use the path format `{tenant_id}/{uuid}.{ext}`, which passes the policy check.
-
-## Fix
-
-Two changes are needed:
-
-### 1. Database Migration: Update storage SELECT policies
-
-Add a new storage SELECT policy (or update existing ones) that allows admins to also read files under the `client-uploads/` folder, provided the file's associated document record belongs to their tenant. The simplest approach: allow admins to read any file in the `client-uploads/` folder if they have the admin or partner role and the associated `documents` table row has their `tenant_id`.
-
-Alternatively, the simpler and more robust fix: update the Client Portal upload code to store files under `{tenant_id}/client-uploads/{clientId}/...` instead of `client-uploads/{clientId}/...`. This way existing admin policies automatically grant access. However, this requires also updating the portal's storage INSERT policy.
-
-**Recommended approach**: Update the storage RLS policies to grant admin/partner users SELECT access to files in the `client-uploads/` path. This avoids changing the upload path (which would break existing files).
-
-New policy:
-```sql
-CREATE POLICY "Admins can view client uploads"
-ON storage.objects FOR SELECT
-USING (
-  bucket_id = 'documents'
-  AND (storage.foldername(name))[1] = 'client-uploads'
-  AND (
-    has_role(auth.uid(), 'admin'::app_role)
-    OR has_role(auth.uid(), 'partner'::app_role)
-  )
-  AND EXISTS (
-    SELECT 1 FROM profiles
-    WHERE profiles.id = auth.uid()
-    AND profiles.tenant_id IS NOT NULL
-  )
-);
+Pass cases to the upload component:
+```tsx
+<ClientDocumentUpload 
+  clientId={clientId}
+  cases={clientCases.map(c => ({ id: c.id, case_number: c.case_number, title: c.title }))}
+  onUploadComplete={fetchClientData}
+/>
 ```
 
-Also add a similar DELETE policy so admins can manage these files.
+### `src/hooks/useRealtimeSync.ts` (lines 503, 517, 526, 540)
 
-### 2. No code changes needed
+Change the fallback from `'Unknown'` to check the path:
+```typescript
+const uploaderName = uploader?.full_name 
+  || (docData.file_path?.startsWith('client-uploads/') ? 'Client Portal' : 'Unknown');
+```
 
-The admin panel code already correctly reads `file_path` from the database and passes it to `documentDownloadService`. Once the storage policy allows access, download and preview will work.
+### `src/components/documents/DocumentManagement.tsx` (lines 322, 366, 415)
+
+Same pattern for all three mapping locations:
+```typescript
+uploadedByName: doc.uploadedByName 
+  || (doc.path?.startsWith('client-uploads/') ? 'Client Portal' : 'Unknown'),
+```
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| New SQL migration | Add storage RLS SELECT policy allowing admins to access `client-uploads/` folder |
-
-## Why This Fixes It
-
-- The `client-uploads/` path files will become readable by admin users
-- The existing download/preview code in `documentDownloadService.ts` will successfully fetch the file via signed URL or direct download
-- No changes to upload logic or existing file paths required
+| `src/components/portal/ClientDocumentUpload.tsx` | Add case selection dropdown with required validation |
+| `src/components/portal/ClientPortal.tsx` | Pass `clientCases` to `ClientDocumentUpload` |
+| `src/hooks/useRealtimeSync.ts` | Use "Client Portal" as uploader name for portal uploads |
+| `src/components/documents/DocumentManagement.tsx` | Same uploader name fix in document mapping |
+| `src/components/cases/CaseDocuments.tsx` | Same uploader name fix |
