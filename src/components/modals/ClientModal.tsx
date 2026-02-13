@@ -211,7 +211,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
           },
           portalAccess: clientData.portalAccess ? { 
             ...clientData.portalAccess, 
-            role: clientData.portalAccess.role || 'editor' 
+            role: clientData.portalAccess.role || 'editor',
+            // Preserve provisioning-managed fields for round-trip
+            loginEmail: clientData.portalAccess.loginEmail,
+            userId: clientData.portalAccess.userId,
           } : { allowLogin: false, role: 'editor' as const },
           assignedCAId: clientData.assignedCAId,
           assignedCAName: clientData.assignedCAName,
