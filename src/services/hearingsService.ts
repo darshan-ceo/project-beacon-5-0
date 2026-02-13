@@ -405,20 +405,33 @@ export const hearingsService = {
       // Fetch the existing hearing and merge with updates for full data dispatch
       const existingHearing = await storage.getById<any>('hearings', id);
       const fullHearing = {
+        // Start with all existing DB fields mapped to app-level names
         id,
-        case_id: existingHearing?.case_id || updates.case_id,
-        date: updates.date || existingHearing?.hearing_date?.split('T')[0],
-        start_time: updates.start_time || updates.time || '10:00',
-        time: updates.start_time || updates.time || '10:00',
+        case_id: existingHearing?.case_id,
+        caseId: existingHearing?.case_id, // Legacy alias
+        stage_instance_id: existingHearing?.stage_instance_id,
+        hearing_type: existingHearing?.hearing_type,
+        date: existingHearing?.hearing_date?.split('T')[0],
+        start_time: existingHearing?.hearing_date ? new Date(existingHearing.hearing_date).toISOString().slice(11, 16) : '10:00',
+        time: existingHearing?.hearing_date ? new Date(existingHearing.hearing_date).toISOString().slice(11, 16) : '10:00',
         status: existingHearing?.status,
         notes: existingHearing?.notes,
         outcome: existingHearing?.outcome,
+        outcome_text: existingHearing?.outcome_text,
         court_id: existingHearing?.court_id,
         authority_id: existingHearing?.authority_id,
         forum_id: existingHearing?.forum_id,
+        authority_name: existingHearing?.authority_name,
+        forum_name: existingHearing?.forum_name,
         judge_name: existingHearing?.judge_name,
+        bench_details: existingHearing?.bench_details,
         next_hearing_date: existingHearing?.next_hearing_date,
-        ...updates // Apply the updates on top
+        purpose: existingHearing?.hearing_purpose || existingHearing?.purpose,
+        created_by: existingHearing?.created_by,
+        created_at: existingHearing?.created_at,
+        updated_at: existingHearing?.updated_at,
+        // Apply the updates on top to override with new values
+        ...updates
       };
       dispatch({ type: 'UPDATE_HEARING', payload: fullHearing });
       
