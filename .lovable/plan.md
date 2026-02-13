@@ -1,54 +1,48 @@
 
 
-# Fix: All Hearing Fields Not Persisting on Edit
+# Fix: Client Portal Login Fails With "Incorrect Password"
 
 ## Problem
 
-When editing a hearing, the "Agenda" and "Notes" fields (plus any other non-type fields) are not saved. Only `hearing_type` persists because it was explicitly fixed earlier.
+When a client's portal username is an email address (e.g., `prashakha@gmail.com`), login always fails with "Incorrect password" even though the password is correct.
 
 ## Root Cause
 
-The edit payload in `HearingModal.tsx` (line 498) sends:
+The `portal-lookup-login-email` edge function has a shortcut on **line 27**: if the entered username contains `@`, it assumes it IS the login email and returns it directly, skipping the database lookup entirely.
+
 ```
-notes: formData.notes || undefined
+if (trimmedIdentifier.includes('@')) {
+  return { loginEmail: trimmedIdentifier }  // Returns "prashakha@gmail.com"
+}
 ```
 
-But the database has only ONE text column: `notes`. There is NO `agenda` column in the `hearings` table. The UI has two separate fields -- "Agenda" (`formData.agenda`) and "Notes" (`formData.notes`) -- but only `formData.notes` is sent in the update. Since users primarily edit the "Agenda" field (which is displayed more prominently), their changes are discarded.
+But the actual Supabase auth user was created by `provision-portal-user` with a **synthetic email** like:
 
-Additionally, the `fullHearing` object dispatched to Redux (line 436) does not include `agenda` as a mapped field from the DB, so even after a successful save, the UI state would not reflect the `agenda` value properly.
+```
+prashakhagmailcom@portal.XXXXXXXX.local
+```
+
+So the login attempt calls `signInWithPassword` with email `prashakha@gmail.com` instead of the correct synthetic email, causing an "Invalid login credentials" error that surfaces as "Incorrect password."
 
 ## Fix
 
-### File: `src/components/modals/HearingModal.tsx` (line ~498)
+### File: `supabase/functions/portal-lookup-login-email/index.ts`
 
-Change the `notes` field in the updates object to combine both `agenda` and `notes`, matching the create path logic (line 384 already does `notes: formData.notes || formData.agenda`):
+Remove the email shortcut. **Always** look up the username in the `clients.portal_access` JSONB column to find the correct `loginEmail`, regardless of whether the identifier contains `@`.
 
-```
-notes: formData.agenda || formData.notes || undefined,
-```
+The lookup logic already handles this correctly (lines 44-86) -- it searches `portal_access.username` across all clients. The fix is simply removing the early return on lines 27-33 so that email-format usernames also go through the database lookup path.
 
-This ensures the Agenda content (the primary user-edited field) is persisted to the `notes` database column.
-
-### File: `src/services/hearingsService.ts` (line ~420)
-
-Add `agenda` mapping to the `fullHearing` object so the Redux state includes the agenda value after update:
-
-```
-agenda: existingHearing?.notes,  // DB 'notes' column maps to UI 'agenda'
-```
-
-This ensures the UI form correctly repopulates the Agenda field when re-opening a hearing after edit.
+Additionally, add a fallback: if the database lookup by `portal_access.username` fails and the identifier is an email, also try matching by `portal_access.loginEmail` directly. This covers edge cases where the username stored might differ slightly.
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/components/modals/HearingModal.tsx` | Line 498: send `formData.agenda` as `notes` in the edit payload |
-| `src/services/hearingsService.ts` | Line ~420: add `agenda` mapping from DB `notes` column in the fullHearing dispatch object |
+| `supabase/functions/portal-lookup-login-email/index.ts` | Remove the `@` shortcut that bypasses database lookup; always resolve loginEmail from `portal_access` |
 
 ## Why This Fixes It
 
-- The `hearings` table has only a `notes` column (no `agenda` column)
-- The create path already maps `formData.agenda` to `notes` correctly
-- The edit path was sending `formData.notes` (which is often empty) instead of `formData.agenda` (which the user actually edits)
-- After the fix, user edits to Agenda and Notes both persist to the same DB column and are correctly reflected on reload
+- The username `prashakha@gmail.com` will now be looked up in `clients.portal_access.username`
+- The correct synthetic `loginEmail` (e.g., `prashakhagmailcom@portal.XXXXXXXX.local`) will be returned
+- `signInWithPassword` will use the correct email, and the password will match
+
