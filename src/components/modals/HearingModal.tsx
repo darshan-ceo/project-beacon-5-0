@@ -501,6 +501,35 @@ export const HearingModal: React.FC<HearingModalProps> = ({
 
         await hearingsService.updateHearing(hearingData.id, updates, dispatch);
 
+        // Save PH details if Personal Hearing (edit mode)
+        if (hearingType === 'Personal Hearing' && hearingData.id) {
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('tenant_id')
+              .eq('id', user?.id)
+              .single();
+            if (profile?.tenant_id) {
+              await hearingPhDetailsService.save({
+                tenant_id: profile.tenant_id,
+                hearing_id: hearingData.id,
+                case_id: formData.caseId || hearingData.case_id,
+                ph_notice_ref_no: phFormData.ph_notice_ref_no,
+                ph_notice_date: phFormData.ph_notice_date,
+                hearing_mode: phFormData.hearing_mode,
+                place_of_hearing: phFormData.place_of_hearing || null,
+                attended_by: phFormData.attended_by || null,
+                additional_submissions: phFormData.additional_submissions.filter(
+                  s => s.description.trim()
+                ),
+              });
+            }
+          } catch (phError) {
+            console.error('[HearingModal] Failed to update PH details:', phError);
+          }
+        }
+
         // Upload any new attached documents
         if (attachments.length > 0 && hearingData.id) {
           try {
