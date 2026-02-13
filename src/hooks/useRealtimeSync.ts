@@ -514,7 +514,7 @@ export const useRealtimeSync = () => {
                 folderId: docData.folder_id || '',
                 category: docData.category,
                 uploadedById: docData.uploaded_by,
-                uploadedByName: uploader?.full_name || 'Unknown',
+            uploadedByName: uploader?.full_name || (docData.file_path?.startsWith('client-uploads/') ? 'Client Portal' : 'Unknown'),
                 uploadedAt: docData.upload_timestamp || docData.created_at,
                 tags: [],
                 isShared: false,
@@ -537,11 +537,11 @@ export const useRealtimeSync = () => {
                 folderId: docData.folder_id || '',
                 category: docData.category,
                 uploadedById: docData.uploaded_by,
-                uploadedByName: uploader?.full_name || 'Unknown',
-                uploadedAt: docData.upload_timestamp || docData.created_at,
-              }
-            });
-          } else if (payload.eventType === 'DELETE' && payload.old) {
+            uploadedByName: uploader?.full_name || (docData.file_path?.startsWith('client-uploads/') ? 'Client Portal' : 'Unknown'),
+            uploadedAt: docData.upload_timestamp || docData.created_at,
+          }
+        });
+      } else if (payload.eventType === 'DELETE' && payload.old) {
             rawDispatch({ type: 'DELETE_DOCUMENT', payload: (payload.old as any).id });
           }
         }

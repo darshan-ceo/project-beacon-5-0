@@ -319,8 +319,8 @@ export const DocumentManagement: React.FC = () => {
       ...doc,
       type: doc.type || 'pdf',
       size: doc.size || 0,
-      uploadedByName: doc.uploadedByName || 'Unknown',
-      uploadedBy: doc.uploadedByName || 'Unknown',
+      uploadedByName: doc.uploadedByName || (doc.path?.startsWith('client-uploads/') ? 'Client Portal' : 'Unknown'),
+      uploadedBy: doc.uploadedByName || (doc.path?.startsWith('client-uploads/') ? 'Client Portal' : 'Unknown'),
       createdAt: (doc as any).createdAt || doc.uploadedAt
     }));
     setFilteredDocuments(convertedDocs);
@@ -363,7 +363,7 @@ export const DocumentManagement: React.FC = () => {
             category: newDoc.category,
             uploadedBy: newDoc.uploaded_by,
             uploadedById: newDoc.uploaded_by,
-            uploadedByName: 'User',
+            uploadedByName: newDoc.file_path?.startsWith('client-uploads/') ? 'Client Portal' : 'User',
             uploadTimestamp: newDoc.upload_timestamp,
             uploadedAt: newDoc.upload_timestamp,
             isShared: false,
@@ -412,7 +412,7 @@ export const DocumentManagement: React.FC = () => {
             category: updatedDoc.category,
             uploadedBy: updatedDoc.uploaded_by,
             uploadedById: updatedDoc.uploaded_by,
-            uploadedByName: 'User',
+            uploadedByName: updatedDoc.file_path?.startsWith('client-uploads/') ? 'Client Portal' : 'User',
             uploadTimestamp: updatedDoc.upload_timestamp,
             uploadedAt: updatedDoc.upload_timestamp,
             isShared: false,
