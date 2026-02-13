@@ -1,84 +1,32 @@
 
-# Add View + Edit Buttons Across All Lifecycle Sections
+# Fix Hearing Edit Not Reflecting Updated Data
 
 ## Problem
-After saving data in any section (Notice, Reply, Hearings, Stage Closure), there is no way to edit that data. The Reply and Hearings panels lack Edit buttons entirely, and the global "Edit Stage" button in the historical banner is not sufficient for per-record editing. Users need consistent View + Edit functionality on every record, both before and after stage closure.
+When a hearing is edited and saved from the Lifecycle tab, the "Hearing Updated" toast appears, but the hearing card still shows old data. Reopening the hearing also shows the previous values.
 
-## Current State
+## Root Cause
+In `hearingsService.updateHearing()` (lines 405-422), after the DB update, a `fullHearing` object is built and dispatched via `UPDATE_HEARING`. This object is incomplete -- it is missing critical fields like `stage_instance_id`, `hearing_type`, `authority_name`, `forum_name`, and `caseId` (legacy alias). When this partial object replaces the hearing in `state.hearings`, the data appears stale or wrong.
 
-| Section | View Button | Edit Button | Status |
-|---------|------------|-------------|--------|
-| Notice | Yes | Yes (but hidden when isReadOnly) | Partially working |
-| Reply | No | No | Missing entirely |
-| Hearings | Chevron (view) | No (only Outcome/Adjourn) | Missing Edit |
-| Stage Closure | N/A (inline form) | No toggle | Missing Edit toggle |
+Additionally, the HearingModal's edit submission (line 487-498) does not include `stage_instance_id` or `hearing_type` in the updates payload.
 
-## Solution
+## Fix (2 file changes)
 
-### 1. StageRepliesPanel.tsx -- Add Edit Button Per Reply
+### 1. `src/services/hearingsService.ts` -- Preserve all fields in UPDATE_HEARING dispatch
 
-Add an `onEditReply` callback prop. For each reply card, add an "Edit" button (gated by `!isReadOnly`) that invokes this callback. The parent (`CaseLifecycleFlow`) will handle opening the correct editor:
-- Pre-appeal stages: open FileReplyModal in edit mode
-- Appeal stages: navigate to StructuredReplyPage with the reply ID
+Update the `fullHearing` construction (lines 407-422) to include all fields from `existingHearing`, properly mapped from their DB column names to the app-level field names. Key additions:
+- `stage_instance_id` from `existingHearing`
+- `hearing_type` from `existingHearing`
+- `authority_name`, `forum_name` from `existingHearing`
+- `caseId` (legacy alias) from `existingHearing?.case_id`
+- All other fields currently in the hearing state
 
-Also add a "View" button for read-only inspection of reply details.
+The approach: Start with a comprehensive mapping of `existingHearing` DB fields, then spread `updates` on top, ensuring no field is lost.
 
-### 2. StageHearingsPanel.tsx -- Add Edit Button Per Hearing
+### 2. `src/components/modals/HearingModal.tsx` -- Include stage_instance_id and hearing_type in edit updates
 
-Add an explicit "Edit" button alongside the existing "View" chevron for each hearing record, gated by `!isReadOnly`. This will use the existing `onRecordOutcome` or a new `onEditHearing` callback to open the HearingModal in edit mode.
+Update the edit path (lines 487-498) to pass `stage_instance_id` and `hearing_type` from the existing `hearingData` so the service has complete data to work with.
 
-### 3. CaseLifecycleFlow.tsx -- Wire Up Edit Handlers
-
-- Add `handleEditReply` callback that determines whether to use the FileReplyModal (pre-appeal) or navigate to StructuredReplyPage (appeal stages) with the reply data pre-loaded for editing.
-- Pass `onEditReply` to StageRepliesPanel and StageNoticesPanel (for inline reply editing).
-- Add `onEditHearing` handler that opens HearingModal in edit mode for a selected hearing.
-- Pass `onEditHearing` to StageHearingsPanel.
-
-### 4. StageClosurePanel.tsx -- Add View/Edit Toggle
-
-When closure data has been previously saved (loaded from DB), default the panel to a read-only display with an "Edit" button. Clicking Edit switches the form to editable mode. This applies both for closed and active stages. The save/close buttons appear only in edit mode.
-
-### 5. Ensure isReadOnly Logic Covers All Scenarios
-
-The existing `isReadOnly={isViewingHistorical && !isEditingHistorical}` logic at the parent level is correct. The key missing pieces are the per-record Edit/View buttons inside the child panels, which this plan adds.
-
-## Technical Details
-
-### StageRepliesPanel.tsx Changes
-```
-interface StageRepliesPanelProps {
-  // ... existing props
-  onEditReply?: (reply: StageReply) => void;  // NEW
-  onViewReply?: (reply: StageReply) => void;  // NEW
-}
-```
-Add Edit and View buttons in each reply card's action area, mirroring the notice panel pattern.
-
-### StageHearingsPanel.tsx Changes
-```
-interface StageHearingsPanelProps {
-  // ... existing props
-  onEditHearing?: (hearing: Hearing) => void;  // NEW
-}
-```
-Add an "Edit" button next to the existing view chevron, gated by `!isReadOnly`.
-
-### CaseLifecycleFlow.tsx Changes
-- New `handleEditReply` callback: determines pre-appeal vs appeal, opens correct editor
-- New `handleEditHearing` callback: sets viewingHearing + edit mode, opens HearingModal
-- Pass these as props to the respective panels
-
-### StageClosurePanel.tsx Changes
-- Add internal `isEditMode` state, defaults to `false` when existing data is loaded
-- When `isEditMode` is false: render form fields as static text with an "Edit" button
-- When `isEditMode` is true: render editable form with Save/Close buttons (current behavior)
-- For new closures (no existing data), default to edit mode
-
-## Files Modified
-
-| File | Change |
-|------|--------|
-| `src/components/lifecycle/StageRepliesPanel.tsx` | Add Edit + View buttons per reply |
-| `src/components/lifecycle/StageHearingsPanel.tsx` | Add Edit button per hearing |
-| `src/components/lifecycle/StageClosurePanel.tsx` | Add View/Edit mode toggle for saved closure data |
-| `src/components/cases/CaseLifecycleFlow.tsx` | Wire handleEditReply, handleEditHearing; pass to panels |
+## Why This Works
+- The `stageHearings` memo filters by `stage_instance_id` and displays fields like date, time, status, and hearing type from `state.hearings`
+- By ensuring `UPDATE_HEARING` dispatches a complete hearing object, the UI immediately reflects the updated values without needing a page refresh
+- The `refreshWorkflow` call in the modal's `onClose` already re-fetches workflow data, but hearings come from `state.hearings`, so the dispatch must be accurate
