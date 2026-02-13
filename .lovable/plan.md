@@ -1,50 +1,48 @@
 
-# Fix Hearing Edit Persistence -- Eliminate Double-Write Bug
 
-## Root Cause
+# Fix Hearing Edit Not Persisting -- hearing_type and Field Mapping Gaps
 
-Every `UPDATE_HEARING` dispatch triggers TWO database writes:
+## Problem
 
-1. **hearingsService.ts (line 403)**: The service explicitly calls `storage.update('hearings', id, updateData)` with properly computed `hearing_date`. This write is CORRECT.
+When editing a hearing (changing type, date, time, etc.), the changes appear to save but revert on reload. Two bugs cause this:
 
-2. **usePersistentDispatch.tsx (line 310)**: The dispatch interceptor sees `UPDATE_HEARING` and calls `storage.update('hearings', action.payload.id, action.payload)` AGAIN with the `fullHearing` object. The `normalizeForBackend` function rebuilds `hearing_date` from `fullHearing.time` (which may hold the OLD time value) instead of the already-correct `hearing_date`. This second write OVERWRITES the correct data.
+## Root Causes
 
-This is confirmed by the network logs showing two consecutive PATCH requests to the same hearing record.
+### Bug 1: HearingModal sends OLD hearing_type (not the user's selection)
+
+In the edit submission (HearingModal.tsx line 490), `hearing_type` is set to `hearingData.hearing_type` -- the original value from when the modal opened. The user's selection via the Hearing Type dropdown (stored in the `hearingType` state variable) is never included in the update payload.
+
+### Bug 2: hearingsService ignores hearing_type in DB update
+
+In `hearingsService.updateHearing()` (lines 370-400), the field mapping that builds `updateData` for the database write does not include `hearing_type`. So even if the modal sent the correct value, it would never reach the database.
 
 ## Fix
 
-### Option chosen: Skip redundant DB write in usePersistentDispatch for UPDATE_HEARING
+### 1. HearingModal.tsx -- Use current hearingType state in edit payload
 
-Since `hearingsService.updateHearing()` already persists to the database before dispatching, the persistent dispatch interceptor should NOT write again. This is the same pattern other service-layer entities should follow.
+Line 490: Change `hearing_type: hearingData.hearing_type` to `hearing_type: hearingType` so the user's dropdown selection is sent to the service.
 
-### File: `src/hooks/usePersistentDispatch.tsx`
+### 2. hearingsService.ts -- Add hearing_type to updateData mapping
 
-At line 309-310, change:
+Add a line after the existing field mappings (around line 399):
 ```
-case 'UPDATE_HEARING':
-  await storage.update('hearings', action.payload.id, action.payload);
-  break;
-```
-to:
-```
-case 'UPDATE_HEARING':
-  // Skip: hearingsService.updateHearing() already persists to DB before dispatching.
-  // A redundant write here causes normalizeForBackend to rebuild hearing_date
-  // from stale fields, overwriting the correct value.
-  break;
+if (updates.hearing_type !== undefined) updateData.hearing_type = updates.hearing_type;
 ```
 
-This is the minimal, safest fix. The service layer is the single source of truth for DB writes, and the persistent dispatch should not duplicate that work for hearings.
-
-## Why This Works
-
-- The service's `storage.update()` correctly maps `date` + `start_time` to `hearing_date` in UTC
-- The service's `storage.getById()` then fetches the updated record to build the complete dispatch payload
-- The reducer correctly merges the updated fields into `state.hearings`
-- Removing the redundant write eliminates the race condition where stale field mappings overwrite correct data
+This ensures `hearing_type` is included in the database PATCH request.
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/hooks/usePersistentDispatch.tsx` | Remove redundant `storage.update` for `UPDATE_HEARING` case (service already handles persistence) |
+| `src/components/modals/HearingModal.tsx` | Line 490: use `hearingType` state instead of `hearingData.hearing_type` |
+| `src/services/hearingsService.ts` | Add `hearing_type` to the `updateData` field mapping block |
+
+## Why This Fixes It
+
+- The modal will now send the user's actual selection for hearing type
+- The service will now persist `hearing_type` to the database
+- The post-update fetch (`storage.getById`) on line 406 will return the correct data
+- The dispatched `fullHearing` object will reflect all updated fields
+- No double-write issue since `usePersistentDispatch` already skips `UPDATE_HEARING`
+
