@@ -1,3 +1,4 @@
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import type { Client, Signatory, PortalAccess, AppAction } from '@/contexts/AppStateContext';
 import { normalizeClientPayload } from '@/utils/formatters';
@@ -350,9 +351,30 @@ export const clientsService = {
       if (updates.jurisdiction !== undefined) supabaseUpdates.jurisdiction = JSON.stringify(updates.jurisdiction);
       // Dual Access Model: handle data_scope updates
       if ((updates as any).dataScope !== undefined) supabaseUpdates.data_scope = (updates as any).dataScope;
-      // Portal access credentials
+      // Portal access credentials — preserve provisioning-managed fields
       if (updates.portalAccess !== undefined) {
-        supabaseUpdates.portal_access = updates.portalAccess?.allowLogin ? updates.portalAccess : null;
+        if (updates.portalAccess?.allowLogin) {
+          // Fetch existing portal_access to preserve loginEmail/userId set by provisioning
+          const { data: existingClient } = await supabase
+            .from('clients')
+            .select('portal_access')
+            .eq('id', clientId)
+            .single();
+
+          const existing = (existingClient?.portal_access as Record<string, any>) || {};
+
+          supabaseUpdates.portal_access = {
+            allowLogin: updates.portalAccess.allowLogin,
+            username: updates.portalAccess.username,
+            role: updates.portalAccess.role,
+            // Preserve provisioning-managed fields (set by provision-portal-user)
+            loginEmail: updates.portalAccess.loginEmail || existing.loginEmail,
+            userId: updates.portalAccess.userId || existing.userId,
+            // Never store plaintext password in DB — Supabase Auth is source of truth
+          };
+        } else {
+          supabaseUpdates.portal_access = null;
+        }
       }
 
       // Persist to Supabase first

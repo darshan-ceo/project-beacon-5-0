@@ -1155,6 +1155,8 @@ export interface PortalAccess {
   username?: string;
   passwordHash?: string;
   role?: 'viewer' | 'editor' | 'admin';
+  loginEmail?: string;
+  userId?: string;
 }
 
 export interface SignatoryEmail {
