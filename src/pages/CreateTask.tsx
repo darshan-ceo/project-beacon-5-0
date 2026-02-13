@@ -38,6 +38,7 @@ import { useAppState } from '@/contexts/AppStateContext';
 import { supabase } from '@/integrations/supabase/client';
 import { TaskAttachment } from '@/types/taskMessages';
 import { taskMessagesService } from '@/services/taskMessagesService';
+import { notificationSystemService } from '@/services/notificationSystemService';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -339,6 +340,26 @@ export const CreateTask: React.FC = () => {
           audit_trail: { created_by: user.id, created_at: taskData.created_at, updated_by: user.id, updated_at: taskData.created_at, change_log: [] },
         },
       });
+
+      // Send notification to assignee if different from creator
+      if (formData.assignedTo && formData.assignedTo !== user.id) {
+        try {
+          await notificationSystemService.createNotification(
+            'task_assigned',
+            `New Task: ${formData.title}`,
+            `You have been assigned a new task${effectiveCaseNumber ? ` for case ${effectiveCaseNumber}` : ''}. ${formData.dueDate ? `Due: ${format(formData.dueDate, 'dd MMM yyyy')}` : ''}`,
+            formData.assignedTo,
+            {
+              relatedEntityType: 'task',
+              relatedEntityId: taskData.id,
+              channels: ['in_app'],
+              metadata: { priority: formData.priority, caseId: effectiveCaseId, assignedBy: user.id }
+            }
+          );
+        } catch (e) {
+          console.warn('[CreateTask] Notification failed:', e);
+        }
+      }
 
       toast.success('Task created successfully');
       navigate(`/tasks/${taskData.id}`);

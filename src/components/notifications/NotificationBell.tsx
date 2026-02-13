@@ -4,7 +4,7 @@
  * Updated for Supabase realtime (Phase 3)
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ import { NotificationList } from './NotificationList';
 import { Notification } from '@/types/notification';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { playNotificationSound } from './notificationSound';
 
 interface NotificationBellProps {
   userId: string;
@@ -25,6 +26,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ userId, clas
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const prevUnreadRef = useRef(0);
 
   useEffect(() => {
     if (!userId) return;
@@ -33,7 +35,9 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ userId, clas
     const loadInitial = async () => {
       const initial = await notificationSystemService.getNotifications(userId);
       setNotifications(initial);
-      setUnreadCount(initial.filter(n => !n.read).length);
+      const count = initial.filter(n => !n.read).length;
+      setUnreadCount(count);
+      prevUnreadRef.current = count;
     };
     loadInitial();
 
@@ -41,7 +45,14 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ userId, clas
     const unsubscribe = notificationSystemService.subscribe((updatedNotifications) => {
       const userNotifications = updatedNotifications.filter(n => n.user_id === userId);
       setNotifications(userNotifications);
-      setUnreadCount(userNotifications.filter(n => !n.read).length);
+      const newCount = userNotifications.filter(n => !n.read).length;
+      
+      // Play sound if unread count increased
+      if (newCount > prevUnreadRef.current) {
+        playNotificationSound();
+      }
+      prevUnreadRef.current = newCount;
+      setUnreadCount(newCount);
     });
 
     // Also set up Supabase realtime for immediate updates
@@ -56,10 +67,14 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ userId, clas
           filter: `user_id=eq.${userId}`
         },
         async () => {
-          // Refresh notifications when changes occur
           const fresh = await notificationSystemService.getNotifications(userId);
           setNotifications(fresh);
-          setUnreadCount(fresh.filter(n => !n.read).length);
+          const freshCount = fresh.filter(n => !n.read).length;
+          if (freshCount > prevUnreadRef.current) {
+            playNotificationSound();
+          }
+          prevUnreadRef.current = freshCount;
+          setUnreadCount(freshCount);
         }
       )
       .subscribe();
