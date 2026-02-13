@@ -418,6 +418,7 @@ export const hearingsService = {
         time: existingHearing?.hearing_date ? new Date(existingHearing.hearing_date).toISOString().slice(11, 16) : '10:00',
         status: existingHearing?.status,
         notes: existingHearing?.notes,
+        agenda: existingHearing?.notes, // DB 'notes' column maps to UI 'agenda'
         outcome: existingHearing?.outcome,
         outcome_text: existingHearing?.outcome_text,
         court_id: existingHearing?.court_id,
