@@ -1,103 +1,69 @@
 
-# Fix: Case Selection During Portal Upload + "Unknown" Uploader Display
 
-## Problems Identified
+# Fix: Client Portal Notifications Not Working
 
-1. **No case selection during upload**: The `ClientDocumentUpload` component accepts an optional `caseId` prop but the parent `ClientPortal` never passes it. There is no dropdown for selecting which case the document belongs to.
+## Problems Found
 
-2. **"Unknown" uploader name**: The admin panel resolves `uploaded_by` (a UUID) against the employees list. Portal users are not employees, so their name resolves to "Unknown". The remarks field contains `[Client Upload]` but this is not displayed as the uploader name.
+Three distinct issues are preventing notifications from appearing in the Client Portal:
 
-3. **No client name shown**: The admin document list shows the uploader name (from employees lookup) but has no special handling for portal-uploaded documents.
+### 1. Wrong Supabase Client (Primary Issue)
+`ClientNotifications.tsx` imports from `supabase` (the admin client) instead of `portalSupabase` (the portal client). Since the portal user authenticates via `portalSupabase`, the `auth.uid()` on the regular `supabase` client returns null. The RLS policies on `client_notifications` check `auth.uid()` to verify the portal user, so all queries silently return empty results.
+
+### 2. Hearing Trigger Case-Sensitivity Mismatch
+The database trigger `notify_client_on_hearing` checks `NEW.status = 'Scheduled'` (capital S), but hearings are being saved with `status = 'scheduled'` (lowercase). This means the trigger never fires, so no notification row is ever created.
+
+### 3. No Document Upload Trigger
+There is no database trigger to create a client notification when a document is uploaded (either by admin or from the portal). The notification infrastructure exists, but nobody inserts into `client_notifications` when documents are added.
 
 ## Solution
 
-### 1. Add Case Selection Dropdown to `ClientDocumentUpload`
+### Fix 1: Switch to Portal Supabase Client
+**File: `src/components/portal/ClientNotifications.tsx`**
 
-**File: `src/components/portal/ClientDocumentUpload.tsx`**
+Replace the import of `supabase` with `portalSupabase`:
+```typescript
+// Before
+import { supabase } from '@/integrations/supabase/client';
 
-- Accept a `cases` prop (array of `{ id, case_number, title }`)
-- Add a `Select` dropdown above the file input for choosing the related case
-- Store the selected `caseId` in local state
-- Pass it to the document insert call (already wired via the `case_id` field)
-- Make case selection required before upload is allowed
+// After
+import { portalSupabase } from '@/integrations/supabase/portalClient';
+```
 
-**File: `src/components/portal/ClientPortal.tsx`**
+Update all four references (`fetchNotifications`, realtime subscription, `markAsRead`, `markAllAsRead`) from `supabase` to `portalSupabase`.
 
-- Pass `clientCases` to the `ClientDocumentUpload` component so the dropdown has data
+### Fix 2: Database Migration -- Fix Hearing Trigger + Add Document Trigger
 
-### 2. Fix "Unknown" Uploader — Show "Client Portal" for Portal-Uploaded Documents
+A single SQL migration with two changes:
 
-**File: `src/hooks/useRealtimeSync.ts` (lines 502-517, 526-540)**
+**a) Fix the case-sensitivity in the hearing trigger:**
+```sql
+-- Change: NEW.status = 'Scheduled'  -->  lower(NEW.status) = 'scheduled'
+```
 
-- When resolving `uploadedByName`, if no employee match is found AND the file path starts with `client-uploads/`, set the name to `"Client Portal"` instead of `"Unknown"`.
+**b) Add a new trigger on the `documents` table** to notify the client when a document is inserted for their case:
+```sql
+CREATE FUNCTION notify_client_on_document()
+  -- Looks up client_id from cases table via NEW.case_id
+  -- Calls create_client_notification() with type 'document'
 
-**File: `src/components/documents/DocumentManagement.tsx` (lines 318-324, 362-370, 409-416)**
-
-- Same logic: when mapping `state.documents` and realtime events, check if path starts with `client-uploads/` and use `"Client Portal"` as the uploader name fallback.
-
-**File: `src/components/cases/CaseDocuments.tsx` (line 55)**
-
-- Same pattern: use `"Client Portal"` when the document path indicates a portal upload.
-
-### 3. Show Client Name in Admin Document List for Portal Uploads
-
-The remarks field already contains `[Client Upload]`. Combined with the `client_id` field (which is always set), the admin can identify which client uploaded the document. The uploader name fix above (`"Client Portal"`) provides clear attribution.
+CREATE TRIGGER trigger_notify_client_document
+  AFTER INSERT ON documents
+  FOR EACH ROW EXECUTE FUNCTION notify_client_on_document();
+```
 
 ## Technical Details
 
-### `src/components/portal/ClientDocumentUpload.tsx`
+| File / Area | Change |
+|-------------|--------|
+| `src/components/portal/ClientNotifications.tsx` | Switch from `supabase` to `portalSupabase` client (4 locations) |
+| SQL Migration | Fix `notify_client_on_hearing` to use case-insensitive status comparison |
+| SQL Migration | Add `notify_client_on_document` trigger function and trigger on `documents` table |
 
-Add a new prop for cases and a Select dropdown:
+## What This Fixes
 
-```typescript
-interface ClientDocumentUploadProps {
-  clientId: string;
-  caseId?: string;
-  cases?: Array<{ id: string; case_number: string; title: string }>;
-  onUploadComplete?: () => void;
-}
-```
+- Portal users will be able to see and interact with their notifications (correct auth context)
+- When a hearing is scheduled from the admin panel, a notification will appear in the client portal (trigger actually fires)
+- When a document is uploaded from the admin panel, a notification will appear in the client portal (new trigger)
+- Realtime subscription will also work since it uses the same client fix
+- Mark as read will work since it uses the same client fix
 
-Add state for selected case:
-```typescript
-const [selectedCaseId, setSelectedCaseId] = useState(caseId || '');
-```
-
-Add a Select component before the file input showing available cases. Use `selectedCaseId` in the insert call instead of the prop `caseId`.
-
-### `src/components/portal/ClientPortal.tsx` (line 284-286)
-
-Pass cases to the upload component:
-```tsx
-<ClientDocumentUpload 
-  clientId={clientId}
-  cases={clientCases.map(c => ({ id: c.id, case_number: c.case_number, title: c.title }))}
-  onUploadComplete={fetchClientData}
-/>
-```
-
-### `src/hooks/useRealtimeSync.ts` (lines 503, 517, 526, 540)
-
-Change the fallback from `'Unknown'` to check the path:
-```typescript
-const uploaderName = uploader?.full_name 
-  || (docData.file_path?.startsWith('client-uploads/') ? 'Client Portal' : 'Unknown');
-```
-
-### `src/components/documents/DocumentManagement.tsx` (lines 322, 366, 415)
-
-Same pattern for all three mapping locations:
-```typescript
-uploadedByName: doc.uploadedByName 
-  || (doc.path?.startsWith('client-uploads/') ? 'Client Portal' : 'Unknown'),
-```
-
-## Files Modified
-
-| File | Change |
-|------|--------|
-| `src/components/portal/ClientDocumentUpload.tsx` | Add case selection dropdown with required validation |
-| `src/components/portal/ClientPortal.tsx` | Pass `clientCases` to `ClientDocumentUpload` |
-| `src/hooks/useRealtimeSync.ts` | Use "Client Portal" as uploader name for portal uploads |
-| `src/components/documents/DocumentManagement.tsx` | Same uploader name fix in document mapping |
-| `src/components/cases/CaseDocuments.tsx` | Same uploader name fix |
