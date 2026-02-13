@@ -1,46 +1,59 @@
 
 
-# Fix: Notification Click Opens Specific Record
+# Fix: Notification Deep-Linking for All Module Types
 
 ## Problem
-When clicking a notification, users are redirected to generic module listing pages instead of the specific record. For example, clicking a hearing notification goes to `/hearings/calendar` instead of the specific hearing.
+The `NotificationItem.tsx` navigation code was updated correctly, but the **destination pages** don't support the deep-link patterns being used:
 
-## Current vs Expected Navigation
+- **Tasks**: Already works -- `/tasks/{id}` route exists and opens the task detail page.
+- **Cases**: Already works -- `CaseManagement.tsx` reads `?caseId=` from URL and auto-selects the case.
+- **Hearings**: BROKEN -- Navigating to `/hearings/{hearingId}` matches the wildcard route (`/hearings/*`) but `HearingsPage.tsx` never reads the hearing ID from the URL. It only reads `caseId`, `courtId`, and filter params.
+- **Documents**: No specific document detail route exists (acceptable as-is).
 
-| Entity Type | Current Navigation | Fixed Navigation |
-|-------------|-------------------|-----------------|
-| Task | `/tasks/{taskId}` (already correct) | No change needed |
-| Case | `/cases` (generic listing) | `/cases?caseId={caseId}` (opens specific case) |
-| Hearing | `/hearings/calendar` (generic calendar) | `/hearings/{hearingId}` (opens specific hearing) |
-| Document | `/documents` (generic listing) | `/documents` with case context if available |
+## Root Cause
+`HearingsPage.tsx` does not support a `hearingId` URL parameter. When the notification navigates to `/hearings/{uuid}`, the page loads but doesn't know which hearing to open.
 
-## What Changes
+## Fix
 
-### Single file edit: `src/components/notifications/NotificationItem.tsx`
+### 1. Update NotificationItem.tsx -- Use query param for hearings
+Change the hearing navigation from a path-based approach to a query param approach (consistent with how cases work):
 
-Update the `handleClick` switch statement (lines 28-33) to use the `related_entity_id` for all entity types:
-
-```typescript
-switch (notification.related_entity_type) {
-  case 'hearing':
-    navigate(`/hearings/${notification.related_entity_id}`);
-    break;
-  case 'case':
-    navigate(`/cases?caseId=${notification.related_entity_id}`);
-    break;
-  case 'task':
-    navigate(`/tasks/${notification.related_entity_id}`);
-    break;
-  case 'document':
-    navigate('/documents');
-    break;
-}
+```
+/hearings?hearingId={id}&view=list
 ```
 
-### Why this works
-- **Cases** already support `?caseId=` query param to auto-select a specific case (used throughout the app in 10+ places)
-- **Hearings** have a `/hearings/{id}` route that opens the hearing drawer/detail view
-- **Tasks** already navigate correctly to `/tasks/{id}`
-- **Documents** stay as generic navigation since document notifications (portal uploads) don't have a direct document detail page
+### 2. Update HearingsPage.tsx -- Read hearingId from URL and auto-open
+Add logic to read the `hearingId` search param and automatically open that hearing in view mode when the page loads. This follows the exact same pattern `CaseManagement.tsx` uses for `caseId`:
 
-This is a minimal, single-file change that follows existing navigation patterns already used across the application.
+- Read `hearingId` from `searchParams`
+- Find the matching hearing in `state.hearings`
+- Call `handleViewHearing()` to open the hearing detail drawer
+
+### Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/components/notifications/NotificationItem.tsx` | Change hearing navigation to use `?hearingId=` query param |
+| `src/pages/HearingsPage.tsx` | Add `hearingId` param reading + auto-open hearing in a useEffect |
+
+### Technical Detail
+
+In `HearingsPage.tsx`, add a useEffect similar to CaseManagement's pattern:
+
+```typescript
+useEffect(() => {
+  const hearingId = searchParams.get('hearingId');
+  if (hearingId) {
+    const hearing = filteredHearings.find(h => h.id === hearingId)
+      || state.hearings.find(h => h.id === hearingId);
+    if (hearing) {
+      handleViewHearing(hearing);
+      // Clean up URL param after opening
+      searchParams.delete('hearingId');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }
+}, [state.hearings]);
+```
+
+This is a minimal 2-file change that follows the existing query-param deep-link pattern used by Cases.
