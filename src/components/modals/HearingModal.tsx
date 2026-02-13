@@ -487,7 +487,7 @@ export const HearingModal: React.FC<HearingModalProps> = ({
         const updates = {
           case_id: formData.caseId || hearingData.case_id, // CRITICAL: Include case_id
           stage_instance_id: hearingData.stage_instance_id, // Preserve stage link
-          hearing_type: hearingData.hearing_type, // Preserve hearing type
+          hearing_type: hearingType, // Use current dropdown selection, not stale value
           court_id: formData.forumId,
           authority_id: formData.authorityId || undefined,
           forum_id: formData.forumId || undefined,

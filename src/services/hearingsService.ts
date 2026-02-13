@@ -394,6 +394,8 @@ export const hearingsService = {
       if (updates.forum_id !== undefined) updateData.forum_id = sanitizeUuidField(updates.forum_id);
       if (updates.case_id !== undefined) updateData.case_id = sanitizeUuidField(updates.case_id);
       
+      if (updates.hearing_type !== undefined) updateData.hearing_type = updates.hearing_type;
+
       // Handle judge_name from judge_ids
       if (updates.judge_ids !== undefined) {
         updateData.judge_name = updates.judge_ids?.join(', ') || null;
