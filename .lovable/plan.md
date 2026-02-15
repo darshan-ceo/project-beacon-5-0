@@ -1,61 +1,104 @@
 
 
-# Simplify "Create New Case" Form
+# Enhance Add Notice Modal: Issuing Authority & Demand Breakdown
 
-## Goal
-Strip the case creation form down to essential fields only. Detailed information (timeline, financials, notice specifics, jurisdiction) will be captured later via the "Add Notice" workflow.
+## Change 1: Issuing Authority Section Reorder
 
-## Final Form Structure (After Changes)
+Currently the Issuing Authority section shows:
+- Authority Name (dropdown)
+- Officer Designation (text input)
 
+**New layout** -- three fields displayed in priority order:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| Officer Name | Text input | New field -- name of the specific officer |
+| Officer Designation | Text input (existing) | Kept as-is |
+| Authority Name | Dropdown (existing) | Moved below, relabeled to "Officer Details / Authority" for clarity |
+
+The fields will be arranged as:
 ```text
-[Select Client *]                          -- Already at top (no change)
-[Case Identification]                      -- Hide generated case number display
-[Case Details]                             -- No change (Issue Type, Title)
-[Assignment]                               -- Already correct (Assigned To, Priority)
-[Case Lifecycle Stage]                     -- Renamed from "Legal Stage & Forum"
-[Additional Details]                       -- No change (Description)
+Row 1: [Officer Name        ] [Officer Designation    ]
+Row 2: [Authority Name (dropdown)                      ]
 ```
 
-## Changes Summary
+## Change 2: Demand Details with IGST/CGST/SGST/CESS Breakdown Popups
 
-| # | Section | Action |
-|---|---------|--------|
-| 1 | Case Identification | Hide the "Generated Case Number" field and format hint (keep backend generation) |
-| 2 | Timeline and Compliance | Remove entire section (available in Add Notice) |
-| 3 | Assignment | No change needed -- already has only Assigned To and Priority |
-| 4 | Legal Stage and Forum | Rename to **"Case Lifecycle Stage"** |
-| 5 | Financial Details | Remove entire section (demand comes from current stage notices) |
-| 6 | Additional Notice Information | Remove entire section (available in Add Notice) |
-| 7 | Jurisdiction Details | Remove entire section (already in client record) |
-| 8 | Order and Appeal Milestones | Remove from create form (belongs in stage workflow) |
-| 9 | Additional Details | No change |
+Each of the three demand fields (Tax Amount, Interest Amount, Penalty Amount) will become **clickable fields** that open a small popup dialog showing a breakdown into IGST, CGST, SGST, and CESS.
 
-### Naming Recommendation
-For "Legal Stage and Forum", I recommend **"Case Lifecycle Stage"** because:
-- "Lifecycle" communicates the progression concept (Assessment to Supreme Court)
-- "Stage" aligns with the existing domain terminology used throughout the system
-- It avoids the word "Legal" which is redundant in a legal CRM context
+### How It Works
+
+1. Each amount field displays the total (sum of IGST + CGST + SGST + CESS) as read-only with a "Click to enter breakdown" placeholder
+2. Clicking the field opens a Dialog with four input fields: IGST, CGST, SGST, CESS
+3. The dialog shows a computed Total at the bottom
+4. "Save Breakdown" writes the sum back to the parent field and stores the individual components
+5. The main form Total Demand = Tax + Interest + Penalty (unchanged logic)
+
+### UI Reference (from screenshot)
+```text
++---------------------------------+
+| Tax Amount (*) Breakdown    [X] |
+|                                 |
+| IGST (Rs)        CGST (Rs)     |
+| [    0    ]      [    0    ]    |
+|                                 |
+| SGST (Rs)        CESS (Rs)     |
+| [    0    ]      [    0    ]    |
+| ________________________________|
+| Total                   Rs 0.00 |
+| [Save Breakdown]  [Cancel]      |
++---------------------------------+
+```
 
 ## Technical Plan
 
-### File: `src/components/cases/CaseForm.tsx`
+### File: `src/types/stageWorkflow.ts`
+- Add breakdown fields to `CreateStageNoticeInput` and `UpdateStageNoticeInput`:
+  - `tax_breakdown?: { igst: number; cgst: number; sgst: number; cess: number }`
+  - `interest_breakdown?: { igst: number; cgst: number; sgst: number; cess: number }`
+  - `penalty_breakdown?: { igst: number; cgst: number; sgst: number; cess: number }`
 
-1. **Lines 233-244**: Remove the "Generated Case Number" `Input` and format hint `<p>` tag. The `formData.caseNumber` continues to be generated and saved in the backend -- just not shown on screen.
+### File: `src/components/modals/AddNoticeModal.tsx`
 
-2. **Lines 286-369**: Remove the entire "Timeline and Compliance" `Card` section (Notice Date, Reply Due Date). These fields remain in `CaseFormData` for backward compatibility and will default to empty strings.
+1. **Add `officer_name` to formData state** (line 82-106) and to hydration logic (line 128-173)
 
-3. **Lines 422-427**: Change the `CardTitle` from `"Legal Stage & Forum"` to `"Case Lifecycle Stage"`.
+2. **Reorder Issuing Authority section** (lines 431-479):
+   - Row 1: Officer Name (new text input) + Officer Designation (existing)
+   - Row 2: Authority Name dropdown (existing, full width)
 
-4. **Lines 556-641**: Remove the entire "Financial Details" `Card` section (Period, Tax Demand, Interest, Penalty, Total).
+3. **Add breakdown state** for each demand type:
+   ```typescript
+   const [taxBreakdown, setTaxBreakdown] = useState({ igst: 0, cgst: 0, sgst: 0, cess: 0 });
+   const [interestBreakdown, setInterestBreakdown] = useState({ igst: 0, cgst: 0, sgst: 0, cess: 0 });
+   const [penaltyBreakdown, setPenaltyBreakdown] = useState({ igst: 0, cgst: 0, sgst: 0, cess: 0 });
+   const [activeBreakdown, setActiveBreakdown] = useState<'tax' | 'interest' | 'penalty' | null>(null);
+   ```
 
-5. **Lines 643-801**: Remove the entire "Additional Notice Information" `Card` section (Notice Type, Section Invoked, Financial Year, Authority, City, Specific Officer).
+4. **Replace each amount Input** (lines 584-682) with a clickable field that:
+   - Shows the total amount (read-only display)
+   - On click, sets `activeBreakdown` to open the breakdown dialog
+   - Keeps the "Applicable" checkbox alongside
 
-6. **Lines 803-844**: Remove the entire "Jurisdiction Details" `Card` section (GST Commissionerate, Office Location).
+5. **Add a reusable Breakdown Dialog** (using the existing Dialog component):
+   - Title: "{Type} Amount Breakdown" (e.g., "Tax Amount Breakdown")
+   - 2x2 grid: IGST, CGST, SGST, CESS inputs
+   - Computed total shown below
+   - "Save Breakdown" button sums the four values and writes to the parent amount field
+   - "Cancel" button discards changes
 
-7. **Lines 846-960**: Remove the "Order and Appeal Milestones" conditional `Card` section (Order Date, Received Date, Impugned Order, Appeal Filed). This detailed information belongs in the stage workflow, not initial case creation.
+6. **Update handleSubmit** (line 243-268): Include `officer_name` and breakdown objects in the saved input, stored in metadata or as new fields.
 
-8. **Unused imports**: Remove `Clock`, `DollarSign`, `MapPin` icons and `useStatutoryDeadlines`, `DeadlineStatusBadge`, `StandardDateInput`, `addDays`, `format` imports if no longer used after removals. Keep `getDaysUntilDue` helper only if still referenced.
+### File: `src/services/stageNoticesService.ts`
+- Pass through `officer_name` and breakdown data when creating/updating notices (store breakdowns in metadata JSONB field for now to avoid a migration).
 
-### No database changes needed
-All removed fields remain in `CaseFormData` type for backward compatibility. They simply default to empty/zero and are populated later via "Add Notice".
+### Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/components/modals/AddNoticeModal.tsx` | Reorder authority fields, add officer name, add breakdown popup for all 3 demands |
+| `src/types/stageWorkflow.ts` | Add `officer_name` and breakdown types to input interfaces |
+| `src/services/stageNoticesService.ts` | Pass through new fields during create/update |
+
+### No database migration needed
+The `officer_name` and breakdown data will be stored in the existing `metadata` JSONB column on `stage_notices`, keeping this change non-invasive.
 
