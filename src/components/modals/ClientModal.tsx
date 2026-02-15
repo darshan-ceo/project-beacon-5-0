@@ -81,6 +81,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     addressId?: string;
     tags?: string[];
     dataScope?: 'OWN' | 'TEAM' | 'ALL'; // Dual Access Model: Entity-level data scope
+    registeredUnder: 'GST' | 'ST' | 'Excise' | 'Custom' | 'VAT' | 'DGFT';
+    tinNumber: string;
   }>({
     name: '',
     type: 'Proprietorship',
@@ -88,6 +90,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     registrationNo: '',
     gstin: '',
     pan: '',
+    registeredUnder: 'GST',
+    tinNumber: '',
     address: {
       line1: '',
       line2: '',
@@ -222,7 +226,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
           status: clientData.status,
           addressId: addressObj.id,
           tags: (clientData as any).tags || [],
-          dataScope: clientData.dataScope || 'TEAM'
+          dataScope: clientData.dataScope || 'TEAM',
+          registeredUnder: (clientData as any).registeredUnder || 'GST',
+          tinNumber: (clientData as any).tinNumber || ''
         });
         setSignatories(clientData.signatories || []);
         
@@ -285,7 +291,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
           clientGroupId: '',
           status: 'Active',
           tags: [],
-          dataScope: 'TEAM'
+          dataScope: 'TEAM',
+          registeredUnder: 'GST',
+          tinNumber: ''
         });
         setSignatories([]);
         setPreloadedContacts([]);
@@ -441,7 +449,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       newErrors.pan = panValidation.errors[0];
     }
 
-    if (formData.gstin) {
+    if (formData.registeredUnder === 'GST' && formData.gstin) {
       const gstinValidation = clientsService.validateGSTIN(formData.gstin);
       if (!gstinValidation.isValid) {
         newErrors.gstin = gstinValidation.errors[0];
@@ -451,6 +459,15 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       if (formData.pan && !validateGSTINPANConsistency(formData.gstin, formData.pan)) {
         const derivedPAN = extractPANFromGSTIN(formData.gstin);
         newErrors.pan = `PAN mismatch: GSTIN suggests PAN should be ${derivedPAN}`;
+      }
+    }
+
+    // TIN validation when non-GST registration
+    if (formData.registeredUnder !== 'GST' && formData.tinNumber) {
+      if (!/^[a-zA-Z0-9]+$/.test(formData.tinNumber)) {
+        newErrors.tinNumber = 'TIN must be alphanumeric';
+      } else if (formData.tinNumber.length > 20) {
+        newErrors.tinNumber = 'TIN must be max 20 characters';
       }
     }
 
@@ -1077,7 +1094,41 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="registeredUnder">Registered Under</Label>
+                    <Select
+                      value={formData.registeredUnder}
+                      onValueChange={(value) => {
+                        const newVal = value as typeof formData.registeredUnder;
+                        setFormData(prev => ({
+                          ...prev,
+                          registeredUnder: newVal,
+                          // Clear GSTIN when switching away from GST, clear TIN when switching to GST
+                          ...(newVal !== 'GST' ? { gstin: '' } : { tinNumber: '' })
+                        }));
+                        if (newVal !== 'GST') {
+                          setIsPANDerivedFromGSTIN(false);
+                          setShowPANMismatchWarning(false);
+                          setErrors(prev => ({ ...prev, gstin: '', tinNumber: '' }));
+                        }
+                      }}
+                      disabled={mode === 'view'}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="GST">GST</SelectItem>
+                        <SelectItem value="ST">ST (Service Tax)</SelectItem>
+                        <SelectItem value="Excise">Excise</SelectItem>
+                        <SelectItem value="Custom">Custom</SelectItem>
+                        <SelectItem value="VAT">VAT</SelectItem>
+                        <SelectItem value="DGFT">DGFT</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div>
                     <Label htmlFor="category">GST Category</Label>
                     <Select 
@@ -1113,57 +1164,77 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* GSTIN First (left column) */}
+                  {/* GSTIN or TIN Number (left column) */}
                   <div>
-                    <div className="flex items-center gap-1">
-                      <Label htmlFor="gstin">GSTIN</Label>
-                      <FieldTooltip formId="client-master" fieldId="gstin" />
-                    </div>
-                    <Input
-                      id="gstin"
-                      value={formData.gstin}
-                      onChange={(e) => {
-                        const newGSTIN = e.target.value.toUpperCase();
-                        setFormData(prev => ({ ...prev, gstin: newGSTIN }));
-                        setErrors(prev => ({ ...prev, gstin: '' }));
-                        
-                        // Auto-extract PAN when GSTIN is valid
-                        if (newGSTIN.length === 15 && isValidGSTIN(newGSTIN)) {
-                          const derivedPAN = extractPANFromGSTIN(newGSTIN);
-                          if (derivedPAN) {
-                            setFormData(prev => ({ ...prev, gstin: newGSTIN, pan: derivedPAN }));
-                            setIsPANDerivedFromGSTIN(true);
-                            setShowPANMismatchWarning(false);
-                            setErrors(prev => ({ ...prev, pan: '' }));
-                          }
-                        } else if (!newGSTIN) {
-                          // Clear derived flag when GSTIN is cleared
-                          setIsPANDerivedFromGSTIN(false);
-                          setShowPANMismatchWarning(false);
-                        }
-                      }}
-                      onBlur={(e) => {
-                        // Also check on blur for paste scenarios
-                        const gstin = e.target.value.toUpperCase();
-                        if (gstin.length === 15 && isValidGSTIN(gstin)) {
-                          const derivedPAN = extractPANFromGSTIN(gstin);
-                          if (derivedPAN && (!formData.pan || formData.pan !== derivedPAN)) {
-                            setFormData(prev => ({ ...prev, pan: derivedPAN }));
-                            setIsPANDerivedFromGSTIN(true);
-                            setShowPANMismatchWarning(false);
-                            setErrors(prev => ({ ...prev, pan: '' }));
-                          }
-                        } else if (gstin && !isValidGSTIN(gstin)) {
-                          setErrors(prev => ({ ...prev, gstin: 'Invalid GSTIN format. PAN cannot be derived.' }));
-                        }
-                      }}
-                      disabled={mode === 'view'}
-                      maxLength={15}
-                      placeholder="07AABCU9603R1ZV"
-                      className={errors.gstin ? 'border-destructive' : ''}
-                    />
-                    {errors.gstin && <p className="text-sm text-destructive mt-1">{errors.gstin}</p>}
-                    <p className="text-xs text-muted-foreground mt-1">PAN will be auto-extracted from valid GSTIN</p>
+                    {formData.registeredUnder === 'GST' ? (
+                      <>
+                        <div className="flex items-center gap-1">
+                          <Label htmlFor="gstin">GSTIN</Label>
+                          <FieldTooltip formId="client-master" fieldId="gstin" />
+                        </div>
+                        <Input
+                          id="gstin"
+                          value={formData.gstin}
+                          onChange={(e) => {
+                            const newGSTIN = e.target.value.toUpperCase();
+                            setFormData(prev => ({ ...prev, gstin: newGSTIN }));
+                            setErrors(prev => ({ ...prev, gstin: '' }));
+                            
+                            // Auto-extract PAN when GSTIN is valid
+                            if (newGSTIN.length === 15 && isValidGSTIN(newGSTIN)) {
+                              const derivedPAN = extractPANFromGSTIN(newGSTIN);
+                              if (derivedPAN) {
+                                setFormData(prev => ({ ...prev, gstin: newGSTIN, pan: derivedPAN }));
+                                setIsPANDerivedFromGSTIN(true);
+                                setShowPANMismatchWarning(false);
+                                setErrors(prev => ({ ...prev, pan: '' }));
+                              }
+                            } else if (!newGSTIN) {
+                              setIsPANDerivedFromGSTIN(false);
+                              setShowPANMismatchWarning(false);
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const gstin = e.target.value.toUpperCase();
+                            if (gstin.length === 15 && isValidGSTIN(gstin)) {
+                              const derivedPAN = extractPANFromGSTIN(gstin);
+                              if (derivedPAN && (!formData.pan || formData.pan !== derivedPAN)) {
+                                setFormData(prev => ({ ...prev, pan: derivedPAN }));
+                                setIsPANDerivedFromGSTIN(true);
+                                setShowPANMismatchWarning(false);
+                                setErrors(prev => ({ ...prev, pan: '' }));
+                              }
+                            } else if (gstin && !isValidGSTIN(gstin)) {
+                              setErrors(prev => ({ ...prev, gstin: 'Invalid GSTIN format. PAN cannot be derived.' }));
+                            }
+                          }}
+                          disabled={mode === 'view'}
+                          maxLength={15}
+                          placeholder="07AABCU9603R1ZV"
+                          className={errors.gstin ? 'border-destructive' : ''}
+                        />
+                        {errors.gstin && <p className="text-sm text-destructive mt-1">{errors.gstin}</p>}
+                        <p className="text-xs text-muted-foreground mt-1">PAN will be auto-extracted from valid GSTIN</p>
+                      </>
+                    ) : (
+                      <>
+                        <Label htmlFor="tinNumber">TIN Number</Label>
+                        <Input
+                          id="tinNumber"
+                          value={formData.tinNumber}
+                          onChange={(e) => {
+                            setFormData(prev => ({ ...prev, tinNumber: e.target.value.toUpperCase() }));
+                            setErrors(prev => ({ ...prev, tinNumber: '' }));
+                          }}
+                          disabled={mode === 'view'}
+                          maxLength={20}
+                          placeholder="Enter TIN Number"
+                          className={errors.tinNumber ? 'border-destructive' : ''}
+                        />
+                        {errors.tinNumber && <p className="text-sm text-destructive mt-1">{errors.tinNumber}</p>}
+                        <p className="text-xs text-muted-foreground mt-1">Tax Identification Number for {formData.registeredUnder} registration</p>
+                      </>
+                    )}
                   </div>
                   
                   {/* PAN Second (right column) */}
