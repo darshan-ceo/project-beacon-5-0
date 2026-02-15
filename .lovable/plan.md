@@ -1,51 +1,62 @@
 
 
-# Fix: Case Workspace Drawer Display and Edit Case Scrollability
+# Enhance Case Card Row 2: Start Level, Current Level, and Demand
 
-## Issues Identified
+## What Changes
 
-### Issue 1: Drawer is distorted/narrow
-The Sheet component's right-side variant hardcodes `sm:max-w-sm` (384px max-width on screens >= 640px). This overrides the CaseWorkspaceDrawer's custom widths (`w-[100vw] sm:w-[95vw] lg:w-[90vw]`), causing the drawer to render as a narrow strip instead of a full workspace.
+The stage progress row (Row 2) on each case card currently shows only the current stage name with a progress bar. After this change, it will display:
 
-### Issue 2: Edit Case form is not scrollable
-When "Edit Case" opens from within the drawer, the `FullPageForm` (used by `AdaptiveFormShell` for complex forms on desktop) renders at `z-50` -- the same z-index as the Sheet. This causes z-index conflicts and scroll interception. The form appears but cannot be scrolled to access lower fields.
+```text
+Before:  [Scale icon] Adjudication  ===progress bar===  2/6
 
-## Fix Plan
-
-### File 1: `src/components/ui/sheet.tsx`
-**Change:** Remove `sm:max-w-sm` from the right variant so custom width classes passed via `className` are not overridden.
-
-Before:
-```
-right: "inset-y-0 right-0 h-full w-3/4 border-l ... sm:max-w-sm"
+After:   [Scale icon] Assessment → Adjudication  ===progress bar===  2/6  |  ₹56.8L
 ```
 
-After:
+- **Start Level**: The stage where the case originally began (e.g., Assessment)
+- **Current Level**: Where the case is now (e.g., Adjudication)
+- **Demand**: The total demand amount for the current stage, shown inline
+
+## How Start Level is Determined
+
+Since there is no `start_stage` column on the cases table today, the start level will be derived from the `stage_instances` table (the earliest stage_instance per case, sorted by `started_at ASC`). This data will be fetched once when the case list loads, using a single bulk query for all visible cases, and cached in a local map.
+
+## Technical Plan
+
+### Step 1: Add a helper hook or function in `CaseManagement.tsx`
+
+Fetch the earliest stage_instance per case (start level) for all cases in the current filtered list:
+
+```typescript
+// Bulk fetch: SELECT DISTINCT ON (case_id) case_id, stage_key 
+// FROM stage_instances ORDER BY case_id, started_at ASC
 ```
-right: "inset-y-0 right-0 h-full w-3/4 border-l ..."
-```
 
-This is safe because any Sheet usage that needs the `sm:max-w-sm` constraint can pass it via className. The CaseWorkspaceDrawer (and LargeSlideOver) already pass explicit widths.
+This returns a `Map<caseId, startStageKey>` that is used when rendering each case card.
 
-### File 2: `src/components/ui/full-page-form.tsx`
-**Change:** Increase z-index from `z-50` to `z-[60]` on the outer container and backdrop so the Edit Case form renders above the Sheet drawer and scroll works correctly.
+### Step 2: Modify Row 2 in `CaseManagement.tsx` (around lines 1208-1214)
 
-### File 3: `src/components/cases/CaseWorkspaceDrawer.tsx`
-**Change:** Clean up the responsive width classes to ensure proper display across all breakpoints. Ensure no conflicting max-width constraints. The widths should be:
-- Mobile: `w-[100vw]` (full screen)
-- Tablet (sm): `w-[95vw]`
-- Desktop (lg): `w-[90vw]`
-- Max: `max-w-[1600px]`
+Update the stage progress row to show:
 
-Remove the CSS hack that hides the default Sheet close button via style tag (it uses `[data-radix-collection-item]` which can hide other Radix elements). Instead, use a more targeted approach.
+| Element | Source |
+|---------|--------|
+| Start Level | From stage_instances bulk query (fallback: same as currentStage) |
+| Arrow separator | Static " → " text (only shown if start differs from current) |
+| Current Level | `caseItem.currentStage` (existing) |
+| Progress bar | Existing `getStageProgress()` (unchanged) |
+| Fraction | Existing `getStageIndex()` (unchanged) |
+| Demand | `caseItem.totalDemand` or `caseItem.taxDemand` formatted as currency |
 
-## Summary
+### Step 3: Demand formatting
+
+Reuse the existing currency formatting pattern already used in the KPI badge (₹XL / ₹XCr format) to show total demand inline after the progress fraction.
+
+### Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/components/ui/sheet.tsx` | Remove `sm:max-w-sm` from right variant |
-| `src/components/ui/full-page-form.tsx` | Bump z-index to `z-[60]` so Edit Case renders above drawer |
-| `src/components/cases/CaseWorkspaceDrawer.tsx` | Clean up width classes and close button CSS hack |
+| `src/components/cases/CaseManagement.tsx` | Add bulk start-stage fetch, update Row 2 rendering |
 
-No database changes. Pure frontend fix.
+### No Database Changes
+
+Pure frontend enhancement. The `stage_instances` table already has all necessary data.
 
