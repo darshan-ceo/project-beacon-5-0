@@ -113,6 +113,32 @@ export const CaseForm: React.FC<CaseFormProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Client Selector - Top of Form */}
+      <div className="space-y-2">
+        {contextClientId ? (
+          <ContextBadge
+            label="Client"
+            value={(() => {
+              const client = getContextDetails().client;
+              return (client && 'display_name' in client ? client.display_name : client && 'name' in client ? (client as any).name : 'Unknown Client');
+            })()}
+            variant="outline"
+          />
+        ) : (
+          <ClientSelector
+            clients={getAvailableClients()}
+            value={formData.clientId}
+            onValueChange={(value) => {
+              setFormData(prev => ({ ...prev, clientId: value }));
+              updateContext({ clientId: value });
+            }}
+            disabled={isDisabled}
+            showAddNew={mode !== 'view'}
+            onAddNew={onAddNewClient}
+          />
+        )}
+      </div>
+
       {/* Section 1: Case Identification */}
       <Card className="shadow-sm border">
         <CardHeader className="pb-4">
@@ -351,34 +377,6 @@ export const CaseForm: React.FC<CaseFormProps> = ({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            {contextClientId ? (
-              <div className="space-y-2">
-                <ContextBadge
-                  label="Client"
-                  value={(() => {
-                    const client = getContextDetails().client;
-                    return (client && 'display_name' in client ? client.display_name : client && 'name' in client ? (client as any).name : 'Unknown Client');
-                  })()}
-                  variant="outline"
-                />
-              </div>
-            ) : (
-              <ClientSelector
-                clients={getAvailableClients()}
-                value={formData.clientId}
-                onValueChange={(value) => {
-                  setFormData(prev => ({ ...prev, clientId: value }));
-                  updateContext({ clientId: value });
-                }}
-                disabled={isDisabled}
-                showAddNew={mode !== 'view'}
-                onAddNew={onAddNewClient}
-                data-tour="client-selector"
-              />
-            )}
-          </div>
-
           <div data-tour="case-team-assignment">
             <EmployeeSelector
               label="Assigned To"
