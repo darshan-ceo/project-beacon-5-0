@@ -1,72 +1,55 @@
 
 
-# Add "Registered Under" Dropdown with Conditional GSTIN/TIN Logic
+# Move Client Selector to Top of Create New Case Form
 
 ## What Changes
 
-A new dropdown field "Registered Under" will be added to the Client form (in the section between Client Group and GSTIN/PAN). Based on the selection:
+The "Select Client" dropdown will be moved from its current position in Section 4 (Assignment) to the very top of the Create New Case form, before the "Case Identification" card. This makes client selection the first action a user takes when creating a case.
 
-- **GST selected** (default): Form behaves exactly as today -- GSTIN field is enabled, TIN field is hidden
-- **Any other option** (ST, Excise, Custom, VAT, DGFT): GSTIN field becomes disabled/greyed out, and a new "TIN Number" input field appears in its place
+The existing `SearchableClientSelector` component already provides:
+- Searchable dropdown (by name, email, phone, GSTIN)
+- "Add New Client" shortcut button
 
-### Dropdown Options
-GST, ST (Service Tax), Excise, Custom, VAT, DGFT
+No new components are needed -- just repositioning and minor styling.
 
-## UI Layout Change
+## Visual Layout
 
 ```text
 Before:
-  [Client Group                          v]
-  [GST Category       v] [Registration No.   ]
-  [GSTIN                ] [PAN Number *       ]
+  [Case Identification]    <-- Section 1
+  [Case Details]           <-- Section 2
+  [Dates & Deadlines]      <-- Section 3
+  [Assignment]             <-- Section 4 (Client selector lives here)
+  [Financial Details]      <-- Section 5
 
 After:
-  [Client Group                          v]
-  [Registered Under   v] [GST Category    v] [Registration No.]
-  [GSTIN / TIN Number   ] [PAN Number *       ]
+  [Select Client Name *]   <-- Prominent top-level selector (standalone, not inside a card)
+  [Case Identification]    <-- Section 1
+  [Case Details]           <-- Section 2
+  [Dates & Deadlines]      <-- Section 3
+  [Assignment]             <-- Section 4 (only Assigned To remains)
+  [Financial Details]      <-- Section 5
 ```
-
-- When "Registered Under" = GST: Shows GSTIN field (existing behavior)
-- When "Registered Under" != GST: Shows TIN Number field instead of GSTIN, GSTIN is hidden
 
 ## Technical Plan
 
-### File: `src/components/modals/ClientModal.tsx`
+### File: `src/components/cases/CaseForm.tsx`
 
-1. **Add to formData state** (around line 65-83):
-   - Add `registeredUnder: 'GST' | 'ST' | 'Excise' | 'Custom' | 'VAT' | 'DGFT'` (default: `'GST'`)
-   - Add `tinNumber: string` (default: `''`)
+1. **Add client selector at the top of the form** (before the Case Identification card, around line 115):
+   - Render the `ClientSelector` / `SearchableClientSelector` as a standalone field with a label "Select Client Name" and required marker
+   - Include the existing "Add New Client" shortcut
+   - If `contextClientId` is provided, show the `ContextBadge` instead (existing behavior preserved)
 
-2. **Add "Registered Under" dropdown** (insert before the GST Category row, around line 1080):
-   - Full-width or alongside GST Category in a 3-column grid
-   - When value changes to non-GST: clear GSTIN, disable PAN auto-derive
-   - When value changes back to GST: clear TIN number
+2. **Remove client selector from Section 4 (Assignment)** (around lines 354-379):
+   - Remove the client selector block from the Assignment card
+   - Keep only the "Assigned To" `EmployeeSelector` in that section
 
-3. **Conditional GSTIN / TIN rendering** (around lines 1115-1216):
-   - If `registeredUnder === 'GST'`: Show existing GSTIN field (unchanged)
-   - If `registeredUnder !== 'GST'`: Show a "TIN Number" input field instead, with simpler validation (alphanumeric, max 20 chars)
-
-4. **Update save logic** (around line 581):
-   - Include `registeredUnder` and `tinNumber` in `clientToSave`
-
-5. **Update edit mode hydration** (around line 186):
-   - Load `registeredUnder` and `tinNumber` from `clientData` if present
-
-### Database Consideration
-
-No migration is needed right now. The `registeredUnder` and `tinNumber` values will be stored via the existing flexible client data structure. If the `clients` table lacks these columns, they can be added in a follow-up migration -- the form will work with the existing schema by passing these as part of the client object.
-
-### Validation Updates
-
-- When `registeredUnder !== 'GST'`: Skip GSTIN validation entirely
-- When `registeredUnder !== 'GST'` and TIN is provided: Validate TIN as alphanumeric, max 20 characters
-- PAN auto-derive from GSTIN only fires when `registeredUnder === 'GST'`
+3. **No changes to logic or data flow** -- same `formData.clientId`, same `onValueChange`, same `onAddNewClient` callback. Only the render position changes.
 
 ### Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/components/modals/ClientModal.tsx` | Add registeredUnder dropdown, TIN field, conditional logic |
+| `src/components/cases/CaseForm.tsx` | Move client selector from Assignment section to top of form |
 
-No database changes in this step.
-
+No database changes. Pure UI repositioning.
