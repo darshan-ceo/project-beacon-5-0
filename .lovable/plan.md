@@ -1,55 +1,51 @@
 
-# Fix: Portal Role Not Updating in client_portal_users Table
 
-## Root Cause
+# Fix: Case Workspace Drawer Display and Edit Case Scrollability
 
-When an admin changes the Portal Role in the Edit Client modal, the role is saved to the `clients.portal_access` JSONB field (via `clientsService.update`). However, the `client_portal_users.portal_role` column -- which is what the Client Portal actually reads during login and session validation -- is only updated through the `provision-portal-user` edge function. That edge function is gated by `shouldProvision` (line 614-618 in ClientModal.tsx), which only runs when:
+## Issues Identified
 
-1. It's a new portal setup, OR
-2. The admin explicitly requested a password change
+### Issue 1: Drawer is distorted/narrow
+The Sheet component's right-side variant hardcodes `sm:max-w-sm` (384px max-width on screens >= 640px). This overrides the CaseWorkspaceDrawer's custom widths (`w-[100vw] sm:w-[95vw] lg:w-[90vw]`), causing the drawer to render as a narrow strip instead of a full workspace.
 
-So changing just the role (without a password change) never reaches `client_portal_users.portal_role`.
+### Issue 2: Edit Case form is not scrollable
+When "Edit Case" opens from within the drawer, the `FullPageForm` (used by `AdaptiveFormShell` for complex forms on desktop) renders at `z-50` -- the same z-index as the Sheet. This causes z-index conflicts and scroll interception. The form appears but cannot be scrolled to access lower fields.
 
-## Fix
+## Fix Plan
 
-After saving the client (line 602) and after the provisioning block (line 656), add a standalone role sync that directly updates `client_portal_users.portal_role` whenever portal access is enabled and a role is set -- regardless of whether provisioning ran.
+### File 1: `src/components/ui/sheet.tsx`
+**Change:** Remove `sm:max-w-sm` from the right variant so custom width classes passed via `className` are not overridden.
 
-### File to Modify: `src/components/modals/ClientModal.tsx`
-
-Add this block after the provisioning section (after line 656, before `onClose()`):
-
-```typescript
-// Always sync portal role to client_portal_users table
-// This ensures role changes take effect even without password changes
-if (savedClientId && formData.portalAccess.allowLogin && formData.portalAccess.role) {
-  try {
-    const { error: roleError } = await supabase
-      .from('client_portal_users')
-      .update({ 
-        portal_role: formData.portalAccess.role,
-        updated_at: new Date().toISOString()
-      })
-      .eq('client_id', savedClientId)
-      .eq('is_active', true);
-
-    if (roleError) {
-      console.warn('[ClientModal] Portal role sync warning:', roleError);
-    } else {
-      console.log('[ClientModal] Portal role synced to:', formData.portalAccess.role);
-    }
-  } catch (err) {
-    console.warn('[ClientModal] Portal role sync exception:', err);
-  }
-}
+Before:
+```
+right: "inset-y-0 right-0 h-full w-3/4 border-l ... sm:max-w-sm"
 ```
 
-### Why This Works
-- The portal session fetches `portal_role` from the `client_portal_users` table (see `portalAuthService.fetchSessionFromDatabase` and `ClientPortalContext.tsx`)
-- This direct update ensures the role column is always in sync with what the admin selects
-- It runs on every save when portal is enabled, making it idempotent and safe
-- It uses `client_id` + `is_active` to target the correct portal user record
-- Non-fatal: failures are logged but don't block the client save
+After:
+```
+right: "inset-y-0 right-0 h-full w-3/4 border-l ..."
+```
 
-### No Other Changes Needed
-- The portal login flow (`portalAuthService.fetchSessionFromDatabase`) already reads `portal_role` from `client_portal_users` -- so once the column is updated, the next login will reflect the correct role
-- The `ClientPortalContext` also reads from `client_portal_users.portal_role` -- so active sessions that re-validate will pick up the change
+This is safe because any Sheet usage that needs the `sm:max-w-sm` constraint can pass it via className. The CaseWorkspaceDrawer (and LargeSlideOver) already pass explicit widths.
+
+### File 2: `src/components/ui/full-page-form.tsx`
+**Change:** Increase z-index from `z-50` to `z-[60]` on the outer container and backdrop so the Edit Case form renders above the Sheet drawer and scroll works correctly.
+
+### File 3: `src/components/cases/CaseWorkspaceDrawer.tsx`
+**Change:** Clean up the responsive width classes to ensure proper display across all breakpoints. Ensure no conflicting max-width constraints. The widths should be:
+- Mobile: `w-[100vw]` (full screen)
+- Tablet (sm): `w-[95vw]`
+- Desktop (lg): `w-[90vw]`
+- Max: `max-w-[1600px]`
+
+Remove the CSS hack that hides the default Sheet close button via style tag (it uses `[data-radix-collection-item]` which can hide other Radix elements). Instead, use a more targeted approach.
+
+## Summary
+
+| File | Change |
+|------|--------|
+| `src/components/ui/sheet.tsx` | Remove `sm:max-w-sm` from right variant |
+| `src/components/ui/full-page-form.tsx` | Bump z-index to `z-[60]` so Edit Case renders above drawer |
+| `src/components/cases/CaseWorkspaceDrawer.tsx` | Clean up width classes and close button CSS hack |
+
+No database changes. Pure frontend fix.
+
