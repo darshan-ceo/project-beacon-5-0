@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -43,18 +42,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CaseLifecycleFlow } from './CaseLifecycleFlow';
-import { CaseTimeline } from './CaseTimeline';
-import { HearingScheduler } from './HearingScheduler';
-import { TimelineBreachTracker } from './TimelineBreachTracker';
-import { AIAssistant } from './AIAssistant';
-import { CommunicationHub } from './CommunicationHub';
-import { CaseDocuments } from './CaseDocuments';
-import { CaseTasksTab } from './CaseTasksTab';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { CaseModal } from '@/components/modals/CaseModal';
-import { CaseContextHeader } from './CaseContextHeader';
-import { StickyCaseActionBar } from './StickyCaseActionBar';
+import { CaseWorkspaceDrawer } from './CaseWorkspaceDrawer';
 
 import { CaseCompletionModal } from '@/components/modals/CaseCompletionModal';
 import { AdvanceStageConfirmationModal } from '@/components/modals/AdvanceStageConfirmationModal';
@@ -291,14 +281,6 @@ export const CaseManagement: React.FC = () => {
     }
   }, [state.cases, selectedCase]);
 
-  // Handler for when case is updated from child components
-  const handleCaseUpdated = (updatedCase: Case) => {
-    setSelectedCase(updatedCase);
-    // Force activeTab to refresh if we're on lifecycle tab
-    if (activeTab === 'lifecycle') {
-      setActiveTab('lifecycle'); // This will trigger a re-render
-    }
-  };
 
   // Set up real-time subscription for cases table
   useEffect(() => {
@@ -612,6 +594,9 @@ export const CaseManagement: React.FC = () => {
     if (showHelpText) {
       setShowHelpText(false);
     }
+    // Update URL with caseId for deep linking
+    searchParams.set('caseId', caseItem.id);
+    setSearchParams(searchParams);
   };
 
   // Handler to clear case selection
@@ -624,18 +609,6 @@ export const CaseManagement: React.FC = () => {
     setSearchParams(searchParams);
   };
 
-  // Helper function to check if tabs should be disabled
-  const getTabDisabled = (tabValue: string) => {
-    const caseRequiredTabs = ['lifecycle', 'documents', 'timeline', 'ai-assistant', 'communications', 'tasks'];
-    return caseRequiredTabs.includes(tabValue) && !selectedCase;
-  };
-
-  // Auto-switch to overview if accessing disabled tab
-  useEffect(() => {
-    if (getTabDisabled(activeTab)) {
-      setActiveTab('overview');
-    }
-  }, [selectedCase, activeTab]);
 
   // Return navigation handler
   const handleReturnToStageManagement = async () => {
@@ -1067,94 +1040,14 @@ export const CaseManagement: React.FC = () => {
       </motion.div>
 
 
-      {/* Sticky Case Action Bar - portaled to header slot for true sticky behavior */}
-      {selectedCase && (() => {
-        const portalTarget = document.getElementById('case-action-header-slot');
-        if (!portalTarget) return null;
-        return createPortal(
-          <AnimatePresence>
-            <StickyCaseActionBar
-              selectedCase={selectedCase}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              onClearSelection={handleClearSelection}
-              clientName={state.clients.find(c => c.id === selectedCase.clientId)?.name}
-              courtName={selectedCase.nextHearing 
-                ? state.courts.find(c => c.id === selectedCase.nextHearing?.courtId)?.name 
-                : undefined
-              }
-              onMarkComplete={(caseData) => setCompletionModal({ isOpen: true, caseData })}
-              getTabDisabled={getTabDisabled}
-            />
-          </AnimatePresence>,
-          portalTarget
-        );
-      })()}
+      {/* Case Workspace Drawer */}
+      <CaseWorkspaceDrawer
+        selectedCase={selectedCase}
+        onClose={handleClearSelection}
+      />
 
-      {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        {/* Only show TabsList when NO case is selected - sticky bar has tabs when case selected */}
-        {!selectedCase && (
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-1.5 p-1.5 h-auto">
-            <TabsTrigger value="overview" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
-              Overview
-            </TabsTrigger>
-            <TabsTrigger 
-              value="lifecycle" 
-              disabled={getTabDisabled('lifecycle')}
-              className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-              title={getTabDisabled('lifecycle') ? "Select a case from Overview to proceed" : ""}
-            >
-              Lifecycle
-            </TabsTrigger>
-            <TabsTrigger value="sla" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
-              Timeline Tracker
-            </TabsTrigger>
-            <TabsTrigger value="hearings" className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap">
-              Hearings
-            </TabsTrigger>
-            <TabsTrigger 
-              value="documents"
-              disabled={getTabDisabled('documents')}
-              className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-              title={getTabDisabled('documents') ? "Select a case from Overview to proceed" : ""}
-            >
-              Documents
-            </TabsTrigger>
-            <TabsTrigger 
-              value="timeline"
-              disabled={getTabDisabled('timeline')}
-              className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-              title={getTabDisabled('timeline') ? "Select a case from Overview to proceed" : ""}
-            >
-              Timeline
-            </TabsTrigger>
-            <TabsTrigger 
-              value="ai-assistant"
-              disabled={getTabDisabled('ai-assistant')}
-              className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-              title={getTabDisabled('ai-assistant') ? "Select a case from Overview to proceed" : ""}
-            >
-              AI Assistant
-            </TabsTrigger>
-            <TabsTrigger 
-              value="communications"
-              disabled={getTabDisabled('communications')}
-              className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-              title={getTabDisabled('communications') ? "Select a case from Overview to proceed" : ""}
-            >
-              Communications
-            </TabsTrigger>
-            <TabsTrigger 
-              value="tasks"
-              disabled={getTabDisabled('tasks')}
-              className="text-xs sm:text-sm py-2 px-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-              title={getTabDisabled('tasks') ? "Select a case from Overview to proceed" : ""}
-            >
-              Tasks
-            </TabsTrigger>
-          </TabsList>
-        )}
+      {/* Main Content - Overview Only (case-specific views are in the drawer) */}
+      <Tabs value="overview" className="w-full">
 
         {/* Case Context Header removed - now using StickyCaseActionBar above */}
 
@@ -1589,47 +1482,6 @@ export const CaseManagement: React.FC = () => {
           </motion.div>
         </TabsContent>
 
-        <TabsContent value="lifecycle" className="mt-6">
-          <CaseLifecycleFlow 
-            selectedCase={selectedCase} 
-            onCaseUpdated={handleCaseUpdated}
-            onNavigateToOverview={() => setActiveTab('overview')}
-          />
-        </TabsContent>
-
-        <TabsContent value="sla" className="mt-6">
-          <TimelineBreachTracker 
-            cases={state.cases.map(c => ({ ...c, client: state.clients.find(cl => cl.id === c.clientId)?.name || 'Unknown' }))} 
-            selectedCase={selectedCase}
-          />
-        </TabsContent>
-
-        <TabsContent value="hearings" className="mt-6">
-          <HearingScheduler 
-            cases={state.cases.map(c => ({ ...c, client: state.clients.find(cl => cl.id === c.clientId)?.name || 'Unknown' }))} 
-            selectedCase={selectedCase}
-          />
-        </TabsContent>
-
-        <TabsContent value="documents" className="mt-6">
-          <CaseDocuments selectedCase={selectedCase} />
-        </TabsContent>
-
-        <TabsContent value="timeline" className="mt-6">
-          <CaseTimeline selectedCase={selectedCase} />
-        </TabsContent>
-
-        <TabsContent value="ai-assistant" className="mt-6">
-          <AIAssistant selectedCase={selectedCase} />
-        </TabsContent>
-
-        <TabsContent value="communications" className="mt-6">
-          <CommunicationHub selectedCase={selectedCase} />
-        </TabsContent>
-
-        <TabsContent value="tasks" className="mt-6">
-          {selectedCase && <CaseTasksTab caseData={selectedCase} />}
-        </TabsContent>
       </Tabs>
 
       <CaseModal
