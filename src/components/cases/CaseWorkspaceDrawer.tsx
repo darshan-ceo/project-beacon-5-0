@@ -270,8 +270,8 @@ export const CaseWorkspaceDrawer: React.FC<CaseWorkspaceDrawerProps> = ({
             data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right
             data-[state=closed]:duration-300 data-[state=open]:duration-400"
         >
-          {/* Hide default close button */}
-          <style>{`.sheet-close-button { display: none !important; } [data-radix-collection-item] { display: none !important; }`}</style>
+          {/* Hide default Sheet close button via targeted selector */}
+          <style>{`[data-radix-dialog-content] > button.absolute.right-4.top-4 { display: none !important; }`}</style>
 
           {/* Read-Only Banner */}
           <AnimatePresence>
