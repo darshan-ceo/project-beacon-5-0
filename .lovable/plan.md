@@ -1,55 +1,61 @@
 
 
-# Move Client Selector to Top of Create New Case Form
+# Simplify "Create New Case" Form
 
-## What Changes
+## Goal
+Strip the case creation form down to essential fields only. Detailed information (timeline, financials, notice specifics, jurisdiction) will be captured later via the "Add Notice" workflow.
 
-The "Select Client" dropdown will be moved from its current position in Section 4 (Assignment) to the very top of the Create New Case form, before the "Case Identification" card. This makes client selection the first action a user takes when creating a case.
-
-The existing `SearchableClientSelector` component already provides:
-- Searchable dropdown (by name, email, phone, GSTIN)
-- "Add New Client" shortcut button
-
-No new components are needed -- just repositioning and minor styling.
-
-## Visual Layout
+## Final Form Structure (After Changes)
 
 ```text
-Before:
-  [Case Identification]    <-- Section 1
-  [Case Details]           <-- Section 2
-  [Dates & Deadlines]      <-- Section 3
-  [Assignment]             <-- Section 4 (Client selector lives here)
-  [Financial Details]      <-- Section 5
-
-After:
-  [Select Client Name *]   <-- Prominent top-level selector (standalone, not inside a card)
-  [Case Identification]    <-- Section 1
-  [Case Details]           <-- Section 2
-  [Dates & Deadlines]      <-- Section 3
-  [Assignment]             <-- Section 4 (only Assigned To remains)
-  [Financial Details]      <-- Section 5
+[Select Client *]                          -- Already at top (no change)
+[Case Identification]                      -- Hide generated case number display
+[Case Details]                             -- No change (Issue Type, Title)
+[Assignment]                               -- Already correct (Assigned To, Priority)
+[Case Lifecycle Stage]                     -- Renamed from "Legal Stage & Forum"
+[Additional Details]                       -- No change (Description)
 ```
+
+## Changes Summary
+
+| # | Section | Action |
+|---|---------|--------|
+| 1 | Case Identification | Hide the "Generated Case Number" field and format hint (keep backend generation) |
+| 2 | Timeline and Compliance | Remove entire section (available in Add Notice) |
+| 3 | Assignment | No change needed -- already has only Assigned To and Priority |
+| 4 | Legal Stage and Forum | Rename to **"Case Lifecycle Stage"** |
+| 5 | Financial Details | Remove entire section (demand comes from current stage notices) |
+| 6 | Additional Notice Information | Remove entire section (available in Add Notice) |
+| 7 | Jurisdiction Details | Remove entire section (already in client record) |
+| 8 | Order and Appeal Milestones | Remove from create form (belongs in stage workflow) |
+| 9 | Additional Details | No change |
+
+### Naming Recommendation
+For "Legal Stage and Forum", I recommend **"Case Lifecycle Stage"** because:
+- "Lifecycle" communicates the progression concept (Assessment to Supreme Court)
+- "Stage" aligns with the existing domain terminology used throughout the system
+- It avoids the word "Legal" which is redundant in a legal CRM context
 
 ## Technical Plan
 
 ### File: `src/components/cases/CaseForm.tsx`
 
-1. **Add client selector at the top of the form** (before the Case Identification card, around line 115):
-   - Render the `ClientSelector` / `SearchableClientSelector` as a standalone field with a label "Select Client Name" and required marker
-   - Include the existing "Add New Client" shortcut
-   - If `contextClientId` is provided, show the `ContextBadge` instead (existing behavior preserved)
+1. **Lines 233-244**: Remove the "Generated Case Number" `Input` and format hint `<p>` tag. The `formData.caseNumber` continues to be generated and saved in the backend -- just not shown on screen.
 
-2. **Remove client selector from Section 4 (Assignment)** (around lines 354-379):
-   - Remove the client selector block from the Assignment card
-   - Keep only the "Assigned To" `EmployeeSelector` in that section
+2. **Lines 286-369**: Remove the entire "Timeline and Compliance" `Card` section (Notice Date, Reply Due Date). These fields remain in `CaseFormData` for backward compatibility and will default to empty strings.
 
-3. **No changes to logic or data flow** -- same `formData.clientId`, same `onValueChange`, same `onAddNewClient` callback. Only the render position changes.
+3. **Lines 422-427**: Change the `CardTitle` from `"Legal Stage & Forum"` to `"Case Lifecycle Stage"`.
 
-### Files to Modify
+4. **Lines 556-641**: Remove the entire "Financial Details" `Card` section (Period, Tax Demand, Interest, Penalty, Total).
 
-| File | Change |
-|------|--------|
-| `src/components/cases/CaseForm.tsx` | Move client selector from Assignment section to top of form |
+5. **Lines 643-801**: Remove the entire "Additional Notice Information" `Card` section (Notice Type, Section Invoked, Financial Year, Authority, City, Specific Officer).
 
-No database changes. Pure UI repositioning.
+6. **Lines 803-844**: Remove the entire "Jurisdiction Details" `Card` section (GST Commissionerate, Office Location).
+
+7. **Lines 846-960**: Remove the "Order and Appeal Milestones" conditional `Card` section (Order Date, Received Date, Impugned Order, Appeal Filed). This detailed information belongs in the stage workflow, not initial case creation.
+
+8. **Unused imports**: Remove `Clock`, `DollarSign`, `MapPin` icons and `useStatutoryDeadlines`, `DeadlineStatusBadge`, `StandardDateInput`, `addDays`, `format` imports if no longer used after removals. Keep `getDaysUntilDue` helper only if still referenced.
+
+### No database changes needed
+All removed fields remain in `CaseFormData` type for backward compatibility. They simply default to empty/zero and are populated later via "Add Notice".
+
