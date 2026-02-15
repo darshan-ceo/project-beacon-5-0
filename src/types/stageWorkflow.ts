@@ -42,6 +42,13 @@ export interface StageNotice {
   workflow_step: NoticeWorkflowStep;
 }
 
+export interface DemandBreakdown {
+  igst: number;
+  cgst: number;
+  sgst: number;
+  cess: number;
+}
+
 export interface CreateStageNoticeInput {
   stage_instance_id?: string;
   case_id: string;
@@ -59,6 +66,7 @@ export interface CreateStageNoticeInput {
   offline_reference_no?: string;
   issuing_authority?: string;
   issuing_designation?: string;
+  officer_name?: string;
   tax_period_start?: string;
   tax_period_end?: string;
   financial_year?: string;
@@ -68,6 +76,9 @@ export interface CreateStageNoticeInput {
   tax_applicable?: boolean;
   interest_applicable?: boolean;
   penalty_applicable?: boolean;
+  tax_breakdown?: DemandBreakdown;
+  interest_breakdown?: DemandBreakdown;
+  penalty_breakdown?: DemandBreakdown;
   workflow_step?: NoticeWorkflowStep;
 }
 
@@ -85,6 +96,7 @@ export interface UpdateStageNoticeInput {
   offline_reference_no?: string;
   issuing_authority?: string;
   issuing_designation?: string;
+  officer_name?: string;
   tax_period_start?: string;
   tax_period_end?: string;
   financial_year?: string;
@@ -94,6 +106,9 @@ export interface UpdateStageNoticeInput {
   tax_applicable?: boolean;
   interest_applicable?: boolean;
   penalty_applicable?: boolean;
+  tax_breakdown?: DemandBreakdown;
+  interest_breakdown?: DemandBreakdown;
+  penalty_breakdown?: DemandBreakdown;
   workflow_step?: NoticeWorkflowStep;
 }
 
