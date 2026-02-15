@@ -121,6 +121,28 @@ export const CaseManagement: React.FC = () => {
     caseData: null
   });
 
+  // Bulk fetch: earliest stage_instance per case (start level)
+  const [startStageMap, setStartStageMap] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    const caseIds = state.cases.map(c => c.id);
+    if (caseIds.length === 0) return;
+    supabase
+      .from('stage_instances')
+      .select('case_id, stage_key, started_at')
+      .in('case_id', caseIds)
+      .order('started_at', { ascending: true })
+      .then(({ data }) => {
+        if (!data) return;
+        const map = new Map<string, string>();
+        for (const row of data) {
+          if (!map.has(row.case_id)) {
+            map.set(row.case_id, normalizeStage(row.stage_key));
+          }
+        }
+        setStartStageMap(map);
+      });
+  }, [state.cases.length]);
+
   // Track which cases have their Quick Actions expanded (session persistence)
   const [expandedQuickActions, setExpandedQuickActions] = useState<Set<string>>(() => {
     try {
@@ -1205,12 +1227,30 @@ export const CaseManagement: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Row 2: Unified Stage Progress Line */}
+                      {/* Row 2: Start Level → Current Level + Progress + Demand */}
                       <div className="flex items-center gap-2 mt-2">
                         <Scale className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                        <span className="text-sm font-medium min-w-[90px]">{caseItem.currentStage}</span>
+                        <span className="text-sm font-medium min-w-fit whitespace-nowrap">
+                          {(() => {
+                            const startStage = startStageMap.get(caseItem.id);
+                            if (startStage && startStage !== caseItem.currentStage) {
+                              return <>{startStage} <ArrowRight className="inline h-3 w-3 mx-0.5" /> {caseItem.currentStage}</>;
+                            }
+                            return caseItem.currentStage;
+                          })()}
+                        </span>
                         <Progress value={getStageProgress(caseItem.currentStage)} className="h-1.5 flex-1" />
-                        <span className="text-xs text-muted-foreground">{getStageIndex(caseItem.currentStage)}/6</span>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">{getStageIndex(caseItem.currentStage)}/6</span>
+                        {(caseItem.totalDemand || caseItem.taxDemand) && (
+                          <>
+                            <span className="text-muted-foreground/50">|</span>
+                            <span className="text-xs font-semibold text-destructive whitespace-nowrap">
+                              ₹{(((caseItem.totalDemand || caseItem.taxDemand || 0) >= 10000000)
+                                ? ((caseItem.totalDemand || caseItem.taxDemand || 0) / 10000000).toFixed(1) + 'Cr'
+                                : ((caseItem.totalDemand || caseItem.taxDemand || 0) / 100000).toFixed(1) + 'L')}
+                            </span>
+                          </>
+                        )}
                       </div>
 
                       {/* Row 3: Consolidated Meta Row */}
