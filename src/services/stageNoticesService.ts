@@ -86,6 +86,13 @@ class StageNoticesService {
 
       if (!profile) throw new Error('User profile not found');
 
+      // Store officer_name and breakdowns in metadata
+      const metadata = { ...(input.metadata || {}) };
+      if (input.officer_name) metadata.officer_name = input.officer_name;
+      if (input.tax_breakdown) metadata.tax_breakdown = input.tax_breakdown;
+      if (input.interest_breakdown) metadata.interest_breakdown = input.interest_breakdown;
+      if (input.penalty_breakdown) metadata.penalty_breakdown = input.penalty_breakdown;
+
       const { data, error } = await supabase
         .from('stage_notices')
         .insert({
@@ -101,7 +108,7 @@ class StageNoticesService {
           status: input.status || 'Received',
           is_original: input.is_original || false,
           documents: input.documents || [],
-          metadata: input.metadata || {},
+          metadata,
           created_by: user.id,
           // New fields
           offline_reference_no: input.offline_reference_no || null,
@@ -157,7 +164,15 @@ class StageNoticesService {
       if (input.section_invoked !== undefined) updateData.section_invoked = input.section_invoked;
       if (input.status !== undefined) updateData.status = input.status;
       if (input.documents !== undefined) updateData.documents = input.documents;
-      if (input.metadata !== undefined) updateData.metadata = input.metadata;
+      // Merge officer_name and breakdowns into metadata
+      if (input.metadata !== undefined || input.officer_name !== undefined || input.tax_breakdown !== undefined || input.interest_breakdown !== undefined || input.penalty_breakdown !== undefined) {
+        const meta = { ...(input.metadata || {}) };
+        if (input.officer_name !== undefined) meta.officer_name = input.officer_name;
+        if (input.tax_breakdown !== undefined) meta.tax_breakdown = input.tax_breakdown;
+        if (input.interest_breakdown !== undefined) meta.interest_breakdown = input.interest_breakdown;
+        if (input.penalty_breakdown !== undefined) meta.penalty_breakdown = input.penalty_breakdown;
+        updateData.metadata = meta;
+      }
       // New fields
       if (input.offline_reference_no !== undefined) updateData.offline_reference_no = input.offline_reference_no;
       if (input.issuing_authority !== undefined) updateData.issuing_authority = input.issuing_authority;
