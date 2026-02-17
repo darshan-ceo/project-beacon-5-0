@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.database-dump]
 verify_jwt = true
+
+[functions.download-dump]
+verify_jwt = true
