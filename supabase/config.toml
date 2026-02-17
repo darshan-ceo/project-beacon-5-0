@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.notice-ocr-pdf]
 verify_jwt = false
+
+[functions.database-dump]
+verify_jwt = true
