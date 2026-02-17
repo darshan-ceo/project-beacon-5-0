@@ -1,104 +1,73 @@
 
+# Full Database Dump to Storage Bucket
 
-# Enhance Add Notice Modal: Issuing Authority & Demand Breakdown
+## What This Does
+Creates a backend function that exports all 76 tables as a single JSON file and saves it to the existing `import-exports` storage bucket.
 
-## Change 1: Issuing Authority Section Reorder
+## Approach
 
-Currently the Issuing Authority section shows:
-- Authority Name (dropdown)
-- Officer Designation (text input)
+### Step 1: Create Edge Function `database-dump`
 
-**New layout** -- three fields displayed in priority order:
+A new backend function at `supabase/functions/database-dump/index.ts` that:
 
-| Field | Type | Notes |
-|-------|------|-------|
-| Officer Name | Text input | New field -- name of the specific officer |
-| Officer Designation | Text input (existing) | Kept as-is |
-| Authority Name | Dropdown (existing) | Moved below, relabeled to "Officer Details / Authority" for clarity |
+1. Connects to the database using the service role key (bypasses RLS to get all tenant data)
+2. Iterates through all public schema tables
+3. Queries each table with pagination (handling the 1000-row limit)
+4. Builds a JSON object: `{ table_name: [rows...], ... }`
+5. Includes metadata: timestamp, row counts per table, total rows
+6. Uploads the resulting JSON file to the `import-exports` bucket with path `dumps/full-dump-{timestamp}.json`
+7. Returns the file path and summary statistics
 
-The fields will be arranged as:
-```text
-Row 1: [Officer Name        ] [Officer Designation    ]
-Row 2: [Authority Name (dropdown)                      ]
+### Step 2: Security
+
+- The function will require authentication (valid JWT)
+- Only users with `admin` role can trigger a dump
+- The dump file is stored in the private `import-exports` bucket (not publicly accessible)
+
+### Output Format
+
+```json
+{
+  "metadata": {
+    "exported_at": "2026-02-16T20:30:00Z",
+    "environment": "production",
+    "total_tables": 76,
+    "total_rows": 2800,
+    "tables_summary": {
+      "audit_log": { "rows": 1290, "columns": 11 },
+      "cases": { "rows": 13, "columns": 48 }
+    }
+  },
+  "data": {
+    "tenants": [...],
+    "profiles": [...],
+    "employees": [...],
+    "clients": [...],
+    "cases": [...],
+    "tasks": [...],
+    "documents": [...],
+    "hearings": [...]
+  }
+}
 ```
 
-## Change 2: Demand Details with IGST/CGST/SGST/CESS Breakdown Popups
+### Step 3: Trigger and Download
 
-Each of the three demand fields (Tax Amount, Interest Amount, Penalty Amount) will become **clickable fields** that open a small popup dialog showing a breakdown into IGST, CGST, SGST, and CESS.
+After the function is deployed, you can:
+1. Call it from the app (or I can add a button in Settings/Admin)
+2. Download the JSON file from the `import-exports` bucket
 
-### How It Works
+## Files to Create/Modify
 
-1. Each amount field displays the total (sum of IGST + CGST + SGST + CESS) as read-only with a "Click to enter breakdown" placeholder
-2. Clicking the field opens a Dialog with four input fields: IGST, CGST, SGST, CESS
-3. The dialog shows a computed Total at the bottom
-4. "Save Breakdown" writes the sum back to the parent field and stores the individual components
-5. The main form Total Demand = Tax + Interest + Penalty (unchanged logic)
-
-### UI Reference (from screenshot)
-```text
-+---------------------------------+
-| Tax Amount (*) Breakdown    [X] |
-|                                 |
-| IGST (Rs)        CGST (Rs)     |
-| [    0    ]      [    0    ]    |
-|                                 |
-| SGST (Rs)        CESS (Rs)     |
-| [    0    ]      [    0    ]    |
-| ________________________________|
-| Total                   Rs 0.00 |
-| [Save Breakdown]  [Cancel]      |
-+---------------------------------+
-```
-
-## Technical Plan
-
-### File: `src/types/stageWorkflow.ts`
-- Add breakdown fields to `CreateStageNoticeInput` and `UpdateStageNoticeInput`:
-  - `tax_breakdown?: { igst: number; cgst: number; sgst: number; cess: number }`
-  - `interest_breakdown?: { igst: number; cgst: number; sgst: number; cess: number }`
-  - `penalty_breakdown?: { igst: number; cgst: number; sgst: number; cess: number }`
-
-### File: `src/components/modals/AddNoticeModal.tsx`
-
-1. **Add `officer_name` to formData state** (line 82-106) and to hydration logic (line 128-173)
-
-2. **Reorder Issuing Authority section** (lines 431-479):
-   - Row 1: Officer Name (new text input) + Officer Designation (existing)
-   - Row 2: Authority Name dropdown (existing, full width)
-
-3. **Add breakdown state** for each demand type:
-   ```typescript
-   const [taxBreakdown, setTaxBreakdown] = useState({ igst: 0, cgst: 0, sgst: 0, cess: 0 });
-   const [interestBreakdown, setInterestBreakdown] = useState({ igst: 0, cgst: 0, sgst: 0, cess: 0 });
-   const [penaltyBreakdown, setPenaltyBreakdown] = useState({ igst: 0, cgst: 0, sgst: 0, cess: 0 });
-   const [activeBreakdown, setActiveBreakdown] = useState<'tax' | 'interest' | 'penalty' | null>(null);
-   ```
-
-4. **Replace each amount Input** (lines 584-682) with a clickable field that:
-   - Shows the total amount (read-only display)
-   - On click, sets `activeBreakdown` to open the breakdown dialog
-   - Keeps the "Applicable" checkbox alongside
-
-5. **Add a reusable Breakdown Dialog** (using the existing Dialog component):
-   - Title: "{Type} Amount Breakdown" (e.g., "Tax Amount Breakdown")
-   - 2x2 grid: IGST, CGST, SGST, CESS inputs
-   - Computed total shown below
-   - "Save Breakdown" button sums the four values and writes to the parent amount field
-   - "Cancel" button discards changes
-
-6. **Update handleSubmit** (line 243-268): Include `officer_name` and breakdown objects in the saved input, stored in metadata or as new fields.
-
-### File: `src/services/stageNoticesService.ts`
-- Pass through `officer_name` and breakdown data when creating/updating notices (store breakdowns in metadata JSONB field for now to avoid a migration).
-
-### Files to Modify
-
-| File | Change |
+| File | Action |
 |------|--------|
-| `src/components/modals/AddNoticeModal.tsx` | Reorder authority fields, add officer name, add breakdown popup for all 3 demands |
-| `src/types/stageWorkflow.ts` | Add `officer_name` and breakdown types to input interfaces |
-| `src/services/stageNoticesService.ts` | Pass through new fields during create/update |
+| `supabase/functions/database-dump/index.ts` | Create -- edge function that queries all tables and uploads JSON to storage |
 
-### No database migration needed
-The `officer_name` and breakdown data will be stored in the existing `metadata` JSONB column on `stage_notices`, keeping this change non-invasive.
+## No Database Changes
+No migrations needed. Uses existing `import-exports` bucket and existing service role key secret.
 
+## Important Notes
+- The dump runs with service role privileges so it captures ALL tenant data across all tables
+- The 1000-row Supabase query limit is handled by paginating through larger tables (audit_log has ~1,290 rows)
+- Sensitive auth data (passwords, tokens) from `auth.users` is NOT included -- only `public` schema tables
+- File size estimate: ~2-5 MB for current data volume
