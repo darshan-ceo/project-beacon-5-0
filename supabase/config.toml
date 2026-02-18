@@ -71,3 +71,6 @@ verify_jwt = true
 
 [functions.download-dump]
 verify_jwt = true
+
+[functions.export-sql-dump]
+verify_jwt = true
