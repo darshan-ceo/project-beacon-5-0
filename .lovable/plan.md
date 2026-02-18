@@ -1,107 +1,55 @@
 
 
-# Create `export-sql-dump` Edge Function
+# Generate Consolidated `master-schema.sql`
 
-## Purpose
+## What This Does
 
-Generate a complete `.sql` file with INSERT statements for all production data, so you can download it and run it on any local PostgreSQL database to get a full working copy.
+Combine all 148 migration files from `supabase/migrations/` into a single `master-schema.sql` file in the project root. This file can be downloaded and run on any PostgreSQL database to recreate the entire Beacon schema (tables, functions, triggers, RLS policies, indexes -- everything).
 
-## What It Does
+## Approach
 
-The function will:
+Since there are 148 migration files, I will:
 
-1. Authenticate the caller (admin/partner only -- same as existing `database-dump`)
-2. Fetch all rows from all 76 tables using paginated queries
-3. Convert each row into a proper SQL `INSERT INTO ... VALUES (...)` statement
-4. Handle all PostgreSQL data types correctly (strings, NULLs, UUIDs, JSONB, arrays, booleans, timestamps)
-5. Order tables by foreign key dependencies (tenants first, then profiles, then cases, etc.)
-6. Wrap everything in a transaction with triggers disabled for clean import
-7. Upload the `.sql` file to the `import-exports` bucket
-8. Automatically generate a signed download URL (valid 1 hour) in the response
+1. Read all 148 `.sql` files in chronological order (they are already named with timestamps)
+2. Concatenate them into a single `master-schema.sql` file with section headers showing which migration each block came from
+3. Place the file at the project root for easy download
 
-## Output File Format
+## Output Format
 
 ```sql
--- Beacon Database Data Export
--- Generated: 2026-02-18T...
--- Tables: 76 | Total Rows: XXXX
+-- =============================================
+-- Beacon Database - Master Schema
+-- Generated: 2026-02-18
+-- Migrations: 148 files combined
+-- =============================================
 
-BEGIN;
-SET session_replication_role = 'replica'; -- Disable triggers during import
+-- Migration: 20251102124158
+CREATE TABLE tenants (...);
 
--- Table: tenants (X rows)
-INSERT INTO public.tenants (id, name, ...) VALUES ('uuid-...', 'Tenant Name', ...);
+-- Migration: 20251102124250
+CREATE TABLE profiles (...);
 
--- Table: profiles (X rows)
-INSERT INTO public.profiles (id, tenant_id, ...) VALUES ('uuid-...', 'uuid-...', ...);
-
--- ... all 76 tables in dependency order ...
-
-SET session_replication_role = 'origin'; -- Re-enable triggers
-COMMIT;
+-- ... all 148 migrations in order ...
 ```
 
-## How to Use Locally
-
-After downloading the file:
+## How to Use
 
 ```bash
-# If you already have the schema set up (from migrations):
-psql -U postgres -d beacon_local -f data-dump-2026-02-18.sql
-
-# That's it - all your production data is now in your local database
+createdb beacon_local
+psql -U postgres -d beacon_local -f master-schema.sql
+psql -U postgres -d beacon_local -f sql-dump-2026-02-18.sql
+# Full production replica ready
 ```
 
 ## Files Changed
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `supabase/functions/export-sql-dump/index.ts` | Create | New function that generates SQL INSERT dump |
-| `supabase/config.toml` | Update | Register function with `verify_jwt = true` |
+| `master-schema.sql` | Create | Single consolidated schema file from all 148 migrations |
 
-## Technical Details
+## Notes
 
-### Table Dependency Order
-
-Tables are ordered so parent tables are inserted before child tables:
-
-1. `tenants` -- no dependencies
-2. `profiles`, `employees` -- depend on tenants
-3. `clients`, `courts`, `matter_types`, `issue_types` -- depend on tenants
-4. `cases` -- depends on clients, employees
-5. `tasks`, `hearings`, `documents` -- depend on cases
-6. All remaining tables
-
-### SQL Value Escaping
-
-- **Strings**: Single quotes escaped (`O'Brien` becomes `'O''Brien'`)
-- **NULL**: Literal `NULL`
-- **Booleans**: `TRUE` / `FALSE`
-- **Numbers**: Raw numeric values
-- **UUIDs**: Quoted strings `'550e8400-...'`
-- **JSONB/Objects**: `'{"key":"value"}'::jsonb`
-- **Arrays**: `ARRAY['a','b']` or `'{a,b}'`
-- **Timestamps**: `'2026-02-18T10:30:00.000Z'`
-
-### Auth Pattern
-
-Identical to existing `database-dump` function:
-- Verifies JWT via user client
-- Checks `user_roles` table for `admin` or `partner` role
-- Uses service role client for data access
-
-### Response
-
-```json
-{
-  "success": true,
-  "signedUrl": "https://...signed-url-valid-1-hour...",
-  "file_path": "dumps/sql-dump-2026-02-18T...",
-  "total_tables": 76,
-  "total_rows": 1234,
-  "tables_summary": { "tenants": { "rows": 2 }, "cases": { "rows": 150 }, ... }
-}
-```
-
-After deployment, I will call the function and give you the direct download link.
+- No backend changes needed -- this is a static file generated from existing migrations
+- The file will be large but is a one-time reference artifact
+- Migrations are applied in timestamp order, matching how they were originally executed
 
