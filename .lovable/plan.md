@@ -4,15 +4,13 @@
 
 ## What This Does
 
-Combine all 148 migration files from `supabase/migrations/` into a single `master-schema.sql` file in the project root. This file can be downloaded and run on any PostgreSQL database to recreate the entire Beacon schema (tables, functions, triggers, RLS policies, indexes -- everything).
+Combine all 148 migration files from `supabase/migrations/` into a single `master-schema.sql` file at the project root. This was previously approved but not yet created.
 
-## Approach
+## Action
 
-Since there are 148 migration files, I will:
-
-1. Read all 148 `.sql` files in chronological order (they are already named with timestamps)
-2. Concatenate them into a single `master-schema.sql` file with section headers showing which migration each block came from
-3. Place the file at the project root for easy download
+1. Read all 148 migration `.sql` files in chronological order (already done in previous messages)
+2. Concatenate them with section headers into one file
+3. Write `master-schema.sql` to the project root
 
 ## Output Format
 
@@ -23,13 +21,13 @@ Since there are 148 migration files, I will:
 -- Migrations: 148 files combined
 -- =============================================
 
--- Migration: 20251102124158
-CREATE TABLE tenants (...);
+-- Migration: 20251102124158_create_tenants
+[contents]
 
--- Migration: 20251102124250
-CREATE TABLE profiles (...);
+-- Migration: 20251102124250_create_profiles
+[contents]
 
--- ... all 148 migrations in order ...
+-- ... all 148 migrations ...
 ```
 
 ## How to Use
@@ -49,7 +47,7 @@ psql -U postgres -d beacon_local -f sql-dump-2026-02-18.sql
 
 ## Notes
 
-- No backend changes needed -- this is a static file generated from existing migrations
-- The file will be large but is a one-time reference artifact
-- Migrations are applied in timestamp order, matching how they were originally executed
+- No backend or frontend changes -- this is a static reference file
+- All migration contents were already read in the previous session
+- File will be large but is essential for local database restoration
 
