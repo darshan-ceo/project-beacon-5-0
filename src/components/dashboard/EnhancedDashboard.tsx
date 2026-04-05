@@ -14,7 +14,7 @@ import { Settings, RefreshCw, LayoutGrid } from 'lucide-react';
 import { PageHelp } from '@/components/help/PageHelp';
 import { InlineHelp } from '@/components/help/InlineHelp';
 import { DashboardWidget } from './DashboardWidget';
-import { DashboardStatsBar } from './DashboardStatsBar';
+
 import { toast } from 'sonner';
 import { CustomizeDashboard } from './CustomizeDashboard';
 import { filterTilesByRBAC, getDefaultTiles, DashboardTile } from '@/utils/rbacHelper';
@@ -229,15 +229,6 @@ export const EnhancedDashboard: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* Stats Bar - KPI Cards */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        data-tour="kpi-cards"
-      >
-        <DashboardStatsBar />
-      </motion.div>
 
       {/* Dashboard Widgets with Drag-and-Drop */}
       <DndContext
