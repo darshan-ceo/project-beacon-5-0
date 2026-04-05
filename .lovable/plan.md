@@ -1,29 +1,14 @@
 
 
-# Append Remaining Migrations to `master-schema.sql`
+## Plan: Remove DashboardStatsBar from Practice Analytics
 
-## What This Does
+The horizontal stats bar showing "Active Cases: 9, Active Clients: 24, Pending Tasks: 15, Upcoming Hearings: 0" duplicates information already displayed in the widget cards below it (Open Cases, Active Clients, etc.).
 
-The current `master-schema.sql` contains the foundational schema (core tables, enums, RLS, indexes). This plan will append all remaining migration content that was not included in the initial write, completing the full 148-migration consolidation.
+### Change
 
-## Steps
+**File: `src/components/dashboard/EnhancedDashboard.tsx`**
+- Remove the `DashboardStatsBar` import (line 17)
+- Remove the entire `motion.div` block wrapping `<DashboardStatsBar />` (lines 232-240)
 
-1. Read the current `master-schema.sql` to identify which migrations are already included
-2. Read the remaining migration files from `supabase/migrations/` that are not yet in the file
-3. Append them in chronological order with section headers to the existing file
-
-## Result
-
-A complete `master-schema.sql` containing all 148 migrations -- the full database definition including:
-- Core tables and enums (already present)
-- All subsequent schema changes, new tables, and columns
-- Additional RLS policies and triggers
-- Database functions and views
-- Analytics, workflow, and SaaS-related migrations
-
-## Files Changed
-
-| File | Action |
-|------|--------|
-| `master-schema.sql` | Update -- append remaining migrations |
+No other files need changes. The `DashboardStatsBar.tsx` component file can remain in the codebase (unused) or be deleted for cleanliness.
 
